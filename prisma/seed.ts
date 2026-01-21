@@ -329,6 +329,81 @@ async function main() {
   }
   console.log(`Created ${ticketData.length} completed tickets`);
 
+  // Jobs data from Total Service Job Maintenance screenshot
+  const jobsData = [
+    { externalId: "210372", accountId: "475SEA***", accountTag: "475 SEAVIEW AVENUE", date: "2026-01-21", description: "REPLACE DOOR DETECTOR EDGE - CAR 5P652", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-21" },
+    { externalId: "210371", accountId: "475SEA***", accountTag: "475 SEAVIEW AVENUE", date: "2026-01-21", description: "CORRECT LEAKS - FLORINA 2", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-21" },
+    { externalId: "210370", accountId: "37E64THST***", accountTag: "37 EAST 64TH STREET", date: "2026-01-21", description: "2026 PERIODIC - 1P15788 #S1", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-01" },
+    { externalId: "210369", accountId: "475SEA***", accountTag: "475 SEAVIEW AVENUE", date: "2026-01-21", description: "CORRECT LEAKS - FLORINA 1", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-21" },
+    { externalId: "210368", accountId: "35E64THST****", accountTag: "35 EAST 64TH STREET", date: "2026-01-21", description: "2026 PERIODIC - 1P2655 #PE1", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-21" },
+    { externalId: "210367", accountId: "31W47***", accountTag: "31 WEST 47th STREET", date: "2026-01-21", description: "SHUTDOWN - WATER DAMAGE - 1/7/2026 - ELEVATOR 1P8391", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-21" },
+    { externalId: "210366", accountId: "75VAN*****", accountTag: "75 VANDERBILT AVE", date: "2026-01-21", description: "CAT 2026", type: "Annual", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-21" },
+    { externalId: "210365", accountId: "1160TEL***", accountTag: "1160 TELLER AVE. BRONX NY", date: "2026-01-21", description: "CAT 2026", type: "Annual", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-21" },
+    { externalId: "210364", accountId: "375PEARL***", accountTag: "375 PEARL STREET", date: "2026-01-21", description: "NC: HOIST CABLE SHORTENINGS CARS 7 AND 9", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-21" },
+    { externalId: "210363", accountId: "114FIFTHAVE***", accountTag: "114 FIFTH AVENUE", date: "2026-01-21", description: "014224195H - 1P3774 #P1 AND 1P3771 #P2", type: "Other", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-21" },
+    { externalId: "210362", accountId: "1010UND***", accountTag: "1010 UNDERHILL AVENUE", date: "2026-01-21", description: "CAT 2026", type: "Annual", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-21" },
+    { externalId: "210361", accountId: "612ALLERTON***", accountTag: "612 ALLERTON AVENUE", date: "2026-01-21", description: "CAT 2026", type: "Annual", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-21" },
+    { externalId: "210360", accountId: "43NWHI***", accountTag: "43 NORTH WHITE HORSE PIKE", date: "2026-01-21", description: "2026 ANNUAL PRESSURE TEST", type: "Annual", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-21" },
+    { externalId: "210359", accountId: "2999SCH***", accountTag: "2999 SCHURZ AVENUE", date: "2026-01-21", description: "REPLACE PISTON SEAL #2P10423", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-27" },
+    { externalId: "210358", accountId: "1CAROWPL***", accountTag: "1 CAROW PLACE", date: "2026-01-21", description: "2026 ANNUAL INSPECTION", type: "Annual", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-21" },
+    { externalId: "210357", accountId: "445GOLDST***", accountTag: "445 GOLD STREET", date: "2026-01-21", description: "R&R REPAIR BRAKE SWITCHES - CITY ID# 3P13802", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-21" },
+    { externalId: "210356", accountId: "400W119***", accountTag: "400 WEST 119TH ST. NYC**#3", date: "2026-01-21", description: "2026 PERIODIC 1P14293 #P3-C", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210355", accountId: "400W119***", accountTag: "400 WEST 119TH ST. NYC**#3", date: "2026-01-21", description: "2026 PERIODIC 1P14291 #P1-A", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210354", accountId: "619W113ST", accountTag: "CUA-619W113ST", date: "2026-01-21", description: "2026 PERIODIC 1P47576 #179", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210353", accountId: "511W114ST", accountTag: "CUA:JOHN,JAY", date: "2026-01-21", description: "2026 PERIODIC 1F202#112", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210352", accountId: "575BRO***", accountTag: "575 BROADWAY", date: "2026-01-21", description: "2025 PERIODIC - 1P42026 #P1", type: "Other", status: "Hold", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210351", accountId: "411W116ST", accountTag: "CUA-WIEN HALL", date: "2026-01-21", description: "N/C - HOIST CABLE SHORTENING CARS 20 & 21", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-17" },
+    { externalId: "210350", accountId: "2900BROADWAY", accountTag: "CUA-BROADWAY RESIDENTIAL CO-OP", date: "2026-01-21", description: "N/C - HOIST CABLE SHORTENING CARS 142 & 143", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-17" },
+    { externalId: "210349", accountId: "3030BROADWAY", accountTag: "CUA-DODGE NGYM", date: "2026-01-21", description: "N/C - REVIEW SEAL - CAR 32", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-17" },
+    { externalId: "210348", accountId: "96-05HORACE****", accountTag: "96-05 HORACE HARDING EXPRESSWAY", date: "2026-01-21", description: "NC ADJUST BRAKE - CAR 2", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-17" },
+    { externalId: "210347", accountId: "3227BROADWAY", accountTag: "CUM:JEROME L GREEN SCIENCE CENTER", date: "2026-01-21", description: "VIO-FTF-VT-CAT1-201812-00003208- 1W6961", type: "Violations", status: "Completed", template: "Filing Fee", dueDate: "2026-01-21" },
+    { externalId: "210346", accountId: "3600RT12***", accountTag: "3600 ROUTE 112", date: "2026-01-21", description: "2026 SEMI ANNUAL INSPECTION", type: "Annual", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-21" },
+    { externalId: "210345", accountId: "29-33LECOUNT***", accountTag: "29-33 LECOUNT PLACE", date: "2026-01-21", description: "2025 ANNUAL RESULTS - LETTER", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-21" },
+    { externalId: "210344", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-21", description: "2026 PERIODIC - 1P15742 #CAR 14", type: "Other", status: "Hold", template: "Inspection / Correction", dueDate: "2026-01-21" },
+    { externalId: "210343", accountId: "29-33LECOUNT***", accountTag: "29-33 LECOUNT PLACE", date: "2026-01-20", description: "NC REPLACE HYDRAULIC PISTON SEALS - CAR 4", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-20" },
+    { externalId: "210342", accountId: "59MAIDEN***", accountTag: "59 MAIDEN LANE", date: "2026-01-20", description: "NC: HOIST CABLE SHORTENING CARS 16 AND 18", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-17" },
+    { externalId: "210341", accountId: "224HAM***", accountTag: "224 HAMBURG TPK - WAYNE NJ", date: "2026-01-20", description: "REPLACE DOOR OPERATOR BOARD - CAR 1", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-17" },
+    { externalId: "210340", accountId: "MTALIRRRESC***", accountTag: "MTA LIRR ESCALATORS", date: "2026-01-20", description: "MTA LIRR ESCALATORS - PENN STATION - MATERIAL ONLY", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-17" },
+    { externalId: "210339", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P3579 #CAR 17", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210338", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15741 #CAR 13", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210337", accountId: "200USHIGHWAY1**", accountTag: "200 US HIGHWAY 1", date: "2026-01-20", description: "REPLACE FREIGHT DOOR GUIDE SHOES - CAR 17", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-20" },
+    { externalId: "210336", accountId: "279BUTLERST***", accountTag: "279 BUTLER STREET", date: "2026-01-20", description: "CAT 2026", type: "Annual", status: "Open", template: "Annual 2026 Billable", dueDate: "2026-01-20" },
+    { externalId: "210335", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15740 #CAR 12", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210334", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15739 #CAR 11", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-20" },
+    { externalId: "210333", accountId: "200USHIGHWAY1**", accountTag: "200 US HIGHWAY 1", date: "2026-01-20", description: "REPLACE DOOR DETECTOR EDGE - CAR 13", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-20" },
+    { externalId: "210332", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15738 #CAR 10", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-20" },
+    { externalId: "210331", accountId: "270PARKAVE*****", accountTag: "270 PARK AVENUE", date: "2026-01-20", description: "CAT 2026 N/C", type: "Annual", status: "Open", template: "Annual 2026 Non-Billable", dueDate: "2026-01-15" },
+    { externalId: "210330", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15737 #CAR 09", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210329", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15736 #CAR 08", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210328", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15735 #CAR 07", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210327", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15734 #CAR 06", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210326", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15733 #CAR 05", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+    { externalId: "210325", accountId: "667MADISON***", accountTag: "667 MADISON AVENUE", date: "2026-01-20", description: "S/D NC: COMP CABLE SHORTENING CAR 5", type: "NEW REPAIR", status: "Open", template: "NEW REPAIRS", dueDate: "2026-01-17" },
+    { externalId: "210324", accountId: "3COL***", accountTag: "3 COLUMBUS CIRCLE, LLC", date: "2026-01-20", description: "2026 PERIODIC - 1P15732 #CAR 04", type: "Other", status: "Open", template: "Inspection / Correction", dueDate: "2026-01-17" },
+  ];
+
+  // Create jobs
+  for (const jobData of jobsData) {
+    const randomPremisesId = premisesIds[Math.floor(Math.random() * premisesIds.length)];
+    const randomCustomerId = customerIds[Math.floor(Math.random() * customerIds.length)];
+
+    await prisma.job.create({
+      data: {
+        externalId: jobData.externalId,
+        jobName: jobData.description,
+        jobDescription: jobData.description,
+        date: new Date(jobData.date),
+        dueDate: new Date(jobData.dueDate),
+        type: jobData.type,
+        status: jobData.status,
+        template: jobData.template,
+        premisesId: randomPremisesId,
+        customerId: randomCustomerId,
+      },
+    });
+  }
+  console.log(`Created ${jobsData.length} jobs`);
+
   console.log("Database seeded successfully!");
 }
 
