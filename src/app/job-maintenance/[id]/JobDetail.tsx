@@ -492,46 +492,239 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
         )}
 
         {activeTab === "TFM Custom" && (
-          <div className="text-[11px] text-[#808080]">TFM Custom fields - Coming soon</div>
+          <fieldset className={fieldsetClass} style={{ maxWidth: "400px" }}>
+            <legend className={legendClass}>TFM Custom</legend>
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="flex items-center">
+                <label className={labelClass} style={{ width: "80px" }}>Custom 1</label>
+                <input type="text" className={`${inputClass} w-[200px]`} />
+              </div>
+              <div className="flex items-center">
+                <label className={labelClass} style={{ width: "80px" }}>Custom 2</label>
+                <input type="text" className={`${inputClass} w-[200px]`} />
+              </div>
+              <div className="flex items-center">
+                <label className={labelClass} style={{ width: "80px" }}>Custom 3</label>
+                <input type="text" className={`${inputClass} w-[200px]`} />
+              </div>
+              <div className="flex items-center">
+                <label className={labelClass} style={{ width: "80px" }}>Custom 4</label>
+                <input type="checkbox" className="ml-0" />
+              </div>
+              <div className="flex items-center">
+                <label className={labelClass} style={{ width: "80px" }}>Resident</label>
+                <input type="checkbox" className="ml-0" />
+              </div>
+            </div>
+          </fieldset>
         )}
 
         {activeTab === "Job Budgets" && (
-          <div className="text-[11px] text-[#808080]">Job Budgets - Coming soon</div>
+          <div className="flex gap-4">
+            {/* Revenue Items Table */}
+            <div className="flex-1">
+              <div className="text-[11px] font-bold text-[#000080] mb-1">Revenue Items ($)</div>
+              <div className="border border-[#808080] bg-white">
+                <table className="w-full text-[11px] border-collapse">
+                  <thead className="bg-[#f0f0f0]">
+                    <tr>
+                      <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">Description</th>
+                      <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium w-[60px]">Code</th>
+                      <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium w-[80px]">Budget</th>
+                      <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium w-[60px]">Percent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">Revenue</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]"></td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">$7,993.00</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">0.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Expense Items Table */}
+            <div className="flex-1">
+              <div className="text-[11px] font-bold text-[#000080] mb-1">Expense Items</div>
+              <div className="border border-[#808080] bg-white overflow-x-auto">
+                <table className="w-full text-[11px] border-collapse">
+                  <thead className="bg-[#f0f0f0]">
+                    <tr>
+                      <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">Description</th>
+                      <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium w-[50px]">Code</th>
+                      <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium w-[70px]">Materials</th>
+                      <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium w-[60px]">Mat Mod</th>
+                      <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium w-[50px]">Hours</th>
+                      <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium w-[60px]">Labor</th>
+                      <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium w-[60px]">Lab Mod</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">Labor</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">0</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right"></td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">$0.00</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">0.00</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">$0.00</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">$0.00</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">Materials</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">0</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">$7,993.00</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">$0.00</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">0.00</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">$0.00</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0] text-right">$0.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === "Custom/Remarks" && (
-          <div className="flex flex-col gap-4">
-            <fieldset className={fieldsetClass}>
+          <div className="flex gap-4">
+            {/* Custom fieldset */}
+            <fieldset className={fieldsetClass} style={{ minWidth: "280px" }}>
+              <legend className={legendClass}>Custom</legend>
+              <div className="flex flex-col gap-2 pt-1">
+                <div className="flex items-center">
+                  <label className={labelClass} style={{ width: "70px" }}>Custom 1</label>
+                  <input type="text" className={`${inputClass} w-[180px]`} />
+                </div>
+                <div className="flex items-center">
+                  <label className={labelClass} style={{ width: "70px" }}>Custom 2</label>
+                  <input type="text" className={`${inputClass} w-[180px]`} />
+                </div>
+                <div className="flex items-center">
+                  <label className={labelClass} style={{ width: "70px" }}>Custom 3</label>
+                  <input type="text" className={`${inputClass} w-[180px]`} />
+                </div>
+                <div className="flex items-center">
+                  <label className={labelClass} style={{ width: "70px" }}>Custom 4</label>
+                  <input type="text" className={`${inputClass} w-[180px]`} />
+                </div>
+                <div className="flex items-center">
+                  <label className={labelClass} style={{ width: "70px" }}>Custom 5</label>
+                  <input type="text" className={`${inputClass} w-[180px]`} />
+                </div>
+              </div>
+            </fieldset>
+
+            {/* Remarks fieldset */}
+            <fieldset className={`${fieldsetClass} flex-1`}>
               <legend className={legendClass}>Remarks</legend>
               <textarea
                 value={formData.sRemarks || ""}
                 onChange={(e) => onChange("sRemarks", e.target.value)}
-                className={`${inputClass} w-full h-24`}
-                placeholder="Job remarks..."
-              />
-            </fieldset>
-            <fieldset className={fieldsetClass}>
-              <legend className={legendClass}>Customer Remarks</legend>
-              <textarea
-                value={formData.customerRemarks || ""}
-                onChange={(e) => onChange("customerRemarks", e.target.value)}
-                className={`${inputClass} w-full h-24`}
-                placeholder="Customer remarks..."
+                className={`${inputClass} w-full h-[140px]`}
+                placeholder=""
               />
             </fieldset>
           </div>
         )}
 
         {activeTab === "Wage Categories" && (
-          <div className="text-[11px] text-[#808080]">Wage Categories - Coming soon</div>
+          <div className="flex flex-col gap-2">
+            {/* Header row with dropdown and buttons */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <label className="text-[11px]">Multiple Wage Categories</label>
+                <select className={`${selectClass} w-[100px]`}>
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 text-[11px] border border-[#808080] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+                  Add Wage Category
+                </button>
+                <button className="px-3 py-1 text-[11px] border border-[#808080] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+                  Remove Wage Category
+                </button>
+              </div>
+            </div>
+
+            {/* Wage Categories Table */}
+            <div className="border border-[#808080] bg-white flex-1">
+              <table className="w-full text-[11px] border-collapse">
+                <thead className="bg-[#f0f0f0]">
+                  <tr>
+                    <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">Wage Category</th>
+                    <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">GL Expense</th>
+                    <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">Type</th>
+                    <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium">Pay Rate</th>
+                    <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium">Cost Burden</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="px-2 py-1 border border-[#d0d0d0] h-[200px]" colSpan={5}></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
         {activeTab === "Deduction Cat." && (
-          <div className="text-[11px] text-[#808080]">Deduction Categories - Coming soon</div>
+          <div className="flex flex-col gap-2">
+            {/* Header row with dropdown and buttons */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <label className="text-[11px]">Multiple Deduction Categories</label>
+                <select className={`${selectClass} w-[100px]`}>
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 text-[11px] border border-[#808080] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+                  Add Deduction Category
+                </button>
+                <button className="px-3 py-1 text-[11px] border border-[#808080] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+                  Remove Deduction Category
+                </button>
+              </div>
+            </div>
+
+            {/* Deduction Categories Table */}
+            <div className="border border-[#808080] bg-white flex-1 overflow-x-auto">
+              <table className="w-full text-[11px] border-collapse">
+                <thead className="bg-[#f0f0f0]">
+                  <tr>
+                    <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">Deduction</th>
+                    <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">Based On</th>
+                    <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">Accrued On</th>
+                    <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium">Employee Rate</th>
+                    <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium">Employee Ceiling</th>
+                    <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium">GL Account</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="px-2 py-1 border border-[#d0d0d0] h-[200px]" colSpan={6}></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
         {activeTab === "Tech Alert" && (
-          <div className="text-[11px] text-[#808080]">Tech Alert - Coming soon</div>
+          <div className="flex flex-col gap-2">
+            <label className="text-[12px] font-bold">Tech Alert</label>
+            <textarea
+              className={`${inputClass} w-[400px] h-[250px]`}
+              placeholder=""
+            />
+          </div>
         )}
       </div>
 
