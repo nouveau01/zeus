@@ -23,13 +23,14 @@ export function TopNav() {
       <div className="flex items-center justify-between">
         {/* Logo and main nav */}
         <div className="flex items-center gap-4">
-          {/* Nouveau Logo */}
+          {/* ZEUS Logo */}
           <Link href="/" className="flex items-center gap-2 mr-4">
             <div className="flex gap-0.5">
               <div className="w-2 h-6 bg-red-500"></div>
               <div className="w-2 h-6 bg-yellow-400"></div>
               <div className="w-2 h-6 bg-blue-500"></div>
             </div>
+            <span className="font-bold text-lg text-[#032d60]">ZEUS</span>
           </Link>
 
           {/* Main navigation tabs */}

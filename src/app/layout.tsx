@@ -4,8 +4,8 @@ import { Sidebar } from "@/components/salesforce/Sidebar";
 import { TopNav } from "@/components/salesforce/TopNav";
 
 export const metadata: Metadata = {
-  title: "Nouveau Elevator | Salesforce",
-  description: "Field Service Management",
+  title: "ZEUS",
+  description: "ZEUS - Field Service Management",
 };
 
 export default function RootLayout({
