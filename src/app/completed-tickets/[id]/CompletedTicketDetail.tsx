@@ -927,14 +927,193 @@ function TicketInfoTab({
 }
 
 // ============================================
-// Tab 2: Materials/Custom (Placeholder)
+// Tab 2: Materials/Custom
 // ============================================
 function MaterialsCustomTab() {
+  const inputClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
+  const selectClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
+  const labelClass = "text-[11px] text-[#333]";
+  const fieldsetClass = "border border-[#808080] p-2 bg-white";
+  const legendClass = "text-[11px] px-1 bg-white font-bold";
+  const thClass = "px-2 py-1 text-left font-normal border border-[#a0a0a0] bg-[#f0f0f0] text-[11px]";
+  const tdClass = "px-2 py-1 border border-[#d0d0d0] text-[11px]";
+
   return (
-    <div className="flex items-center justify-center h-full">
-      <span className="text-[#808080] text-[14px]">
-        Materials/Custom tab - Coming soon
-      </span>
+    <div className="h-full overflow-auto p-1">
+      <div className="flex gap-4">
+        {/* Left Side - Tables */}
+        <div className="flex flex-col gap-3 w-[500px]">
+          {/* MATERIALS USED */}
+          <div>
+            <div className="font-bold text-[11px] mb-1">MATERIALS USED</div>
+            <div className="border border-[#a0a0a0] bg-white h-[120px] overflow-auto">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0">
+                  <tr>
+                    <th className={thClass} style={{ width: "25%" }}>Name</th>
+                    <th className={thClass} style={{ width: "10%" }}>Quan</th>
+                    <th className={thClass} style={{ width: "40%" }}>Desc</th>
+                    <th className={thClass} style={{ width: "10%" }}>Bill</th>
+                    <th className={thClass} style={{ width: "15%" }}>Phase</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* FLAT RATES */}
+          <div>
+            <div className="font-bold text-[11px] mb-1">FLAT RATES</div>
+            <div className="border border-[#a0a0a0] bg-white h-[100px] overflow-auto">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0">
+                  <tr>
+                    <th className={thClass} style={{ width: "25%" }}>Name</th>
+                    <th className={thClass} style={{ width: "50%" }}>Description</th>
+                    <th className={thClass} style={{ width: "25%" }}>Price Level</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* PURCHASE ORDERS */}
+          <div>
+            <div className="font-bold text-[11px] mb-1">PURCHASE ORDERS</div>
+            <div className="border border-[#a0a0a0] bg-white h-[100px] overflow-auto">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0">
+                  <tr>
+                    <th className={thClass} style={{ width: "15%" }}>PO #</th>
+                    <th className={thClass} style={{ width: "25%" }}>Vendor</th>
+                    <th className={thClass} style={{ width: "45%" }}>Description</th>
+                    <th className={thClass} style={{ width: "15%" }}>Received</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                    <td className={tdClass}>&nbsp;</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Custom Fields */}
+        <div className="flex flex-col gap-3 w-[320px]">
+          {/* Ticket Custom */}
+          <fieldset className={fieldsetClass}>
+            <legend className={legendClass}>Ticket Custom</legend>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[90px]`}>NII JOB#</label>
+                <input type="text" className={`${inputClass} flex-1`} />
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[90px]`}>300 COMM #</label>
+                <input type="text" className={`${inputClass} flex-1`} />
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[90px]`}>Custom3</label>
+                <input type="text" className={`${inputClass} flex-1`} />
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[90px]`}>Custom4</label>
+                <input type="text" className={`${inputClass} flex-1`} />
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[90px]`}>Custom5</label>
+                <input type="text" className={`${inputClass} flex-1`} />
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1 text-[11px]">
+                  <span className="w-[80px]">RMS Reviewed</span>
+                  <input type="checkbox" className="w-3 h-3" />
+                </label>
+                <label className="flex items-center gap-1 text-[11px]">
+                  <span>Rate Change</span>
+                  <input type="checkbox" className="w-3 h-3" />
+                </label>
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1 text-[11px]">
+                  <span className="w-[80px]">BIO</span>
+                  <input type="checkbox" className="w-3 h-3" />
+                </label>
+                <label className="flex items-center gap-1 text-[11px]">
+                  <span>Custom10</span>
+                  <input type="checkbox" className="w-3 h-3" />
+                </label>
+              </div>
+              <div className="flex items-center">
+                <label className="flex items-center gap-1 text-[11px]">
+                  <span className="w-[80px]">Cancelled / Dup</span>
+                  <input type="checkbox" className="w-3 h-3" />
+                </label>
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[90px]`}>Source</label>
+                <select className={`${selectClass} flex-1`}>
+                  <option value="Reference">Reference</option>
+                </select>
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[90px] text-blue-600`}>WITNESS</label>
+                <select className={`${selectClass} flex-1`}>
+                  <option value=""></option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          {/* TFM Ticket Custom */}
+          <fieldset className={fieldsetClass}>
+            <legend className={legendClass}>TFM Ticket Custom</legend>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <label className={`${labelClass} w-[90px]`}>Signature Name</label>
+                <input type="text" className={`${inputClass} flex-1`} />
+                <label className="flex items-center gap-1 text-[11px]">
+                  <span>P/T</span>
+                  <input type="checkbox" className="w-3 h-3" />
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className={`${labelClass} w-[90px]`}>Signature Email</label>
+                <input type="text" className={`${inputClass} flex-1`} />
+                <label className="flex items-center gap-1 text-[11px]">
+                  <span>LSD</span>
+                  <input type="checkbox" className="w-3 h-3" />
+                </label>
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[90px]`}>Custom3</label>
+                <input type="text" className={`${inputClass} flex-1`} />
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
     </div>
   );
 }
