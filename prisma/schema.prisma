@@ -1,0 +1,299 @@
+// Prisma Schema for Nouveau Elevator FSM
+// Replicating Salesforce Service Cloud structure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USERS
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      String   @default("User")
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdJobs    Job[]        @relation("CreatedByUser")
+  jobHistory     JobHistory[]
+  activities     Activity[]
+  files          File[]
+
+  @@map("users")
+}
+
+// ============================================
+// CUSTOMERS
+// ============================================
+
+model Customer {
+  id           String   @id @default(cuid())
+  name         String
+  accountNumber String?  @unique
+  phone        String?
+  email        String?
+  website      String?
+  type         String   @default("General") // General, Commercial, Bank, Churches, Clubs, Property Manage
+  isActive     Boolean  @default(true)
+  balance      Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  premises     Premises[]
+  jobs         Job[]
+
+  @@map("customers")
+}
+
+// ============================================
+// PREMISES (Addresses/Buildings)
+// ============================================
+
+model Premises {
+  id          String   @id @default(cuid())
+  name        String?
+  address     String
+  city        String?
+  state       String?
+  zipCode     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  jobs        Job[]
+  units       Unit[]
+
+  @@map("premises")
+}
+
+// ============================================
+// UNITS (Elevator Units at a Premises)
+// ============================================
+
+model Unit {
+  id          String   @id @default(cuid())
+  unitNumber  String
+  unitType    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  premisesId  String
+  premises    Premises @relation(fields: [premisesId], references: [id])
+  jobs        Job[]
+
+  @@map("units")
+}
+
+// ============================================
+// JOBS
+// ============================================
+
+model Job {
+  id              String    @id @default(cuid())
+
+  // Core Fields
+  jobName         String    // CA-103
+  externalId      String?   @unique
+  jobDescription  String?
+
+  // Status & Type
+  status          String    @default("Open")
+  type            String?   // 1, 2, 3, etc.
+  contractType    String?   // FM8, Repair, etc.
+  customJobType   String?
+  customStatus    String?
+  priorityLevel   String?
+
+  // Dates
+  date            DateTime?
+  customDate      DateTime?
+  dueDate         DateTime?
+  scheduleDate    DateTime?
+  compDate        DateTime? // Completion Date
+  closeDate       DateTime?
+
+  // Hours
+  reg             Decimal?  @db.Decimal(10, 2) // Regular hours
+  ot              Decimal?  @db.Decimal(10, 2) // Overtime
+  ot17            Decimal?  @db.Decimal(10, 2) // 1.7 OT
+  dt              Decimal?  @db.Decimal(10, 2) // Double time
+  tt              Decimal?  @db.Decimal(10, 2) // Travel time
+  totalHours      Decimal?  @db.Decimal(10, 2)
+
+  // Assignment
+  supervisor      String?
+  projectManager  String?
+  employeeFirstName String?
+
+  // Billing
+  billingTerms    String?
+  chargeable      Boolean   @default(false)
+
+  // Notes & Remarks
+  sRemarks        String?
+  customerRemarks String?
+  comments        String?
+
+  // Other Fields
+  template        String?
+  level           String?
+  source          String?
+  office          String?
+  reopen          Boolean   @default(false)
+  tsCreatedBy     String?
+  repRequest      String?
+  bRev            String?
+  lastSyncTime    DateTime?
+
+  // Custom Fields
+  reqDate         DateTime?
+  folder          String?
+  url             String?
+  fineFault       String?
+  wfMisu          String?
+  mrRequest       String?
+  guzman          String?
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+
+  premisesId      String?
+  premises        Premises? @relation(fields: [premisesId], references: [id])
+
+  unitId          String?
+  unit            Unit?     @relation(fields: [unitId], references: [id])
+
+  createdById     String?
+  createdBy       User?     @relation("CreatedByUser", fields: [createdById], references: [id])
+
+  // Related records
+  history         JobHistory[]
+  activities      Activity[]
+  files           File[]
+  notes           Note[]
+  tickets         Ticket[]
+
+  @@map("jobs")
+}
+
+// ============================================
+// JOB HISTORY (Audit Trail)
+// ============================================
+
+model JobHistory {
+  id            String   @id @default(cuid())
+  field         String   // Which field changed
+  originalValue String?
+  newValue      String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  jobId         String
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+
+  @@map("job_history")
+}
+
+// ============================================
+// ACTIVITY FEED
+// ============================================
+
+model Activity {
+  id          String   @id @default(cuid())
+  type        String   // created, updated, comment, etc.
+  content     String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  jobId       String?
+  job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("activities")
+}
+
+// ============================================
+// FILES
+// ============================================
+
+model File {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  size        Int?
+  mimeType    String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  jobId       String?
+  job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  @@map("files")
+}
+
+// ============================================
+// NOTES
+// ============================================
+
+model Note {
+  id          String   @id @default(cuid())
+  title       String?
+  body        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  jobId       String?
+  job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+// ============================================
+// TICKETS
+// ============================================
+
+model Ticket {
+  id          String   @id @default(cuid())
+  ticketNumber String  @unique
+  subject     String
+  status      String   @default("Open")
+  priority    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  jobId       String?
+  job         Job?     @relation(fields: [jobId], references: [id])
+
+  @@map("tickets")
+}

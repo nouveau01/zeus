@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Salesforce Lightning Design System Colors */
+  --sf-blue: #0176d3;
+  --sf-blue-dark: #014486;
+  --sf-blue-light: #1b96ff;
+  --sf-nav-blue: #032d60;
+  --sf-white: #ffffff;
+  --sf-gray-1: #f3f3f3;
+  --sf-gray-2: #e5e5e5;
+  --sf-gray-3: #c9c9c9;
+  --sf-gray-4: #939393;
+  --sf-gray-5: #706e6b;
+  --sf-gray-6: #3e3e3c;
+  --sf-success: #2e844a;
+  --sf-warning: #fe9339;
+  --sf-error: #ea001e;
+  --sf-border: #dddbda;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--sf-gray-1);
+  color: var(--sf-gray-6);
+  margin: 0;
+  padding: 0;
+}
+
+/* Salesforce-style scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sf-gray-1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sf-gray-3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sf-gray-4);
+}
+
+@layer components {
+  /* Salesforce Button Styles */
+  .sf-btn {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded transition-colors;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .sf-btn-neutral {
+    @apply sf-btn bg-white border border-gray-300 text-gray-700;
+    @apply hover:bg-gray-50 focus:ring-blue-500;
+  }
+
+  .sf-btn-brand {
+    @apply sf-btn text-white;
+    background-color: var(--sf-blue);
+    @apply hover:opacity-90 focus:ring-blue-500;
+  }
+
+  .sf-btn-success {
+    @apply sf-btn text-white;
+    background-color: var(--sf-success);
+    @apply hover:opacity-90 focus:ring-green-500;
+  }
+
+  .sf-btn-destructive {
+    @apply sf-btn text-white;
+    background-color: var(--sf-error);
+    @apply hover:opacity-90 focus:ring-red-500;
+  }
+
+  /* Salesforce Card */
+  .sf-card {
+    @apply bg-white rounded-lg border;
+    border-color: var(--sf-border);
+  }
+
+  .sf-card-header {
+    @apply px-4 py-3 border-b flex items-center justify-between;
+    border-color: var(--sf-border);
+  }
+
+  .sf-card-body {
+    @apply p-4;
+  }
+
+  /* Salesforce Page Header */
+  .sf-page-header {
+    @apply bg-white border-b px-6 py-4;
+    border-color: var(--sf-border);
+  }
+
+  /* Salesforce Tab */
+  .sf-tab {
+    @apply px-4 py-3 text-sm font-medium cursor-pointer border-b-2 border-transparent;
+    color: var(--sf-gray-5);
+  }
+
+  .sf-tab:hover {
+    color: var(--sf-blue);
+  }
+
+  .sf-tab-active {
+    @apply sf-tab;
+    color: var(--sf-blue);
+    border-color: var(--sf-blue);
+  }
+
+  /* Salesforce Field */
+  .sf-field-label {
+    @apply text-xs font-normal mb-1 block;
+    color: var(--sf-gray-5);
+  }
+
+  .sf-field-value {
+    @apply text-sm;
+    color: var(--sf-gray-6);
+  }
+
+  .sf-field-link {
+    @apply text-sm;
+    color: var(--sf-blue);
+    @apply hover:underline cursor-pointer;
+  }
+
+  /* Salesforce Input */
+  .sf-input {
+    @apply w-full px-3 py-2 text-sm border rounded;
+    border-color: var(--sf-border);
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+
+  /* Status Path */
+  .sf-path-item {
+    @apply relative flex-1 text-center py-2 text-xs font-medium cursor-pointer;
+    background: var(--sf-gray-2);
+    color: var(--sf-gray-5);
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+    margin-left: -6px;
+  }
+
+  .sf-path-item:first-child {
+    margin-left: 0;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+    border-radius: 4px 0 0 4px;
+  }
+
+  .sf-path-item:last-child {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .sf-path-item-current {
+    background: var(--sf-blue);
+    color: white;
+  }
+
+  .sf-path-item-complete {
+    background: var(--sf-success);
+    color: white;
+  }
+
+  /* Quick Links */
+  .sf-quick-link {
+    @apply inline-flex items-center gap-1 text-sm px-2 py-1 rounded;
+    color: var(--sf-blue);
+    @apply hover:bg-blue-50;
+  }
+
+  /* Section Header */
+  .sf-section-header {
+    @apply flex items-center gap-2 py-3 cursor-pointer select-none;
+    color: var(--sf-gray-6);
+  }
+
+  /* Related List Table */
+  .sf-table {
+    @apply w-full text-sm;
+  }
+
+  .sf-table th {
+    @apply text-left px-4 py-2 font-medium border-b;
+    color: var(--sf-gray-5);
+    border-color: var(--sf-border);
+    background: var(--sf-gray-1);
+  }
+
+  .sf-table td {
+    @apply px-4 py-3 border-b;
+    border-color: var(--sf-border);
+  }
+
+  .sf-table tr:hover td {
+    background: var(--sf-gray-1);
+  }
+
+  /* Icon colors */
+  .sf-icon-job {
+    @apply w-8 h-8 rounded flex items-center justify-center;
+    background: #7f8de1;
+  }
+}
