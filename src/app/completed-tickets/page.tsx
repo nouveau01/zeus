@@ -87,7 +87,11 @@ interface Ticket {
 
 const TYPE_TABS = ["All", "Maintenance", "Modernization", "Repair", "Other", "NEW REPAIR"];
 
-export default function CompletedTicketsPage() {
+interface CompletedTicketsPageProps {
+  premisesId?: string | null;
+}
+
+export default function CompletedTicketsPage({ premisesId }: CompletedTicketsPageProps) {
   const { openTab } = useTabs();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +141,7 @@ export default function CompletedTicketsPage() {
     if (filtersLoaded) {
       fetchTickets();
     }
-  }, [startDate, endDate, activeType, mechanic, supervisor, reviewed, billed, payroll, filtersLoaded]);
+  }, [startDate, endDate, activeType, mechanic, supervisor, reviewed, billed, payroll, filtersLoaded, premisesId]);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -152,6 +156,7 @@ export default function CompletedTicketsPage() {
       if (reviewed !== "All") params.set("reviewed", reviewed === "Yes" ? "true" : "false");
       if (billed !== "All") params.set("billed", billed === "Yes" ? "true" : "false");
       if (payroll !== "All") params.set("payroll", payroll === "Yes" ? "true" : "false");
+      if (premisesId) params.set("premisesId", premisesId);
 
       const response = await fetch(`/api/tickets?${params.toString()}`);
       if (response.ok) {

@@ -70,8 +70,16 @@ export function TabContent() {
     );
   }
 
+  // Check for completed-tickets route with optional premisesId filter (before ticket detail check)
+  // This handles /completed-tickets and /completed-tickets?premisesId=xxx
+  if (activeTab.route === "/completed-tickets" || activeTab.route.startsWith("/completed-tickets?")) {
+    const url = new URL(activeTab.route, "http://localhost");
+    const premisesId = url.searchParams.get("premisesId");
+    return <CompletedTicketsPage premisesId={premisesId} />;
+  }
+
   // Check for completed ticket detail route pattern: /completed-tickets/[id]
-  const ticketDetailMatch = activeTab.route.match(/^\/completed-tickets\/(.+)$/);
+  const ticketDetailMatch = activeTab.route.match(/^\/completed-tickets\/([^?]+)$/);
   if (ticketDetailMatch) {
     const ticketId = ticketDetailMatch[1];
     return (
@@ -108,8 +116,6 @@ export function TabContent() {
       return <CustomersPage />;
     case "/accounts":
       return <AccountsPage />;
-    case "/completed-tickets":
-      return <CompletedTicketsPage />;
     default:
       return (
         <div className="flex-1 h-full bg-[#c0c0c0] flex items-center justify-center">

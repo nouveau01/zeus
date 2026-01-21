@@ -333,7 +333,10 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           >
             Invoices
           </button>
-          <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
+          <button
+            onClick={() => openTab(`Tickets - ${account.name || account.premisesId}`, `/completed-tickets?premisesId=${account.id}`)}
+            className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
+          >
             Completed Tickets
           </button>
           <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">

@@ -14,9 +14,15 @@ export async function GET(request: NextRequest) {
     const reviewed = searchParams.get("reviewed");
     const billed = searchParams.get("billed");
     const payroll = searchParams.get("payroll");
+    const premisesId = searchParams.get("premisesId");
 
     // Build where clause
     const where: any = {};
+
+    // Premises filter (for filtering by account)
+    if (premisesId) {
+      where.premisesId = premisesId;
+    }
 
     // Date range filter
     if (startDate || endDate) {
