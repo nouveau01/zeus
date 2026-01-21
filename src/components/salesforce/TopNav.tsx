@@ -1,27 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   Search,
   Plus,
   Bell,
   HelpCircle,
   Settings,
-  ChevronDown,
+  X,
 } from "lucide-react";
-
-const mainNavItems = [
-  { name: "Accounts", href: "/accounts" },
-];
+import { useTabs } from "@/context/TabContext";
 
 export function TopNav() {
-  const pathname = usePathname();
+  const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab } = useTabs();
 
   return (
     <header className="bg-white border-b border-[#dddbda] px-4 py-2">
       <div className="flex items-center justify-between">
-        {/* Logo and main nav */}
+        {/* Logo and tabs */}
         <div className="flex items-center gap-4">
           {/* ZEUS Logo */}
           <Link href="/" className="flex items-center gap-2 mr-4">
@@ -30,29 +26,43 @@ export function TopNav() {
               <div className="w-2 h-6 bg-yellow-400"></div>
               <div className="w-2 h-6 bg-blue-500"></div>
             </div>
-            <span className="font-bold text-lg text-[#032d60]">ZEUS</span>
+            <span className="font-bold text-lg text-[#032d60]">ZUES</span>
           </Link>
 
-          {/* Main navigation tabs */}
-          <nav className="flex items-center">
-            {mainNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${
-                    isActive
-                      ? "text-[#0176d3] border-b-2 border-[#0176d3]"
-                      : "text-[#706e6b] hover:text-[#0176d3]"
-                  }`}
+          {/* Tabs */}
+          <div className="flex items-center">
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                className={`flex items-center gap-1 px-3 py-1.5 text-sm cursor-pointer border-b-2 ${
+                  activeTabId === tab.id
+                    ? "border-[#0176d3] text-[#0176d3] bg-[#f3f3f3]"
+                    : "border-transparent text-[#706e6b] hover:text-[#0176d3] hover:bg-[#f9f9f9]"
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span className="max-w-[120px] truncate">{tab.title}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeTab(tab.id);
+                  }}
+                  className="ml-1 p-0.5 hover:bg-[#e0e0e0] rounded"
                 >
-                  {item.name}
-                  <ChevronDown className="w-3 h-3" />
-                </Link>
-              );
-            })}
-          </nav>
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+
+            {/* Add Tab Button */}
+            <button
+              onClick={addBlankTab}
+              className="p-1.5 ml-1 text-[#706e6b] hover:text-[#0176d3] hover:bg-[#f3f3f3] rounded"
+              title="New Tab"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Right side actions */}
@@ -68,9 +78,6 @@ export function TopNav() {
           </div>
 
           {/* Icon buttons */}
-          <button className="p-2 hover:bg-gray-100 rounded">
-            <Plus className="w-5 h-5 text-gray-600" />
-          </button>
           <button className="p-2 hover:bg-gray-100 rounded">
             <Bell className="w-5 h-5 text-gray-600" />
           </button>

@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { ChevronRight, ChevronDown, Minus, Folder } from "lucide-react";
+import { useTabs } from "@/context/TabContext";
 
 interface NavItem {
   name: string;
@@ -222,7 +221,7 @@ const navStructure: NavSection[] = [
 ];
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const { tabs, activeTabId, openTab } = useTabs();
   const [expandedSections, setExpandedSections] = useState<string[]>(["1"]);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -234,7 +233,15 @@ export function Sidebar() {
     );
   };
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const handleItemClick = (name: string, href: string) => {
+    openTab(name, href);
+  };
+
+  // Check if a route is open in any tab
+  const isActive = (href: string) => {
+    const activeTab = tabs.find((t) => t.id === activeTabId);
+    return activeTab?.route === href;
+  };
 
   if (isCollapsed) {
     return (
@@ -290,10 +297,10 @@ export function Sidebar() {
               {isExpanded && section.children && (
                 <div className="ml-3 flex flex-col">
                   {section.children.map((item) => (
-                    <Link
+                    <button
                       key={item.name}
-                      href={item.href || "#"}
-                      className={`flex items-center gap-1 px-1 py-0.5 hover:bg-[#316ac5] hover:text-white ${
+                      onClick={() => item.href && handleItemClick(item.name, item.href)}
+                      className={`flex items-center gap-1 px-1 py-0.5 text-left hover:bg-[#316ac5] hover:text-white ${
                         item.href && isActive(item.href)
                           ? "bg-[#316ac5] text-white"
                           : "text-[#000]"
@@ -301,7 +308,7 @@ export function Sidebar() {
                     >
                       <Folder className="w-4 h-4 text-[#e8c56c] flex-shrink-0" />
                       <span className="whitespace-nowrap">{item.name}</span>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               )}
