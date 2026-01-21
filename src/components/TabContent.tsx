@@ -74,8 +74,16 @@ export function TabContent() {
     );
   }
 
+  // Check for job-maintenance route with optional premisesId filter (before job detail check)
+  // This handles /job-maintenance and /job-maintenance?premisesId=xxx
+  if (activeTab.route === "/job-maintenance" || activeTab.route.startsWith("/job-maintenance?")) {
+    const url = new URL(activeTab.route, "http://localhost");
+    const premisesId = url.searchParams.get("premisesId");
+    return <JobMaintenancePage premisesId={premisesId} />;
+  }
+
   // Check for job detail route pattern: /job-maintenance/[id]
-  const jobDetailMatch = activeTab.route.match(/^\/job-maintenance\/(.+)$/);
+  const jobDetailMatch = activeTab.route.match(/^\/job-maintenance\/([^?]+)$/);
   if (jobDetailMatch) {
     const jobId = jobDetailMatch[1];
     return (
@@ -96,8 +104,6 @@ export function TabContent() {
       return <InvoicesPage />;
     case "/completed-tickets":
       return <CompletedTicketsPage />;
-    case "/job-maintenance":
-      return <JobMaintenancePage />;
     default:
       return (
         <div className="flex-1 h-full bg-[#c0c0c0] flex items-center justify-center">

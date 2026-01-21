@@ -70,7 +70,11 @@ interface Job {
 
 const TYPE_TABS = ["All", "Maintenance", "Modernization", "Repair", "Other", "NEW REPAIR"];
 
-export default function JobMaintenancePage() {
+interface JobMaintenancePageProps {
+  premisesId?: string | null;
+}
+
+export default function JobMaintenancePage({ premisesId }: JobMaintenancePageProps) {
   const { openTab } = useTabs();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +87,7 @@ export default function JobMaintenancePage() {
 
   useEffect(() => {
     fetchJobs();
-  }, [activeType]);
+  }, [activeType, premisesId]);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -91,6 +95,9 @@ export default function JobMaintenancePage() {
       const params = new URLSearchParams();
       if (activeType !== "All") {
         params.set("type", activeType);
+      }
+      if (premisesId) {
+        params.set("premisesId", premisesId);
       }
 
       const response = await fetch(`/api/jobs?${params.toString()}`);

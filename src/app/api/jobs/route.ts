@@ -6,11 +6,15 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
+    const premisesId = searchParams.get("premisesId");
 
     // Build where clause
     const where: any = {};
     if (type && type !== "all") {
       where.type = type;
+    }
+    if (premisesId) {
+      where.premisesId = premisesId;
     }
 
     const jobs = await prisma.job.findMany({
