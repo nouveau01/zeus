@@ -1119,14 +1119,75 @@ function MaterialsCustomTab() {
 }
 
 // ============================================
-// Tab 3: Workers/Signatures (Placeholder)
+// Tab 3: Workers/Signatures
 // ============================================
 function WorkersSignaturesTab() {
+  const thClass = "px-2 py-1 text-left font-normal border border-[#a0a0a0] bg-[#f0f0f0] text-[11px]";
+  const tdClass = "px-2 py-1 border border-[#d0d0d0] text-[11px]";
+  const fieldsetClass = "border border-[#808080] p-2 bg-white";
+  const legendClass = "text-[11px] px-1 bg-white";
+
   return (
-    <div className="flex items-center justify-center h-full">
-      <span className="text-[#808080] text-[14px]">
-        Workers/Signatures tab - Coming soon
-      </span>
+    <div className="h-full overflow-auto p-1 flex flex-col gap-3">
+      {/* Top Section */}
+      <div className="flex gap-4">
+        {/* Left - Other Workers Table */}
+        <div className="w-[380px]">
+          <div className="font-bold text-[11px] mb-1">OTHER WORKERS</div>
+          <div className="border border-[#a0a0a0] bg-white h-[200px] overflow-auto">
+            <table className="w-full border-collapse">
+              <thead className="sticky top-0">
+                <tr>
+                  <th className={thClass} style={{ width: "25%" }}>Ticket #</th>
+                  <th className={thClass} style={{ width: "45%" }}>Worker</th>
+                  <th className={thClass} style={{ width: "30%" }}>Scheduled</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className={tdClass}>&nbsp;</td>
+                  <td className={tdClass}>&nbsp;</td>
+                  <td className={tdClass}>&nbsp;</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Right - Signature Areas */}
+        <div className="flex flex-col gap-4 flex-1">
+          {/* Customer Signature */}
+          <div>
+            <div className="text-[11px] mb-1">Customer</div>
+            <div className="border border-[#a0a0a0] bg-white h-[80px]">
+              {/* Signature canvas placeholder */}
+            </div>
+          </div>
+
+          {/* Technician Signature */}
+          <div>
+            <div className="text-[11px] mb-1">Technician</div>
+            <div className="border border-[#a0a0a0] bg-white h-[80px]">
+              {/* Signature canvas placeholder */}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom - Recommendations */}
+      <fieldset className={`${fieldsetClass} flex-1`}>
+        <legend className={legendClass}>Recommendations</legend>
+        <div className="flex h-full">
+          <textarea
+            className="flex-1 h-full min-h-[100px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+          />
+          <div className="flex flex-col items-end justify-start ml-2">
+            <span className="text-blue-600 text-[12px] font-bold cursor-pointer hover:underline">
+              Job Results
+            </span>
+          </div>
+        </div>
+      </fieldset>
     </div>
   );
 }
