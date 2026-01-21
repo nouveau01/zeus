@@ -11,6 +11,7 @@ import CompletedTicketsPage from "@/app/completed-tickets/page";
 import CompletedTicketDetail from "@/app/completed-tickets/[id]/CompletedTicketDetail";
 import JobMaintenancePage from "@/app/job-maintenance/page";
 import JobDetail from "@/app/job-maintenance/[id]/JobDetail";
+import JobResultsPage from "@/app/job-results/page";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -108,6 +109,14 @@ export function TabContent() {
         onClose={() => closeTab(activeTab.id)}
       />
     );
+  }
+
+  // Check for job-results route with optional premisesId filter
+  // This handles /job-results and /job-results?premisesId=xxx
+  if (activeTab.route === "/job-results" || activeTab.route.startsWith("/job-results?")) {
+    const url = new URL(activeTab.route, "http://localhost");
+    const premisesId = url.searchParams.get("premisesId");
+    return <JobResultsPage premisesId={premisesId} />;
   }
 
   // Render based on route

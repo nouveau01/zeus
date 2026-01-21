@@ -324,7 +324,10 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           >
             Jobs
           </button>
-          <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
+          <button
+            onClick={() => openTab(`Job Results - ${account.name || account.premisesId}`, `/job-results?premisesId=${account.id}`)}
+            className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
+          >
             Job Results
           </button>
           <button
