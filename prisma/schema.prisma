@@ -360,58 +360,127 @@ model Note {
 // ============================================
 
 model Ticket {
-  id             String   @id @default(cuid())
-  ticketNumber   Int      @unique @map("ticket_number")
-  workOrderNumber Int?    @map("work_order_number")
+  id              String   @id @default(cuid())
+  ticketNumber    Int      @unique @map("ticket_number")
+  workOrderNumber Int?     @map("work_order_number")
 
   // Date/Time
-  date           DateTime
-  completedDate  DateTime? @map("completed_date")
+  date            DateTime
+  completedDate   DateTime? @map("completed_date")
 
   // Classification
-  type           String   @default("Other")  // Maintenance, Modernization, Repair, Other
-  category       String?
-  status         String   @default("Open")   // Open, Completed, Void
+  type            String   @default("Other")  // Maintenance, Modernization, Repair, Other
+  category        String?
+  level           String?                     // e.g., "4-Violations"
+  status          String   @default("Open")   // Open, Completed, Void
 
   // Location identifier (like 110WIL, 50HAV, etc.)
-  accountId      String?  @map("account_id")
+  accountId       String?  @map("account_id")
 
   // Personnel
-  mechCrew       String?  @map("mech_crew")
-  supervisor     String?
+  mechCrew        String?  @map("mech_crew")
+  supervisor      String?
+  wage            String?                     // e.g., "460 - A MECH MOD/REPAIR" (TODO: link to WageCodes table later)
 
-  // Checkbox statuses
-  bill           Boolean  @default(false)
-  reviewed       Boolean  @default(false)
-  pr             Boolean  @default(false)    // Payroll
-  vd             Boolean  @default(false)    // Void
-  inv            Boolean  @default(false)    // Invoiced
+  // Job & Unit (TODO: unitId relation to Unit model later)
+  phase           Int?     @default(1)
+  unitName        String?  @map("unit_name")  // e.g., "BARD P1" - currently text, will be relation later
 
-  // Hours & Billing
-  hours          Decimal  @default(0) @db.Decimal(10, 2)
+  // Name & Address display (pulled from Premises, but can be overridden)
+  nameAddress     String?  @map("name_address")
+
+  // Scope of Work (textarea)
+  scopeOfWork     String?  @map("scope_of_work")
+
+  // Resolution (textarea)
+  resolution      String?
+
+  // Parts Used (textarea)
+  partsUsed       String?  @map("parts_used")
+
+  // Work Performed section
+  workTime        String?  @map("work_time")  // Time like "03:42 PM"
+
+  // Time Frame
+  enRouteTime     String?  @map("en_route_time")
+  onSiteTime      String?  @map("on_site_time")
+  completedTime   String?  @map("completed_time")
+
+  // Mileage
+  mileageStarting Int?     @default(0) @map("mileage_starting")
+  mileageEnding   Int?     @default(0) @map("mileage_ending")
+  mileageTraveled Int?     @default(0) @map("mileage_traveled")
+
+  // Time Spent (hours breakdown)
+  hours           Decimal  @default(0) @db.Decimal(10, 2)  // This is "Regular" hours
+  overtimeHours   Decimal  @default(0) @db.Decimal(10, 2) @map("overtime_hours")
+  oneSevenHours   Decimal  @default(0) @db.Decimal(10, 2) @map("one_seven_hours")  // 1.7 Time
+  doubleTimeHours Decimal  @default(0) @db.Decimal(10, 2) @map("double_time_hours")
+  travelHours     Decimal  @default(0) @db.Decimal(10, 2) @map("travel_hours")
+  totalHours      Decimal  @default(0) @db.Decimal(10, 2) @map("total_hours")
+  estTime         Decimal  @default(0) @db.Decimal(10, 2) @map("est_time")
+  difference      Decimal  @default(0) @db.Decimal(10, 2)
+
+  // Expenses
+  expensePhase    Int?     @default(1) @map("expense_phase")
+  expenseMileage  Decimal  @default(0) @db.Decimal(10, 2) @map("expense_mileage")
+  expenseZone     Decimal  @default(0) @db.Decimal(10, 2) @map("expense_zone")
+  expenseTolls    Decimal  @default(0) @db.Decimal(10, 2) @map("expense_tolls")
+  expenseMisc     Decimal  @default(0) @db.Decimal(10, 2) @map("expense_misc")
+  expenseTotal    Decimal  @default(0) @db.Decimal(10, 2) @map("expense_total")
+
+  // Checkbox statuses (from list view)
+  bill            Boolean  @default(false)
+  reviewed        Boolean  @default(false)
+  pr              Boolean  @default(false)    // Payroll
+  vd              Boolean  @default(false)    // Void
+  inv             Boolean  @default(false)    // Invoiced
+
+  // Checkbox statuses (from detail view)
+  workCompleted   Boolean  @default(false) @map("work_completed")
+  chargeable      Boolean  @default(false)
+  emailOnSave     Boolean  @default(false) @map("email_on_save")
+  updateLocation  Boolean  @default(false) @map("update_location")
+  internetAccess  Boolean  @default(true) @map("internet_access")
+
+  // Review Status
+  reviewStatus    String?  @default("Dispatch Review") @map("review_status")
+
+  // Contract Type (pulled from Premises/Job, but can store here)
+  contractType    String?  @map("contract_type")
+
+  // Internal Comments Only (textarea)
+  internalComments String? @map("internal_comments")
+
+  // Call tracking (shown in status bar)
+  calledInBy      String?  @map("called_in_by")
+  calledInDate    DateTime? @map("called_in_date")
+  takenBy         String?  @map("taken_by")
+  resolvedBy      String?  @map("resolved_by")
 
   // Email
-  emailStatus    String?  @default("No Email Sent") @map("email_status")
+  emailStatus     String?  @default("No Email Sent") @map("email_status")
 
-  // Unit info
-  unitName       String?  @map("unit_name")
-
-  // Description/Notes
-  description    String?
+  // Description/Notes (legacy field)
+  description     String?
 
   // Timestamps
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  premisesId     String?  @map("premises_id")
-  premises       Premises? @relation(fields: [premisesId], references: [id])
+  premisesId      String?  @map("premises_id")
+  premises        Premises? @relation(fields: [premisesId], references: [id])
 
-  jobId          String?  @map("job_id")
-  job            Job?     @relation(fields: [jobId], references: [id])
+  jobId           String?  @map("job_id")
+  job             Job?     @relation(fields: [jobId], references: [id])
 
-  invoiceId      String?  @map("invoice_id")
-  invoice        Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId       String?  @map("invoice_id")
+  invoice         Invoice? @relation(fields: [invoiceId], references: [id])
+
+  // TODO: Add unitId relation when Unit module is built
+  // unitId       String?  @map("unit_id")
+  // unit         Unit?    @relation(fields: [unitId], references: [id])
 
   @@map("tickets")
 }

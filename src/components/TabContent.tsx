@@ -8,6 +8,7 @@ import AccountDetail from "@/app/accounts/[id]/AccountDetail";
 import InvoicesPage from "@/app/invoices/page";
 import InvoiceDetail from "@/app/invoices/[id]/InvoiceDetail";
 import CompletedTicketsPage from "@/app/completed-tickets/page";
+import CompletedTicketDetail from "@/app/completed-tickets/[id]/CompletedTicketDetail";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -54,6 +55,18 @@ export function TabContent() {
     return (
       <InvoiceDetail
         invoiceId={invoiceId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for completed ticket detail route pattern: /completed-tickets/[id]
+  const ticketDetailMatch = activeTab.route.match(/^\/completed-tickets\/(.+)$/);
+  if (ticketDetailMatch) {
+    const ticketId = ticketDetailMatch[1];
+    return (
+      <CompletedTicketDetail
+        ticketId={ticketId}
         onClose={() => closeTab(activeTab.id)}
       />
     );
