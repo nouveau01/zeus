@@ -36,39 +36,46 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Filters
+  // Filters - default to wide date range to show all invoices
   const [catalogue, setCatalogue] = useState("None");
   const [startDate, setStartDate] = useState("1980-01-01");
-  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState("2030-12-31");
   const [activeType, setActiveType] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtersLoaded, setFiltersLoaded] = useState(false);
 
-  // Persist state in localStorage
+  // Load saved state from localStorage (but validate it)
   useEffect(() => {
     const saved = localStorage.getItem("invoicesPageState");
     if (saved) {
       try {
         const state = JSON.parse(saved);
-        if (state.startDate) setStartDate(state.startDate);
-        if (state.endDate) setEndDate(state.endDate);
+        // Only restore activeType and catalogue, not date range
+        // This ensures invoices are always visible on load
         if (state.activeType) setActiveType(state.activeType);
         if (state.catalogue) setCatalogue(state.catalogue);
       } catch (e) {
         console.error("Error loading saved state:", e);
       }
     }
+    setFiltersLoaded(true);
   }, []);
 
+  // Only save type and catalogue to localStorage (not date range)
   useEffect(() => {
-    localStorage.setItem(
-      "invoicesPageState",
-      JSON.stringify({ startDate, endDate, activeType, catalogue })
-    );
-  }, [startDate, endDate, activeType, catalogue]);
+    if (filtersLoaded) {
+      localStorage.setItem(
+        "invoicesPageState",
+        JSON.stringify({ activeType, catalogue })
+      );
+    }
+  }, [activeType, catalogue, filtersLoaded]);
 
   useEffect(() => {
-    fetchInvoices();
-  }, [startDate, endDate, activeType]);
+    if (filtersLoaded) {
+      fetchInvoices();
+    }
+  }, [startDate, endDate, activeType, filtersLoaded]);
 
   const fetchInvoices = async () => {
     setLoading(true);
