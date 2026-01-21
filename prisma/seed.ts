@@ -140,10 +140,11 @@ async function main() {
     { premisesId: "100GAR47", name: "100 GARDEN CITY PLAZA -", address: "ONE OLD COUNTRY RD", city: "CARLE PLACE", state: "NY", type: "Non-Contract", isActive: false, balance: 0 },
   ];
 
-  // Assign premises to random customers
+  // Assign premises to random customers and store IDs
+  const premisesIds: string[] = [];
   for (const premisesItem of premisesData) {
     const randomCustomerId = customerIds[Math.floor(Math.random() * customerIds.length)];
-    await prisma.premises.create({
+    const premises = await prisma.premises.create({
       data: {
         premisesId: premisesItem.premisesId,
         name: premisesItem.name,
@@ -156,8 +157,39 @@ async function main() {
         customerId: randomCustomerId,
       },
     });
+    premisesIds.push(premises.id);
   }
   console.log(`Created ${premisesData.length} premises/accounts`);
+
+  // Add units to first few premises (like the screenshot shows)
+  const unitData = [
+    { unitNumber: "PE1", category: "CONSULTANT", unitType: "Elevator", serial: "2P3476", manufacturer: "", status: "Active", description: "PE1" },
+    { unitNumber: "PE2", category: "Public", unitType: "Elevator", serial: "2P3477", manufacturer: "Otis", status: "Active", description: "PE2" },
+    { unitNumber: "PE3", category: "Service", unitType: "Elevator", serial: "2P3478", manufacturer: "ThyssenKrupp", status: "Active", description: "PE3" },
+    { unitNumber: "FE1", category: "Freight", unitType: "Elevator", serial: "FT1001", manufacturer: "Schindler", status: "Active", description: "Freight Elevator 1" },
+    { unitNumber: "ES1", category: "Public", unitType: "Escalator", serial: "ES2001", manufacturer: "KONE", status: "Active", description: "Escalator Main" },
+  ];
+
+  // Add units to first 10 premises
+  for (let i = 0; i < Math.min(10, premisesIds.length); i++) {
+    const numUnits = Math.floor(Math.random() * 3) + 1; // 1-3 units per premises
+    for (let j = 0; j < numUnits; j++) {
+      const unitTemplate = unitData[j % unitData.length];
+      await prisma.unit.create({
+        data: {
+          unitNumber: `${unitTemplate.unitNumber}`,
+          category: unitTemplate.category,
+          unitType: unitTemplate.unitType,
+          serial: `${unitTemplate.serial}-${i}${j}`,
+          manufacturer: unitTemplate.manufacturer,
+          status: unitTemplate.status,
+          description: unitTemplate.description,
+          premisesId: premisesIds[i],
+        },
+      });
+    }
+  }
+  console.log("Created units for premises");
 
   console.log("Database seeded successfully!");
 }

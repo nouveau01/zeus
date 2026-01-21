@@ -4,6 +4,7 @@ import { useTabs } from "@/context/TabContext";
 import CustomersPage from "@/app/customers/page";
 import CustomerDetail from "@/app/customers/[id]/CustomerDetail";
 import AccountsPage from "@/app/accounts/page";
+import AccountDetail from "@/app/accounts/[id]/AccountDetail";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -26,6 +27,18 @@ export function TabContent() {
     return (
       <CustomerDetail
         customerId={customerId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for account detail route pattern: /accounts/[id]
+  const accountDetailMatch = activeTab.route.match(/^\/accounts\/(.+)$/);
+  if (accountDetailMatch) {
+    const accountId = accountDetailMatch[1];
+    return (
+      <AccountDetail
+        accountId={accountId}
         onClose={() => closeTab(activeTab.id)}
       />
     );
