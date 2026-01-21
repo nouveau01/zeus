@@ -3,6 +3,7 @@
 import { useTabs } from "@/context/TabContext";
 import CustomersPage from "@/app/customers/page";
 import CustomerDetail from "@/app/customers/[id]/CustomerDetail";
+import AccountsPage from "@/app/accounts/page";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -34,6 +35,8 @@ export function TabContent() {
   switch (activeTab.route) {
     case "/customers":
       return <CustomersPage />;
+    case "/accounts":
+      return <AccountsPage />;
     default:
       return (
         <div className="flex-1 h-full bg-[#c0c0c0] flex items-center justify-center">
