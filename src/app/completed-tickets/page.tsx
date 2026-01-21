@@ -496,30 +496,31 @@ export default function CompletedTicketsPage() {
         )}
       </div>
 
-      {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
-        <div className="flex items-center gap-4">
-          <span>{selectedTicket ? `${selectedTicket.ticketNumber}` : ""}</span>
-          <span>{selectedTicket?.mechCrew || ""}</span>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Status Bar with Totals */}
+      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
+        {/* Totals Display */}
+        <div className="flex items-center gap-4 text-[11px]">
           {showTotals && (
-            <div className="flex gap-4 mr-2">
-              <span>{totalTickets} tickets</span>
-              <span>{totalHours.toFixed(2)} hours</span>
-            </div>
+            <>
+              <span className="text-[#333]">
+                <strong>Rows:</strong> {totalTickets}
+              </span>
+              <span className="text-[#333]">
+                <strong>Hours:</strong> {totalHours.toFixed(2)}
+              </span>
+            </>
           )}
-          <button
-            onClick={() => setShowTotals(!showTotals)}
-            className={`px-2 py-0.5 border text-[11px] ${
-              showTotals
-                ? "bg-[#0078d4] text-white border-[#0078d4]"
-                : "bg-[#f0f0f0] border-[#a0a0a0] hover:bg-[#e0e0e0]"
-            }`}
-          >
-            Totals
-          </button>
         </div>
+
+        {/* Toggle Button */}
+        <button
+          onClick={() => setShowTotals(!showTotals)}
+          className={`px-4 py-1 border border-[#c0c0c0] rounded text-[11px] hover:bg-[#e8e8e8] ${
+            showTotals ? "bg-[#d0e8ff]" : "bg-[#f0f0f0]"
+          }`}
+        >
+          {showTotals ? "Totals On" : "Totals Off"}
+        </button>
       </div>
     </div>
   );
