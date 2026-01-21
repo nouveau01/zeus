@@ -30,6 +30,20 @@ interface Invoice {
   backup: string | null;
   status: string;
   description: string | null;
+  jobRemarks: string | null;
+  // Tax fields
+  taxRegion1: string | null;
+  taxRate1: number;
+  taxRegion2: string | null;
+  taxRate2: number;
+  taxFactor: number;
+  // Labor hours
+  reg: number | null;
+  ot: number | null;
+  ot17: number | null;
+  dt: number | null;
+  tt: number | null;
+  // Amounts
   taxable: number;
   nonTaxable: number;
   subTotal: number;
@@ -78,7 +92,17 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   const [isDirty, setIsDirty] = useState(false);
 
   // Taxes/Job Remarks state
+  const [taxRegion1, setTaxRegion1] = useState("");
+  const [taxRate1, setTaxRate1] = useState("0.0000");
+  const [taxRegion2, setTaxRegion2] = useState("");
+  const [taxRate2, setTaxRate2] = useState("0.0000");
+  const [taxFactor, setTaxFactor] = useState("100.00");
   const [jobRemarks, setJobRemarks] = useState("");
+  const [regHours, setRegHours] = useState("");
+  const [otHours, setOtHours] = useState("");
+  const [ot17Hours, setOt17Hours] = useState("");
+  const [dtHours, setDtHours] = useState("");
+  const [ttHours, setTtHours] = useState("");
 
   useEffect(() => {
     fetchInvoice();
@@ -93,6 +117,18 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         setInvoice(data);
         setFormData(data);
         setItems(data.items || []);
+        // Set Taxes/Job Remarks state
+        setTaxRegion1(data.taxRegion1 || "");
+        setTaxRate1(data.taxRate1?.toFixed(4) || "0.0000");
+        setTaxRegion2(data.taxRegion2 || "");
+        setTaxRate2(data.taxRate2?.toFixed(4) || "0.0000");
+        setTaxFactor(data.taxFactor?.toFixed(2) || "100.00");
+        setJobRemarks(data.jobRemarks || "");
+        setRegHours(data.reg?.toString() || "");
+        setOtHours(data.ot?.toString() || "");
+        setOt17Hours(data.ot17?.toString() || "");
+        setDtHours(data.dt?.toString() || "");
+        setTtHours(data.tt?.toString() || "");
       }
     } catch (error) {
       console.error("Error fetching invoice:", error);
@@ -111,7 +147,21 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
       const response = await fetch(`/api/invoices/${invoiceId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, items }),
+        body: JSON.stringify({
+          ...formData,
+          items,
+          taxRegion1: taxRegion1 || null,
+          taxRate1: parseFloat(taxRate1) || 0,
+          taxRegion2: taxRegion2 || null,
+          taxRate2: parseFloat(taxRate2) || 0,
+          taxFactor: parseFloat(taxFactor) || 100,
+          jobRemarks: jobRemarks || null,
+          reg: regHours ? parseFloat(regHours) : null,
+          ot: otHours ? parseFloat(otHours) : null,
+          ot17: ot17Hours ? parseFloat(ot17Hours) : null,
+          dt: dtHours ? parseFloat(dtHours) : null,
+          tt: ttHours ? parseFloat(ttHours) : null,
+        }),
       });
       if (response.ok) {
         const updated = await response.json();
@@ -454,15 +504,114 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   // Taxes/Job Remarks Tab Content
   const renderTaxesJobRemarksTab = () => (
     <>
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
+      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex gap-6">
+        {/* Left Column - Tax Fields */}
+        <div className="flex flex-col gap-2 min-w-[180px]">
+          <div className="flex items-center gap-2">
+            <label className="w-24 text-right text-[12px]">Tax Region 1</label>
+            <input
+              type="text"
+              value={taxRegion1}
+              onChange={(e) => { setTaxRegion1(e.target.value); setIsDirty(true); }}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white w-24"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-24 text-right text-[12px]">Tax Rate 1</label>
+            <input
+              type="text"
+              value={taxRate1}
+              onChange={(e) => { setTaxRate1(e.target.value); setIsDirty(true); }}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white w-24"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-24 text-right text-[12px]">Tax Region 2</label>
+            <input
+              type="text"
+              value={taxRegion2}
+              onChange={(e) => { setTaxRegion2(e.target.value); setIsDirty(true); }}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white w-24"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-24 text-right text-[12px]">Tax Rate 2</label>
+            <input
+              type="text"
+              value={taxRate2}
+              onChange={(e) => { setTaxRate2(e.target.value); setIsDirty(true); }}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white w-24"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-24 text-right text-[12px]">Tax Factor</label>
+            <input
+              type="text"
+              value={taxFactor}
+              onChange={(e) => { setTaxFactor(e.target.value); setIsDirty(true); }}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white w-24"
+            />
+          </div>
+        </div>
+
+        {/* Middle Column - Job Remarks */}
+        <div className="flex flex-col gap-1 flex-1">
           <label className="text-[12px] font-medium">Job Remarks</label>
           <textarea
             value={jobRemarks}
-            onChange={(e) => setJobRemarks(e.target.value)}
-            className="w-full h-48 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white resize-none"
+            onChange={(e) => { setJobRemarks(e.target.value); setIsDirty(true); }}
+            className="w-full h-40 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white resize-none"
             placeholder="Enter job remarks..."
           />
+        </div>
+
+        {/* Right Column - Hours */}
+        <div className="flex flex-col gap-2 min-w-[100px]">
+          <div className="flex items-center gap-2">
+            <label className="w-10 text-right text-[12px]">Reg</label>
+            <input
+              type="text"
+              value={regHours}
+              onChange={(e) => { setRegHours(e.target.value); setIsDirty(true); }}
+              className="w-16 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white text-right"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-10 text-right text-[12px]">OT</label>
+            <input
+              type="text"
+              value={otHours}
+              onChange={(e) => { setOtHours(e.target.value); setIsDirty(true); }}
+              className="w-16 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white text-right"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-10 text-right text-[12px]">1.7</label>
+            <input
+              type="text"
+              value={ot17Hours}
+              onChange={(e) => { setOt17Hours(e.target.value); setIsDirty(true); }}
+              className="w-16 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white text-right"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-10 text-right text-[12px]">DT</label>
+            <input
+              type="text"
+              value={dtHours}
+              onChange={(e) => { setDtHours(e.target.value); setIsDirty(true); }}
+              className="w-16 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white text-right"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="w-10 text-right text-[12px]">TT</label>
+            <input
+              type="text"
+              value={ttHours}
+              onChange={(e) => { setTtHours(e.target.value); setIsDirty(true); }}
+              className="w-16 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white text-right"
+            />
+          </div>
         </div>
       </div>
     </>

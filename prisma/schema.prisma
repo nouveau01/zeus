@@ -405,6 +405,21 @@ model Invoice {
 
   // Description
   description     String?
+  jobRemarks      String?   @map("job_remarks")
+
+  // Tax Fields
+  taxRegion1      String?   @map("tax_region_1")
+  taxRate1        Decimal   @default(0) @db.Decimal(8, 4) @map("tax_rate_1")
+  taxRegion2      String?   @map("tax_region_2")
+  taxRate2        Decimal   @default(0) @db.Decimal(8, 4) @map("tax_rate_2")
+  taxFactor       Decimal   @default(100) @db.Decimal(8, 2) @map("tax_factor")
+
+  // Labor Hours
+  reg             Decimal?  @db.Decimal(10, 2)
+  ot              Decimal?  @db.Decimal(10, 2)
+  ot17            Decimal?  @db.Decimal(10, 2)
+  dt              Decimal?  @db.Decimal(10, 2)
+  tt              Decimal?  @db.Decimal(10, 2)
 
   // Amounts
   taxable         Decimal   @default(0) @db.Decimal(12, 2)
