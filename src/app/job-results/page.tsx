@@ -130,7 +130,7 @@ export default function JobResultsPage({ premisesId }: JobResultsPageProps) {
   };
 
   const handleDoubleClick = (job: JobResult) => {
-    openTab(`Job ${job.externalId || job.id}`, `/job-maintenance/${job.id}`);
+    openTab(`Job #${job.externalId || job.id} - ${job.jobDescription || ""}`, `/job-results/${job.id}`);
   };
 
   const formatCurrency = (amount: number) => {

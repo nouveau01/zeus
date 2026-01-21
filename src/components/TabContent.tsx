@@ -12,6 +12,7 @@ import CompletedTicketDetail from "@/app/completed-tickets/[id]/CompletedTicketD
 import JobMaintenancePage from "@/app/job-maintenance/page";
 import JobDetail from "@/app/job-maintenance/[id]/JobDetail";
 import JobResultsPage from "@/app/job-results/page";
+import JobResultDetail from "@/app/job-results/[id]/JobResultDetail";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -117,6 +118,18 @@ export function TabContent() {
     const url = new URL(activeTab.route, "http://localhost");
     const premisesId = url.searchParams.get("premisesId");
     return <JobResultsPage premisesId={premisesId} />;
+  }
+
+  // Check for job-results detail route pattern: /job-results/[id]
+  const jobResultDetailMatch = activeTab.route.match(/^\/job-results\/([^?]+)$/);
+  if (jobResultDetailMatch) {
+    const jobId = jobResultDetailMatch[1];
+    return (
+      <JobResultDetail
+        jobId={jobId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
   }
 
   // Render based on route
