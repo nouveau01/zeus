@@ -344,7 +344,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
             onClick={() => setActiveTab(i)}
             className={`px-4 py-1.5 text-[12px] border-t border-l border-r rounded-t -mb-px ${
               activeTab === i
-                ? "bg-[#ffffcc] border-[#a0a0a0] border-b-[#ffffcc] z-10 font-medium"
+                ? "bg-white border-[#a0a0a0] border-b-white z-10 font-medium"
                 : "bg-[#e8e8e8] border-[#c0c0c0] text-[#606060] hover:bg-[#f0f0f0]"
             }`}
           >
@@ -354,7 +354,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-auto bg-[#ffffcc] p-2">
+      <div className="flex-1 overflow-auto bg-white p-2">
         {activeTab === 0 && (
           <TicketInfoTab
             formData={formData}
@@ -410,13 +410,14 @@ function TicketInfoTab({
   const inputClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
   const selectClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
   const labelClass = "text-[11px] text-[#333]";
-  const fieldsetClass = "border border-[#808080] p-2 bg-[#ffffcc]";
-  const legendClass = "text-[11px] px-1";
+  const fieldsetClass = "border border-[#808080] p-2 bg-white";
+  const legendClass = "text-[11px] px-1 bg-white";
 
   return (
-    <div className="flex gap-3 h-full overflow-auto p-1">
-      {/* Left Column - Basic Info */}
-      <div className="flex flex-col gap-2 w-[220px] flex-shrink-0">
+    <div className="h-full overflow-auto p-1">
+      <div className="flex gap-4">
+        {/* Left Column - Basic Info */}
+        <div className="flex flex-col gap-2 w-[240px]">
         {/* Ticket # and W/O# */}
         <div className="flex items-center gap-1">
           <label className={`${labelClass} w-[50px]`}>Ticket #</label>
@@ -546,7 +547,7 @@ function TicketInfoTab({
       </div>
 
       {/* Middle Column - Work Performed, Time Frame, Mileage */}
-      <div className="flex flex-col gap-2 w-[180px] flex-shrink-0">
+      <div className="flex flex-col gap-2 w-[200px]">
         {/* Work Performed */}
         <fieldset className={fieldsetClass}>
           <legend className={legendClass}>Work Performed</legend>
@@ -668,7 +669,7 @@ function TicketInfoTab({
       </div>
 
       {/* Right Section - Time Spent, Checkboxes, Expenses */}
-      <div className="flex flex-col gap-2 flex-1 min-w-[400px]">
+      <div className="flex flex-col gap-2 w-[420px]">
         {/* Top Row: Time Spent + Checkboxes side by side */}
         <div className="flex gap-3">
           {/* Time Spent */}
@@ -911,14 +912,15 @@ function TicketInfoTab({
         </div>
 
         {/* Internal Comments Only */}
-        <fieldset className={`${fieldsetClass} flex-1`}>
+        <fieldset className={`${fieldsetClass}`}>
           <legend className={legendClass}>Internal Comments Only</legend>
           <textarea
             value={formData.internalComments || ""}
             onChange={(e) => onChange("internalComments", e.target.value)}
-            className="w-full h-full min-h-[50px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+            className="w-full h-[60px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
           />
         </fieldset>
+      </div>
       </div>
     </div>
   );
