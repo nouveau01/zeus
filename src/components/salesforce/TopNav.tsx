@@ -26,7 +26,7 @@ export function TopNav() {
               <div className="w-2 h-6 bg-yellow-400"></div>
               <div className="w-2 h-6 bg-blue-500"></div>
             </div>
-            <span className="font-bold text-lg text-[#032d60]">ZUES</span>
+            <span className="font-bold text-lg text-[#032d60]">ZEUS</span>
           </Link>
 
           {/* Tabs */}

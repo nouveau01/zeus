@@ -3,8 +3,8 @@ import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "ZUES",
-  description: "ZUES - Field Service Management",
+  title: "ZEUS",
+  description: "ZEUS - Field Service Management",
 };
 
 export default function RootLayout({
