@@ -65,6 +65,16 @@ const toolbarIcons = [
   { icon: X, color: "#95a5a6" },
 ];
 
+const STORAGE_KEY = "zeus-customers-state";
+
+interface PageState {
+  activeTab: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  selectedRow: string | null;
+  showTotals: boolean;
+}
+
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,10 +83,49 @@ export default function CustomersPage() {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showTotals, setShowTotals] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const state: PageState = JSON.parse(saved);
+        setActiveTab(state.activeTab || "All");
+        setSortField(state.sortField || "name");
+        setSortDirection(state.sortDirection || "asc");
+        setSelectedRow(state.selectedRow || null);
+        setShowTotals(state.showTotals || false);
+      }
+    } catch (error) {
+      console.error("Error loading customers state:", error);
+    }
+    setIsHydrated(true);
+  }, []);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (isHydrated) {
+      try {
+        const state: PageState = {
+          activeTab,
+          sortField,
+          sortDirection,
+          selectedRow,
+          showTotals,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+        console.error("Error saving customers state:", error);
+      }
+    }
+  }, [activeTab, sortField, sortDirection, selectedRow, showTotals, isHydrated]);
 
   useEffect(() => {
-    fetchCustomers();
-  }, [activeTab]);
+    if (isHydrated) {
+      fetchCustomers();
+    }
+  }, [activeTab, isHydrated]);
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -163,6 +212,15 @@ export default function CustomersPage() {
       ? <ChevronUp className="w-3 h-3 text-blue-600" />
       : <ChevronDown className="w-3 h-3 text-blue-600" />;
   };
+
+  // Don't render until hydrated to avoid flicker
+  if (!isHydrated) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+        <span className="text-gray-500">Loading...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
