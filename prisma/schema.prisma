@@ -1,5 +1,5 @@
-// Prisma Schema for Nouveau Elevator FSM
-// Replicating Salesforce Service Cloud structure
+// Prisma Schema for ZEUS Field Service Management
+// Clean snake_case database column names
 
 generator client {
   provider = "prisma-client-js"
@@ -20,9 +20,9 @@ model User {
   name      String
   role      String   @default("User")
   avatar    String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   createdJobs    Job[]        @relation("CreatedByUser")
@@ -38,41 +38,98 @@ model User {
 // ============================================
 
 model Customer {
-  id           String   @id @default(cuid())
-  name         String
-  accountNumber String?  @unique
-  phone        String?
-  email        String?
-  website      String?
-  type         String   @default("General") // General, Commercial, Bank, Churches, Clubs, Property Manage
-  isActive     Boolean  @default(true)
-  balance      Decimal  @default(0) @db.Decimal(12, 2)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  accountNumber String?  @unique @map("account_number")
+
+  // Address fields
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?  @map("zip_code")
+  country       String?  @default("United States")
+
+  // Contact fields
+  contact       String?
+  phone         String?
+  fax           String?
+  cellular      String?
+  email         String?
+  website       String?
+
+  // Classification
+  type          String   @default("General")
+  isActive      Boolean  @default(true) @map("is_active")
+  billing       String?  @default("Individual")
+  custom1       String?
+  custom2       String?
+  balance       Decimal  @default(0) @db.Decimal(12, 2)
+
+  // Portal
+  portalAccess  Boolean  @default(false) @map("portal_access")
+
+  // Remarks
+  remarks           String?
+  salesRemarks      String?  @map("sales_remarks")
+  currentYearSales  Decimal  @default(0) @db.Decimal(12, 2) @map("current_year_sales")
+  priorYearSales    Decimal  @default(0) @db.Decimal(12, 2) @map("prior_year_sales")
+
+  // Timestamps
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  premises     Premises[]
-  jobs         Job[]
+  premises      Premises[]
+  jobs          Job[]
+  contacts      Contact[]
 
   @@map("customers")
 }
 
 // ============================================
-// PREMISES (Addresses/Buildings)
+// CONTACTS (Customer Contacts)
+// ============================================
+
+model Contact {
+  id          String   @id @default(cuid())
+  name        String
+  title       String?
+  phone       String?
+  fax         String?
+  mobile      String?
+  email       String?
+  inv         Boolean  @default(false)
+  es          Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  customerId  String   @map("customer_id")
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+// ============================================
+// PREMISES (Accounts/Buildings)
 // ============================================
 
 model Premises {
   id          String   @id @default(cuid())
+  premisesId  String?  @unique @map("premises_id")
   name        String?
   address     String
   city        String?
   state       String?
-  zipCode     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  zipCode     String?  @map("zip_code")
+  type        String?  @default("Non-Contract")
+  isActive    Boolean  @default(true) @map("is_active")
+  balance     Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  customerId  String
+  customerId  String   @map("customer_id")
   customer    Customer @relation(fields: [customerId], references: [id])
   jobs        Job[]
   units       Unit[]
@@ -86,13 +143,13 @@ model Premises {
 
 model Unit {
   id          String   @id @default(cuid())
-  unitNumber  String
-  unitType    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  unitNumber  String   @map("unit_number")
+  unitType    String?  @map("unit_type")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  premisesId  String
+  premisesId  String   @map("premises_id")
   premises    Premises @relation(fields: [premisesId], references: [id])
   jobs        Job[]
 
@@ -107,46 +164,46 @@ model Job {
   id              String    @id @default(cuid())
 
   // Core Fields
-  jobName         String    // CA-103
-  externalId      String?   @unique
-  jobDescription  String?
+  jobName         String    @map("job_name")
+  externalId      String?   @unique @map("external_id")
+  jobDescription  String?   @map("job_description")
 
   // Status & Type
   status          String    @default("Open")
-  type            String?   // 1, 2, 3, etc.
-  contractType    String?   // FM8, Repair, etc.
-  customJobType   String?
-  customStatus    String?
-  priorityLevel   String?
+  type            String?
+  contractType    String?   @map("contract_type")
+  customJobType   String?   @map("custom_job_type")
+  customStatus    String?   @map("custom_status")
+  priorityLevel   String?   @map("priority_level")
 
   // Dates
   date            DateTime?
-  customDate      DateTime?
-  dueDate         DateTime?
-  scheduleDate    DateTime?
-  compDate        DateTime? // Completion Date
-  closeDate       DateTime?
+  customDate      DateTime? @map("custom_date")
+  dueDate         DateTime? @map("due_date")
+  scheduleDate    DateTime? @map("schedule_date")
+  compDate        DateTime? @map("comp_date")
+  closeDate       DateTime? @map("close_date")
 
   // Hours
-  reg             Decimal?  @db.Decimal(10, 2) // Regular hours
-  ot              Decimal?  @db.Decimal(10, 2) // Overtime
-  ot17            Decimal?  @db.Decimal(10, 2) // 1.7 OT
-  dt              Decimal?  @db.Decimal(10, 2) // Double time
-  tt              Decimal?  @db.Decimal(10, 2) // Travel time
-  totalHours      Decimal?  @db.Decimal(10, 2)
+  reg             Decimal?  @db.Decimal(10, 2)
+  ot              Decimal?  @db.Decimal(10, 2)
+  ot17            Decimal?  @db.Decimal(10, 2)
+  dt              Decimal?  @db.Decimal(10, 2)
+  tt              Decimal?  @db.Decimal(10, 2)
+  totalHours      Decimal?  @db.Decimal(10, 2) @map("total_hours")
 
   // Assignment
   supervisor      String?
-  projectManager  String?
-  employeeFirstName String?
+  projectManager  String?   @map("project_manager")
+  employeeFirstName String? @map("employee_first_name")
 
   // Billing
-  billingTerms    String?
+  billingTerms    String?   @map("billing_terms")
   chargeable      Boolean   @default(false)
 
   // Notes & Remarks
-  sRemarks        String?
-  customerRemarks String?
+  sRemarks        String?   @map("s_remarks")
+  customerRemarks String?   @map("customer_remarks")
   comments        String?
 
   // Other Fields
@@ -155,35 +212,35 @@ model Job {
   source          String?
   office          String?
   reopen          Boolean   @default(false)
-  tsCreatedBy     String?
-  repRequest      String?
-  bRev            String?
-  lastSyncTime    DateTime?
+  tsCreatedBy     String?   @map("ts_created_by")
+  repRequest      String?   @map("rep_request")
+  bRev            String?   @map("b_rev")
+  lastSyncTime    DateTime? @map("last_sync_time")
 
   // Custom Fields
-  reqDate         DateTime?
+  reqDate         DateTime? @map("req_date")
   folder          String?
   url             String?
-  fineFault       String?
-  wfMisu          String?
-  mrRequest       String?
+  fineFault       String?   @map("fine_fault")
+  wfMisu          String?   @map("wf_misu")
+  mrRequest       String?   @map("mr_request")
   guzman          String?
 
   // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  customerId      String?
+  customerId      String?   @map("customer_id")
   customer        Customer? @relation(fields: [customerId], references: [id])
 
-  premisesId      String?
+  premisesId      String?   @map("premises_id")
   premises        Premises? @relation(fields: [premisesId], references: [id])
 
-  unitId          String?
+  unitId          String?   @map("unit_id")
   unit            Unit?     @relation(fields: [unitId], references: [id])
 
-  createdById     String?
+  createdById     String?   @map("created_by_id")
   createdBy       User?     @relation("CreatedByUser", fields: [createdById], references: [id])
 
   // Related records
@@ -202,16 +259,16 @@ model Job {
 
 model JobHistory {
   id            String   @id @default(cuid())
-  field         String   // Which field changed
-  originalValue String?
-  newValue      String?
-  createdAt     DateTime @default(now())
+  field         String
+  originalValue String?  @map("original_value")
+  newValue      String?  @map("new_value")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   // Relations
-  jobId         String
+  jobId         String   @map("job_id")
   job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-  userId        String?
+  userId        String?  @map("user_id")
   user          User?    @relation(fields: [userId], references: [id])
 
   @@map("job_history")
@@ -223,15 +280,15 @@ model JobHistory {
 
 model Activity {
   id          String   @id @default(cuid())
-  type        String   // created, updated, comment, etc.
+  type        String
   content     String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
 
   // Relations
-  jobId       String?
+  jobId       String?  @map("job_id")
   job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-  userId      String?
+  userId      String?  @map("user_id")
   user        User?    @relation(fields: [userId], references: [id])
 
   @@map("activities")
@@ -242,19 +299,19 @@ model Activity {
 // ============================================
 
 model File {
-  id          String   @id @default(cuid())
-  name        String
-  url         String
-  size        Int?
-  mimeType    String?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  url          String
+  size         Int?
+  mimeType     String?  @map("mime_type")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
-  jobId       String?
-  job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId        String?  @map("job_id")
+  job          Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-  uploadedById String?
-  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+  uploadedById String?  @map("uploaded_by_id")
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
 
   @@map("files")
 }
@@ -267,11 +324,11 @@ model Note {
   id          String   @id @default(cuid())
   title       String?
   body        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  jobId       String?
+  jobId       String?  @map("job_id")
   job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@map("notes")
@@ -282,18 +339,18 @@ model Note {
 // ============================================
 
 model Ticket {
-  id          String   @id @default(cuid())
-  ticketNumber String  @unique
-  subject     String
-  status      String   @default("Open")
-  priority    String?
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  ticketNumber String   @unique @map("ticket_number")
+  subject      String
+  status       String   @default("Open")
+  priority     String?
+  description  String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  jobId       String?
-  job         Job?     @relation(fields: [jobId], references: [id])
+  jobId        String?  @map("job_id")
+  job          Job?     @relation(fields: [jobId], references: [id])
 
   @@map("tickets")
 }

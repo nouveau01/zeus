@@ -22,6 +22,7 @@ import {
   Home,
   HelpCircle,
 } from "lucide-react";
+import { useTabs } from "@/context/TabContext";
 
 interface Customer {
   id: string;
@@ -76,6 +77,7 @@ interface PageState {
 }
 
 export default function CustomersPage() {
+  const { openTab } = useTabs();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
@@ -84,6 +86,10 @@ export default function CustomersPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showTotals, setShowTotals] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  const handleDoubleClick = (customer: Customer) => {
+    openTab(customer.name, `/customers/${customer.id}`);
+  };
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -360,6 +366,7 @@ export default function CustomersPage() {
                   <tr
                     key={customer.id}
                     onClick={() => setSelectedRow(customer.id)}
+                    onDoubleClick={() => handleDoubleClick(customer)}
                     className={`text-[12px] cursor-pointer ${
                       selectedRow === customer.id
                         ? "bg-[#0078d4] text-white"

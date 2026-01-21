@@ -2,9 +2,10 @@
 
 import { useTabs } from "@/context/TabContext";
 import CustomersPage from "@/app/customers/page";
+import CustomerDetail from "@/app/customers/[id]/CustomerDetail";
 
 export function TabContent() {
-  const { tabs, activeTabId } = useTabs();
+  const { tabs, activeTabId, closeTab } = useTabs();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
@@ -14,6 +15,18 @@ export function TabContent() {
       <div className="flex-1 h-full bg-[#c0c0c0]">
         {/* Blank gray screen like Total Service */}
       </div>
+    );
+  }
+
+  // Check for customer detail route pattern: /customers/[id]
+  const customerDetailMatch = activeTab.route.match(/^\/customers\/(.+)$/);
+  if (customerDetailMatch) {
+    const customerId = customerDetailMatch[1];
+    return (
+      <CustomerDetail
+        customerId={customerId}
+        onClose={() => closeTab(activeTab.id)}
+      />
     );
   }
 
