@@ -147,6 +147,7 @@ model Premises {
   jobs        Job[]
   units       Unit[]
   invoices    Invoice[]
+  tickets     Ticket[]
 
   @@map("premises")
 }
@@ -355,22 +356,62 @@ model Note {
 }
 
 // ============================================
-// TICKETS
+// TICKETS (Completed Time Tickets)
 // ============================================
 
 model Ticket {
-  id           String   @id @default(cuid())
-  ticketNumber String   @unique @map("ticket_number")
-  subject      String
-  status       String   @default("Open")
-  priority     String?
-  description  String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  ticketNumber   Int      @unique @map("ticket_number")
+  workOrderNumber Int?    @map("work_order_number")
+
+  // Date/Time
+  date           DateTime
+  completedDate  DateTime? @map("completed_date")
+
+  // Classification
+  type           String   @default("Other")  // Maintenance, Modernization, Repair, Other
+  category       String?
+  status         String   @default("Open")   // Open, Completed, Void
+
+  // Location identifier (like 110WIL, 50HAV, etc.)
+  accountId      String?  @map("account_id")
+
+  // Personnel
+  mechCrew       String?  @map("mech_crew")
+  supervisor     String?
+
+  // Checkbox statuses
+  bill           Boolean  @default(false)
+  reviewed       Boolean  @default(false)
+  pr             Boolean  @default(false)    // Payroll
+  vd             Boolean  @default(false)    // Void
+  inv            Boolean  @default(false)    // Invoiced
+
+  // Hours & Billing
+  hours          Decimal  @default(0) @db.Decimal(10, 2)
+
+  // Email
+  emailStatus    String?  @default("No Email Sent") @map("email_status")
+
+  // Unit info
+  unitName       String?  @map("unit_name")
+
+  // Description/Notes
+  description    String?
+
+  // Timestamps
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
-  jobId        String?  @map("job_id")
-  job          Job?     @relation(fields: [jobId], references: [id])
+  premisesId     String?  @map("premises_id")
+  premises       Premises? @relation(fields: [premisesId], references: [id])
+
+  jobId          String?  @map("job_id")
+  job            Job?     @relation(fields: [jobId], references: [id])
+
+  invoiceId      String?  @map("invoice_id")
+  invoice        Invoice? @relation(fields: [invoiceId], references: [id])
 
   @@map("tickets")
 }
@@ -442,6 +483,9 @@ model Invoice {
 
   // Line Items
   items           InvoiceItem[]
+
+  // Tickets linked to this invoice
+  tickets         Ticket[]
 
   @@map("invoices")
 }

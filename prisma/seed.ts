@@ -267,6 +267,68 @@ async function main() {
   }
   console.log(`Created ${invoiceData.length} invoices`);
 
+  // Completed Tickets data from Total Service screenshot
+  const ticketData = [
+    { ticketNumber: 3870484, workOrderNumber: 3870484, date: "2026-01-16T14:34:00", type: "Other", category: "Maintenance", accountId: "110WIL***", mechCrew: "LONDIS, GEORGE", hours: 6.75, unitName: "WC", status: "Completed" },
+    { ticketNumber: 3939921, workOrderNumber: 3939921, date: "2026-01-16T15:46:00", type: "Other", category: "Maintenance", accountId: "100HAVEN2***", mechCrew: "FOWLER T (RES-CUMC)", hours: 0.50, unitName: "NORTH", status: "Completed" },
+    { ticketNumber: 3941769, workOrderNumber: 3941769, date: "2026-01-16T15:42:00", type: "Other", category: "None", accountId: "50HAV***", mechCrew: "FOWLER T (RES-CUMC)", hours: 0.75, unitName: "BARD P1", status: "Completed" },
+    { ticketNumber: 3941864, workOrderNumber: 3941864, date: "2026-01-15T13:40:00", type: "Other", category: "None", accountId: "60HAV***", mechCrew: "FOWLER T (RES-CUMC)", hours: 2.25, unitName: "SOUTH", status: "Completed" },
+    { ticketNumber: 3956778, workOrderNumber: 3956778, date: "2026-01-16T12:29:00", type: "Other", category: "None", accountId: "701W168***", mechCrew: "DIXON J - Supervisor", hours: 1.00, unitName: "HAMMER H", status: "Completed" },
+    { ticketNumber: 3961794, workOrderNumber: 3961794, date: "2026-01-16T14:42:00", type: "Other", category: "None", accountId: "722W168***", mechCrew: "FOWLER T (RES-CUMC)", hours: 2.00, unitName: "PSYCH 3", status: "Completed" },
+    { ticketNumber: 3966188, workOrderNumber: 3966188, date: "2026-01-16T16:28:00", type: "Other", category: "Maintenance", accountId: "250W57***", mechCrew: "MELENDEZ, C", hours: 1.25, unitName: "LOW RISE 1", status: "Completed" },
+    { ticketNumber: 3966308, workOrderNumber: 3966308, date: "2026-01-16T07:44:00", type: "Other", category: "None", accountId: "184LEXINGTON***", mechCrew: "ARLOTTA MATTHEW", hours: 0.00, unitName: "P1", status: "Completed" },
+    { ticketNumber: 3985910, workOrderNumber: 3985910, date: "2026-01-16T10:25:00", type: "Maintenance", category: "Maintenance", accountId: "66W38TH***", mechCrew: "SANFILIPPO KENNETH", hours: 1.00, unitName: "P4", status: "Completed" },
+    { ticketNumber: 3999968, workOrderNumber: 3999968, date: "2026-01-16T09:19:00", type: "Maintenance", category: "None", accountId: "445GOLDST***", mechCrew: "SHUPAC", hours: 2.00, unitName: "", status: "Completed" },
+    { ticketNumber: 4005774, workOrderNumber: 4005774, date: "2026-01-16T13:58:00", type: "Maintenance", category: "None", accountId: "150E42***", mechCrew: "SULLIVAN, R", hours: 6.25, unitName: "PE23 - C BA", status: "Completed" },
+    { ticketNumber: 4005775, workOrderNumber: 4005775, date: "2026-01-17T05:33:00", type: "Maintenance", category: "None", accountId: "150E42***", mechCrew: "SULLIVAN, R", hours: 1.25, unitName: "PE24 - C BA", status: "Completed" },
+    { ticketNumber: 4006902, workOrderNumber: 4006902, date: "2026-01-15T07:27:00", type: "Maintenance", category: "Maintenance", accountId: "25W32ST***", mechCrew: "", hours: 0.00, unitName: "P2", status: "Completed", vd: true },
+    { ticketNumber: 4007443, workOrderNumber: 4007443, date: "2026-01-16T15:15:00", type: "Maintenance", category: "Maintenance", accountId: "30LINCOLN***", mechCrew: "LYNCH, THOMAS", hours: 0.25, unitName: "P07 - NORTH", status: "Completed" },
+    { ticketNumber: 4009478, workOrderNumber: 4009478, date: "2026-01-16T12:44:00", type: "Maintenance", category: "Maintenance", accountId: "620W168***", mechCrew: "FONTANEZ, AL (RES-CUMC)", hours: 4.00, unitName: "P/S4", status: "Completed" },
+    { ticketNumber: 4011725, workOrderNumber: 4011725, date: "2026-01-15T11:06:00", type: "Other", category: "Maintenance", accountId: "114FIFTHAVE***", mechCrew: "FALLON, SEAN", hours: 1.00, unitName: "P5", status: "Completed" },
+    { ticketNumber: 4015256, workOrderNumber: 4015256, date: "2026-01-16T11:41:00", type: "Other", category: "Maintenance", accountId: "116JOH***", mechCrew: "FALLON, SEAN", hours: 2.00, unitName: "Car 6", status: "Completed" },
+    { ticketNumber: 4031169, workOrderNumber: 4031169, date: "2026-01-16T14:29:00", type: "Maintenance", category: "Maintenance", accountId: "10E45***", mechCrew: "TURNER C", hours: 1.25, unitName: "NEW", status: "Completed" },
+    { ticketNumber: 4033068, workOrderNumber: 4033068, date: "2026-01-15T07:27:14", type: "Maintenance", category: "Maintenance", accountId: "25W32ST", mechCrew: "", hours: 0.00, unitName: "P2", status: "Completed", vd: true },
+    { ticketNumber: 4033634, workOrderNumber: 4033634, date: "2026-01-15T15:25:00", type: "Maintenance", category: "Maintenance", accountId: "30LINCOLN***", mechCrew: "LYNCH, THOMAS", hours: 0.25, unitName: "P09 - NORTH", status: "Completed" },
+    { ticketNumber: 4034189, workOrderNumber: 4034189, date: "2026-01-16T13:50:00", type: "Maintenance", category: "Maintenance", accountId: "400W55TH***", mechCrew: "MELENDEZ, C", hours: 0.75, unitName: "P1", status: "Completed" },
+    { ticketNumber: 4034190, workOrderNumber: 4034190, date: "2026-01-15T13:00:00", type: "Maintenance", category: "Maintenance", accountId: "400W55TH***", mechCrew: "MELENDEZ, C", hours: 0.50, unitName: "P2", status: "Completed" },
+    { ticketNumber: 4035680, workOrderNumber: 4035680, date: "2026-01-16T16:54:00", type: "Maintenance", category: "Maintenance", accountId: "620W168***", mechCrew: "FONTANEZ, AL (RES-CUMC)", hours: 4.00, unitName: "P/S2", status: "Completed" },
+    { ticketNumber: 4037674, workOrderNumber: 4037674, date: "2026-01-15T12:28:00", type: "Other", category: "Maintenance", accountId: "275MADRPW***", mechCrew: "SYLVESTER, RONALD", hours: 2.00, unitName: "LOW RISE 3", status: "Completed" },
+    { ticketNumber: 4041746, workOrderNumber: 4041746, date: "2026-01-15T14:08:00", type: "Maintenance", category: "Maintenance", accountId: "114FIFTHAVE***", mechCrew: "FALLON, SEAN", hours: 1.25, unitName: "P7", status: "Completed" },
+    { ticketNumber: 4042974, workOrderNumber: 4042974, date: "2026-01-16T11:06:00", type: "Other", category: "None", accountId: "1745BRO***", mechCrew: "CISOWSKI, NICHOLAS", hours: 1.00, unitName: "COMM PASS", status: "Completed" },
+    { ticketNumber: 4042981, workOrderNumber: 4042981, date: "2026-01-16T12:04:00", type: "Other", category: "None", accountId: "1745BRO***", mechCrew: "CISOWSKI, NICHOLAS", hours: 1.25, unitName: "COMM PASS", status: "Completed" },
+    { ticketNumber: 4042991, workOrderNumber: 4042991, date: "2026-01-16T13:12:00", type: "Other", category: "None", accountId: "1745BRO***", mechCrew: "CISOWSKI, NICHOLAS", hours: 1.75, unitName: "COMM PASS", status: "Completed" },
+    { ticketNumber: 4042995, workOrderNumber: 4042995, date: "2026-01-16T15:24:00", type: "Other", category: "None", accountId: "1745BRO***", mechCrew: "MELENDEZ, C", hours: 0.00, unitName: "COMM PASS", status: "Completed" },
+    { ticketNumber: 4042997, workOrderNumber: 4042997, date: "2026-01-16T07:40:00", type: "Other", category: "None", accountId: "1745BRO***", mechCrew: "MELENDEZ, C", hours: 1.00, unitName: "COMM PASS", status: "Completed" },
+  ];
+
+  // Create tickets
+  for (const tData of ticketData) {
+    const randomPremisesId = premisesIds[Math.floor(Math.random() * premisesIds.length)];
+
+    await prisma.ticket.create({
+      data: {
+        ticketNumber: tData.ticketNumber,
+        workOrderNumber: tData.workOrderNumber,
+        date: new Date(tData.date),
+        type: tData.type,
+        category: tData.category,
+        status: tData.status,
+        accountId: tData.accountId,
+        mechCrew: tData.mechCrew,
+        hours: tData.hours,
+        unitName: tData.unitName,
+        bill: false,
+        reviewed: false,
+        pr: false,
+        vd: tData.vd || false,
+        inv: false,
+        emailStatus: "No Email Sent",
+        premisesId: randomPremisesId,
+      },
+    });
+  }
+  console.log(`Created ${ticketData.length} completed tickets`);
+
   console.log("Database seeded successfully!");
 }
 

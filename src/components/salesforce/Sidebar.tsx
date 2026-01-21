@@ -107,37 +107,18 @@ const navStructure: NavSection[] = [
     id: "6",
     name: "Dispatch",
     children: [
-      { name: "Ticket", href: "/tickets" },
-      { name: "Ticket by Date", href: "/ticket-by-date" },
-      { name: "Job", href: "/jobs" },
-      { name: "Premises", href: "/premises" },
-      { name: "Unit", href: "/units" },
-      { name: "Schedule", href: "/schedule" },
-      { name: "Violations", href: "/violations" },
-      { name: "Check Call List", href: "/check-call-list" },
-      { name: "Confirmation Call", href: "/confirmation-call" },
-      { name: "Entrapment", href: "/entrapment" },
-      { name: "Fire Service", href: "/fire-service" },
+      { name: "Dispatch Screen", href: "/dispatch" },
+      { name: "Resolve Ticket", href: "/resolve-ticket" },
+      { name: "Completed Tickets", href: "/completed-tickets" },
+      { name: "Create PM Tickets", href: "/create-pm-tickets" },
+      { name: "Call Statistics", href: "/call-statistics" },
+      { name: "Tablet Tickets", href: "/tablet-tickets" },
+      { name: "Units", href: "/units" },
+      { name: "Unit Templates", href: "/unit-templates" },
     ],
   },
   {
     id: "7",
-    name: "Dispatch Extras",
-    children: [
-      { name: "Ticket Adjustment", href: "/ticket-adjustment" },
-      { name: "Job Adjustment", href: "/job-adjustment" },
-      { name: "Material Req", href: "/material-req" },
-      { name: "Shortage Report", href: "/shortage-report" },
-      { name: "View Shortages", href: "/view-shortages" },
-      { name: "Man Hours", href: "/man-hours" },
-      { name: "Mechanic Listing", href: "/mechanic-listing" },
-      { name: "Dispatch Reports", href: "/dispatch-reports" },
-      { name: "Viol. Scheduling", href: "/viol-scheduling" },
-      { name: "Proposals", href: "/proposals" },
-    ],
-  },
-  {
-    id: "8",
     name: "Job Cost",
     children: [
       { name: "Projects", href: "/projects" },
@@ -148,7 +129,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "9",
+    id: "8",
     name: "Sales",
     children: [
       { name: "Prospects", href: "/prospects" },
@@ -164,7 +145,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "10",
+    id: "9",
     name: "Banking",
     children: [
       { name: "Bank Accounts", href: "/bank-accounts" },
@@ -173,7 +154,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "11",
+    id: "10",
     name: "Reports",
     children: [
       { name: "Report Generator", href: "/report-generator" },
@@ -190,7 +171,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "12",
+    id: "11",
     name: "Contact",
     children: [
       { name: "Contact Listing", href: "/contact-listing" },
@@ -201,7 +182,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "13",
+    id: "12",
     name: "Control",
     children: [
       { name: "Users", href: "/users" },
