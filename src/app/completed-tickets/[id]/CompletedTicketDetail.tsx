@@ -534,19 +534,9 @@ function TicketInfoTab({
             className="w-full h-[50px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
           />
         </fieldset>
-
-        {/* Parts Used */}
-        <fieldset className={fieldsetClass}>
-          <legend className={legendClass}>Parts Used</legend>
-          <textarea
-            value={formData.partsUsed || ""}
-            onChange={(e) => onChange("partsUsed", e.target.value)}
-            className="w-full h-[40px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
-          />
-        </fieldset>
       </div>
 
-      {/* Middle Column - Work Performed, Time Frame, Mileage */}
+      {/* Middle Column - Work Performed, Time Frame, Mileage, Parts Used */}
       <div className="flex flex-col gap-2 w-[200px]">
         {/* Work Performed */}
         <fieldset className={fieldsetClass}>
@@ -665,6 +655,16 @@ function TicketInfoTab({
               />
             </div>
           </div>
+        </fieldset>
+
+        {/* Parts Used */}
+        <fieldset className={fieldsetClass}>
+          <legend className={legendClass}>Parts Used</legend>
+          <textarea
+            value={formData.partsUsed || ""}
+            onChange={(e) => onChange("partsUsed", e.target.value)}
+            className="w-full h-[40px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+          />
         </fieldset>
       </div>
 
