@@ -88,6 +88,7 @@ interface Ticket {
     zipCode: string | null;
     phone: string | null;
     contact: string | null;
+    type: string | null;
   } | null;
   job: {
     id: string;

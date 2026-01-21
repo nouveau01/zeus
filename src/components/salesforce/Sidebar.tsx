@@ -121,11 +121,13 @@ const navStructure: NavSection[] = [
     id: "7",
     name: "Job Cost",
     children: [
-      { name: "Projects", href: "/projects" },
-      { name: "P.O. for Project", href: "/po-for-project" },
-      { name: "Project Adjustmnt", href: "/project-adjustment" },
-      { name: "Project Reports", href: "/project-reports" },
-      { name: "Apply Labor", href: "/apply-labor" },
+      { name: "Job Templates", href: "/job-templates" },
+      { name: "Job Maintenance", href: "/job-maintenance" },
+      { name: "Post Item To Job", href: "/post-item-to-job" },
+      { name: "Job Results", href: "/job-results" },
+      { name: "Close Job", href: "/close-job" },
+      { name: "Job Types", href: "/job-types" },
+      { name: "Job Status", href: "/job-status" },
     ],
   },
   {

@@ -4,13 +4,23 @@ import prisma from "@/lib/db";
 // GET /api/jobs - Get all jobs
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get("type");
+
+    // Build where clause
+    const where: any = {};
+    if (type && type !== "all") {
+      where.type = type;
+    }
+
     const jobs = await prisma.job.findMany({
+      where,
       include: {
         customer: {
           select: { id: true, name: true },
         },
         premises: {
-          select: { id: true, address: true },
+          select: { id: true, premisesId: true, name: true, address: true },
         },
         _count: {
           select: {

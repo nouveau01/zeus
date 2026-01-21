@@ -9,6 +9,7 @@ import InvoicesPage from "@/app/invoices/page";
 import InvoiceDetail from "@/app/invoices/[id]/InvoiceDetail";
 import CompletedTicketsPage from "@/app/completed-tickets/page";
 import CompletedTicketDetail from "@/app/completed-tickets/[id]/CompletedTicketDetail";
+import JobMaintenancePage from "@/app/job-maintenance/page";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -82,6 +83,8 @@ export function TabContent() {
       return <InvoicesPage />;
     case "/completed-tickets":
       return <CompletedTicketsPage />;
+    case "/job-maintenance":
+      return <JobMaintenancePage />;
     default:
       return (
         <div className="flex-1 h-full bg-[#c0c0c0] flex items-center justify-center">

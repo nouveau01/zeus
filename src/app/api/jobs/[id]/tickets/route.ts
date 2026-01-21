@@ -26,7 +26,7 @@ export async function POST(
 ) {
   try {
     const body = await request.json();
-    const { subject, description, priority } = body;
+    const { description, type, scopeOfWork } = body;
 
     // Verify job exists
     const job = await prisma.job.findUnique({
@@ -37,17 +37,20 @@ export async function POST(
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    // Generate ticket number
-    const ticketCount = await prisma.ticket.count();
-    const ticketNumber = `TKT-${String(ticketCount + 1).padStart(5, "0")}`;
+    // Generate ticket number (auto-increment)
+    const lastTicket = await prisma.ticket.findFirst({
+      orderBy: { ticketNumber: "desc" },
+    });
+    const ticketNumber = (lastTicket?.ticketNumber || 0) + 1;
 
     const ticket = await prisma.ticket.create({
       data: {
         ticketNumber,
-        subject,
-        description: description || null,
-        priority: priority || "Medium",
+        date: new Date(),
+        type: type || "Repair",
         status: "Open",
+        description: description || null,
+        scopeOfWork: scopeOfWork || null,
         jobId: params.id,
       },
     });
@@ -56,7 +59,7 @@ export async function POST(
     await prisma.activity.create({
       data: {
         type: "TICKET_CREATED",
-        content: `Created ticket ${ticketNumber}: ${subject}`,
+        content: `Created ticket #${ticketNumber}`,
         jobId: params.id,
       },
     });
