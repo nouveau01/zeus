@@ -5,6 +5,8 @@ import CustomersPage from "@/app/customers/page";
 import CustomerDetail from "@/app/customers/[id]/CustomerDetail";
 import AccountsPage from "@/app/accounts/page";
 import AccountDetail from "@/app/accounts/[id]/AccountDetail";
+import InvoicesPage from "@/app/invoices/page";
+import InvoiceDetail from "@/app/invoices/[id]/InvoiceDetail";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -44,12 +46,26 @@ export function TabContent() {
     );
   }
 
+  // Check for invoice detail route pattern: /invoices/[id]
+  const invoiceDetailMatch = activeTab.route.match(/^\/invoices\/(.+)$/);
+  if (invoiceDetailMatch) {
+    const invoiceId = invoiceDetailMatch[1];
+    return (
+      <InvoiceDetail
+        invoiceId={invoiceId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
   // Render based on route
   switch (activeTab.route) {
     case "/customers":
       return <CustomersPage />;
     case "/accounts":
       return <AccountsPage />;
+    case "/invoices":
+      return <InvoicesPage />;
     default:
       return (
         <div className="flex-1 h-full bg-[#c0c0c0] flex items-center justify-center">

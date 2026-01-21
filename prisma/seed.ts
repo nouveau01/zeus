@@ -60,6 +60,8 @@ async function main() {
   ];
 
   // Delete existing data in correct order (respecting foreign keys)
+  await prisma.invoiceItem.deleteMany({});
+  await prisma.invoice.deleteMany({});
   await prisma.activity.deleteMany({});
   await prisma.jobHistory.deleteMany({});
   await prisma.file.deleteMany({});
@@ -190,6 +192,80 @@ async function main() {
     }
   }
   console.log("Created units for premises");
+
+  // Invoice data from Total Service screenshot
+  const invoiceData = [
+    { invoiceNumber: 1, date: "2001-03-12", type: "Other", total: 181.86, status: "Paid" },
+    { invoiceNumber: 314, date: "1999-12-16", type: "Other", total: 132.82, status: "Paid" },
+    { invoiceNumber: 706, date: "2000-10-23", type: "Other", total: -8621.25, status: "Paid" },
+    { invoiceNumber: 716, date: "2000-10-26", type: "Other", total: -62.91, status: "Paid" },
+    { invoiceNumber: 950, date: "2001-05-17", type: "Other", total: 264.00, status: "Paid" },
+    { invoiceNumber: 978, date: "2001-06-21", type: "Other", total: -16123.50, status: "Paid" },
+    { invoiceNumber: 979, date: "2001-06-21", type: "Other", total: -16123.50, status: "Paid" },
+    { invoiceNumber: 1158, date: "2001-08-02", type: "Other", total: -13418.76, status: "Paid" },
+    { invoiceNumber: 1277, date: "2001-01-05", type: "Other", total: -160.00, status: "Paid" },
+    { invoiceNumber: 1432, date: "2002-01-18", type: "Other", total: -14817.00, status: "Paid" },
+    { invoiceNumber: 1553, date: "2002-01-31", type: "Other", total: 0.00, status: "Void" },
+    { invoiceNumber: 1557, date: "2002-01-31", type: "Other", total: 0.00, status: "Void" },
+    { invoiceNumber: 1603, date: "2002-02-12", type: "Other", total: -20.00, status: "Paid" },
+    { invoiceNumber: 1616, date: "2002-02-25", type: "Other", total: -10.00, status: "Paid" },
+    { invoiceNumber: 1662, date: "2002-04-03", type: "Other", total: -200.00, status: "Paid" },
+    { invoiceNumber: 1671, date: "2002-04-09", type: "Other", total: -2381.50, status: "Paid" },
+    { invoiceNumber: 1672, date: "2002-04-09", type: "Other", total: -275.00, status: "Paid" },
+    { invoiceNumber: 1710, date: "2002-04-25", type: "Other", total: -1293.59, status: "Paid" },
+    { invoiceNumber: 1715, date: "2002-04-30", type: "Other", total: -2381.50, status: "Paid" },
+    { invoiceNumber: 1725, date: "2002-05-20", type: "Other", total: -200.00, status: "Paid" },
+    { invoiceNumber: 1743, date: "2002-05-24", type: "Other", total: -316.44, status: "Paid" },
+    { invoiceNumber: 1744, date: "2002-05-24", type: "Other", total: -315.00, status: "Paid" },
+    { invoiceNumber: 1752, date: "2002-05-30", type: "Other", total: -4449.08, status: "Paid" },
+    { invoiceNumber: 1755, date: "2002-06-04", type: "Other", total: -1158.34, status: "Paid" },
+    { invoiceNumber: 1761, date: "2002-06-10", type: "Other", total: -2381.50, status: "Paid" },
+    { invoiceNumber: 1966, date: "2002-11-18", type: "Other", total: -4717.07, status: "Open" },
+    { invoiceNumber: 1999, date: "2002-12-06", type: "Other", total: -1158.34, status: "Paid" },
+    { invoiceNumber: 2020, date: "2003-01-09", type: "Other", total: -1158.34, status: "Paid" },
+    { invoiceNumber: 2032, date: "2003-01-15", type: "Other", total: -166.66, status: "Paid" },
+  ];
+
+  // Create invoices with line items
+  for (const invData of invoiceData) {
+    const randomPremisesId = premisesIds[Math.floor(Math.random() * premisesIds.length)];
+
+    await prisma.invoice.create({
+      data: {
+        invoiceNumber: invData.invoiceNumber,
+        postingDate: new Date(invData.date),
+        date: new Date(invData.date),
+        type: invData.type,
+        terms: "Net 30 Days",
+        status: invData.status,
+        description: `Imported Invoice for Job #`,
+        taxable: 0,
+        nonTaxable: invData.total,
+        subTotal: invData.total,
+        salesTax: 0,
+        total: invData.total,
+        remainingUnpaid: invData.status === "Paid" ? 0 : invData.total,
+        emailStatus: "No Email Sent",
+        premisesId: randomPremisesId,
+        items: {
+          create: [
+            {
+              name: "GENERAL",
+              quantity: 1,
+              description: "Invoice Item",
+              tax: false,
+              price: invData.total,
+              markupPercent: 0,
+              amount: invData.total,
+              measure: "Each",
+              phase: 0,
+            },
+          ],
+        },
+      },
+    });
+  }
+  console.log(`Created ${invoiceData.length} invoices`);
 
   console.log("Database seeded successfully!");
 }

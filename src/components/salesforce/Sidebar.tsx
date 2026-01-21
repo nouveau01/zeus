@@ -22,7 +22,7 @@ const navStructure: NavSection[] = [
     children: [
       { name: "Customers", href: "/customers" },
       { name: "Accounts", href: "/accounts" },
-      { name: "Invoice Register", href: "/invoice-register" },
+      { name: "Invoice Register", href: "/invoices" },
       { name: "Add Invoice", href: "/add-invoice" },
       { name: "Cash Receipts", href: "/cash-receipts" },
       { name: "Add Deposit", href: "/add-deposit" },

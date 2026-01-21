@@ -146,6 +146,7 @@ model Premises {
   customer    Customer @relation(fields: [customerId], references: [id])
   jobs        Job[]
   units       Unit[]
+  invoices    Invoice[]
 
   @@map("premises")
 }
@@ -267,6 +268,7 @@ model Job {
   files           File[]
   notes           Note[]
   tickets         Ticket[]
+  invoices        Invoice[]
 
   @@map("jobs")
 }
@@ -371,4 +373,87 @@ model Ticket {
   job          Job?     @relation(fields: [jobId], references: [id])
 
   @@map("tickets")
+}
+
+// ============================================
+// INVOICES
+// ============================================
+
+model Invoice {
+  id              String    @id @default(cuid())
+  invoiceNumber   Int       @unique @map("invoice_number")
+
+  // Dates
+  postingDate     DateTime  @map("posting_date")
+  date            DateTime
+
+  // Classification
+  type            String    @default("Other")  // Other, Maintenance, Modernization, Repair
+  terms           String?   @default("Net 30 Days")
+  priceLevel      String?   @map("price_level")
+
+  // Reference Fields
+  poNumber        String?   @map("po_number")
+  mechSales       String?   @map("mech_sales")
+  creditReq       String?   @map("credit_req")
+  backup          String?
+
+  // Status
+  status          String    @default("Open")  // Open, Paid, Void
+  emailSent       Boolean   @default(false) @map("email_sent")
+  emailStatus     String?   @default("No Email Sent") @map("email_status")
+
+  // Description
+  description     String?
+
+  // Amounts
+  taxable         Decimal   @default(0) @db.Decimal(12, 2)
+  nonTaxable      Decimal   @default(0) @db.Decimal(12, 2) @map("non_taxable")
+  subTotal        Decimal   @default(0) @db.Decimal(12, 2) @map("sub_total")
+  salesTax        Decimal   @default(0) @db.Decimal(12, 2) @map("sales_tax")
+  total           Decimal   @default(0) @db.Decimal(12, 2)
+  remainingUnpaid Decimal   @default(0) @db.Decimal(12, 2) @map("remaining_unpaid")
+
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  premisesId      String?   @map("premises_id")
+  premises        Premises? @relation(fields: [premisesId], references: [id])
+
+  jobId           String?   @map("job_id")
+  job             Job?      @relation(fields: [jobId], references: [id])
+
+  // Line Items
+  items           InvoiceItem[]
+
+  @@map("invoices")
+}
+
+// ============================================
+// INVOICE ITEMS (Line Items)
+// ============================================
+
+model InvoiceItem {
+  id            String   @id @default(cuid())
+  name          String
+  quantity      Decimal  @default(1) @db.Decimal(10, 2)
+  description   String?
+  tax           Boolean  @default(false)
+  price         Decimal  @default(0) @db.Decimal(12, 2)
+  markupPercent Decimal  @default(0) @db.Decimal(5, 2) @map("markup_percent")
+  amount        Decimal  @default(0) @db.Decimal(12, 2)
+  measure       String?  @default("Each")
+  phase         Int?     @default(0)
+
+  // Timestamps
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  invoiceId     String   @map("invoice_id")
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
 }
