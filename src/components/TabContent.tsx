@@ -10,6 +10,7 @@ import InvoiceDetail from "@/app/invoices/[id]/InvoiceDetail";
 import CompletedTicketsPage from "@/app/completed-tickets/page";
 import CompletedTicketDetail from "@/app/completed-tickets/[id]/CompletedTicketDetail";
 import JobMaintenancePage from "@/app/job-maintenance/page";
+import JobDetail from "@/app/job-maintenance/[id]/JobDetail";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -68,6 +69,18 @@ export function TabContent() {
     return (
       <CompletedTicketDetail
         ticketId={ticketId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for job detail route pattern: /job-maintenance/[id]
+  const jobDetailMatch = activeTab.route.match(/^\/job-maintenance\/(.+)$/);
+  if (jobDetailMatch) {
+    const jobId = jobDetailMatch[1];
+    return (
+      <JobDetail
+        jobId={jobId}
         onClose={() => closeTab(activeTab.id)}
       />
     );
