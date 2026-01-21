@@ -50,8 +50,16 @@ export function TabContent() {
     );
   }
 
+  // Check for invoices route with optional premisesId filter (before invoice detail check)
+  // This handles /invoices and /invoices?premisesId=xxx
+  if (activeTab.route === "/invoices" || activeTab.route.startsWith("/invoices?")) {
+    const url = new URL(activeTab.route, "http://localhost");
+    const premisesId = url.searchParams.get("premisesId");
+    return <InvoicesPage premisesId={premisesId} />;
+  }
+
   // Check for invoice detail route pattern: /invoices/[id]
-  const invoiceDetailMatch = activeTab.route.match(/^\/invoices\/(.+)$/);
+  const invoiceDetailMatch = activeTab.route.match(/^\/invoices\/([^?]+)$/);
   if (invoiceDetailMatch) {
     const invoiceId = invoiceDetailMatch[1];
     return (
@@ -100,8 +108,6 @@ export function TabContent() {
       return <CustomersPage />;
     case "/accounts":
       return <AccountsPage />;
-    case "/invoices":
-      return <InvoicesPage />;
     case "/completed-tickets":
       return <CompletedTicketsPage />;
     default:

@@ -30,7 +30,11 @@ interface Invoice {
 
 const TYPE_TABS = ["All", "Maintenance", "Modernization", "Repair", "Other", "NEW REPAIR"];
 
-export default function InvoicesPage() {
+interface InvoicesPageProps {
+  premisesId?: string | null;
+}
+
+export default function InvoicesPage({ premisesId }: InvoicesPageProps) {
   const { openTab } = useTabs();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +79,7 @@ export default function InvoicesPage() {
     if (filtersLoaded) {
       fetchInvoices();
     }
-  }, [startDate, endDate, activeType, filtersLoaded]);
+  }, [startDate, endDate, activeType, filtersLoaded, premisesId]);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -84,6 +88,7 @@ export default function InvoicesPage() {
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
       if (activeType !== "All") params.set("type", activeType);
+      if (premisesId) params.set("premisesId", premisesId);
 
       const response = await fetch(`/api/invoices?${params.toString()}`);
       if (response.ok) {

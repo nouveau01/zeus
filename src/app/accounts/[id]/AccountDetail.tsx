@@ -327,7 +327,10 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
             Job Results
           </button>
-          <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
+          <button
+            onClick={() => openTab(`Invoices - ${account.name || account.premisesId}`, `/invoices?premisesId=${account.id}`)}
+            className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
+          >
             Invoices
           </button>
           <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">

@@ -9,9 +9,15 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
     const type = searchParams.get("type");
     const search = searchParams.get("search");
+    const premisesId = searchParams.get("premisesId");
 
     // Build where clause
     const where: any = {};
+
+    // Premises filter (for filtering by account)
+    if (premisesId) {
+      where.premisesId = premisesId;
+    }
 
     // Date range filter
     if (startDate || endDate) {
