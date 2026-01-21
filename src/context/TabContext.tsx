@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
 export interface Tab {
   id: string;
@@ -19,9 +19,59 @@ interface TabContextType {
 
 const TabContext = createContext<TabContextType | undefined>(undefined);
 
+const STORAGE_KEY = "zeus-tabs";
+const ACTIVE_TAB_KEY = "zeus-active-tab";
+
 export function TabProvider({ children }: { children: ReactNode }) {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Load tabs from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedTabs = localStorage.getItem(STORAGE_KEY);
+      const savedActiveTab = localStorage.getItem(ACTIVE_TAB_KEY);
+
+      if (savedTabs) {
+        const parsedTabs = JSON.parse(savedTabs);
+        setTabs(parsedTabs);
+      }
+
+      if (savedActiveTab) {
+        setActiveTabId(savedActiveTab);
+      }
+    } catch (error) {
+      console.error("Error loading tabs from localStorage:", error);
+    }
+    setIsHydrated(true);
+  }, []);
+
+  // Save tabs to localStorage whenever they change
+  useEffect(() => {
+    if (isHydrated) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
+      } catch (error) {
+        console.error("Error saving tabs to localStorage:", error);
+      }
+    }
+  }, [tabs, isHydrated]);
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    if (isHydrated) {
+      try {
+        if (activeTabId) {
+          localStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
+        } else {
+          localStorage.removeItem(ACTIVE_TAB_KEY);
+        }
+      } catch (error) {
+        console.error("Error saving active tab to localStorage:", error);
+      }
+    }
+  }, [activeTabId, isHydrated]);
 
   const openTab = (title: string, route: string) => {
     // Check if tab with this route already exists
