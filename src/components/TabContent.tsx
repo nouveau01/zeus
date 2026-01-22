@@ -34,6 +34,10 @@ import SafetyTestsPage from "@/app/dispatch-extras/safety-tests/page";
 import SafetyTestDetail from "@/app/dispatch-extras/safety-tests/[id]/SafetyTestDetail";
 import EstimatesPage from "@/app/estimates/page";
 import EstimateDetail from "@/app/estimates/[id]/EstimateDetail";
+import AwardJobPage from "@/app/award-job/page";
+import BidResultsPage from "@/app/bid-results/page";
+import QuotesPage from "@/app/quotes/page";
+import QuoteDetail from "@/app/quotes/[id]/QuoteDetail";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -309,6 +313,33 @@ export function TabContent() {
     return (
       <EstimateDetail
         estimateId={estimateId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for award-job route
+  if (activeTab.route === "/award-job") {
+    return <AwardJobPage />;
+  }
+
+  // Check for bid-results route
+  if (activeTab.route === "/bid-results") {
+    return <BidResultsPage />;
+  }
+
+  // Check for quotes route
+  if (activeTab.route === "/quotes") {
+    return <QuotesPage />;
+  }
+
+  // Check for quote detail route pattern: /quotes/[id]
+  const quoteDetailMatch = activeTab.route.match(/^\/quotes\/([^?]+)$/);
+  if (quoteDetailMatch) {
+    const quoteId = quoteDetailMatch[1];
+    return (
+      <QuoteDetail
+        quoteId={quoteId}
         onClose={() => closeTab(activeTab.id)}
       />
     );
