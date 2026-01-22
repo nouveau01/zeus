@@ -119,6 +119,22 @@ const navStructure: NavSection[] = [
   },
   {
     id: "7",
+    name: "Dispatch Extras",
+    children: [
+      { name: "Routes", href: "/dispatch-extras/routes" },
+      { name: "Route Planning", href: "/dispatch-extras/route-planning" },
+      { name: "Tech Location", href: "/dispatch-extras/tech-location" },
+      { name: "Violations", href: "/dispatch-extras/violations" },
+      { name: "Safety Tests", href: "/dispatch-extras/safety-tests" },
+      { name: "Call Codes", href: "/dispatch-extras/call-codes" },
+      { name: "Resolution Codes", href: "/dispatch-extras/resolution-codes" },
+      { name: "Unavailability", href: "/dispatch-extras/unavailability" },
+      { name: "Dispatch Setup", href: "/dispatch-extras/dispatch-setup" },
+      { name: "Forms Setup", href: "/dispatch-extras/forms-setup" },
+    ],
+  },
+  {
+    id: "8",
     name: "Job Cost",
     children: [
       { name: "Job Templates", href: "/job-templates" },
@@ -131,7 +147,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "8",
+    id: "9",
     name: "Sales",
     children: [
       { name: "Prospects", href: "/prospects" },
@@ -147,7 +163,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "9",
+    id: "10",
     name: "Banking",
     children: [
       { name: "Bank Accounts", href: "/bank-accounts" },
@@ -156,7 +172,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "10",
+    id: "11",
     name: "Reports",
     children: [
       { name: "Report Generator", href: "/report-generator" },
@@ -173,7 +189,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "11",
+    id: "12",
     name: "Contact",
     children: [
       { name: "Contact Listing", href: "/contact-listing" },
@@ -184,7 +200,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "12",
+    id: "13",
     name: "Control",
     children: [
       { name: "Users", href: "/users" },
@@ -242,18 +258,7 @@ export function Sidebar() {
 
   return (
     <aside className="w-52 bg-[#d4d0c8] border-r border-[#808080] flex flex-col flex-shrink-0 overflow-y-auto text-[13px]">
-      {/* Collapse button */}
-      <div className="flex items-center justify-end px-1 py-0.5 border-b border-[#808080] bg-[#d4d0c8]">
-        <button
-          onClick={() => setIsCollapsed(true)}
-          className="px-1 hover:bg-[#c0c0c0] text-[#000]"
-          title="Collapse sidebar"
-        >
-          <Minus className="w-3 h-3" />
-        </button>
-      </div>
-
-      {/* Tree View */}
+      {/* Tree View - starts flush at top */}
       <div className="flex-1 py-0.5 bg-white">
         {navStructure.map((section) => {
           const isExpanded = expandedSections.includes(section.id);

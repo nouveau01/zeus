@@ -13,6 +13,27 @@ import JobMaintenancePage from "@/app/job-maintenance/page";
 import JobDetail from "@/app/job-maintenance/[id]/JobDetail";
 import JobResultsPage from "@/app/job-results/page";
 import JobResultDetail from "@/app/job-results/[id]/JobResultDetail";
+import CashReceiptsPage from "@/app/cash-receipts/page";
+import CashReceiptDetail from "@/app/cash-receipts/[id]/CashReceiptDetail";
+import ApplyPaymentsPage from "@/app/apply-payments/page";
+import ProcessContractsPage from "@/app/process-contracts/page";
+import CollectionsPage from "@/app/collections/page";
+import RenewEscalatePage from "@/app/renew-escalate/page";
+import VendorsPage from "@/app/vendors/page";
+import VendorDetail from "@/app/vendors/[id]/VendorDetail";
+import PurchaseOrdersPage from "@/app/purchase-orders/page";
+import PurchaseOrderDetail from "@/app/purchase-orders/[id]/PurchaseOrderDetail";
+import PurchaseJournalPage from "@/app/purchase-journal/page";
+import JournalEntryDetail from "@/app/purchase-journal/[id]/JournalEntryDetail";
+import UnitsPage from "@/app/units/page";
+import UnitDetail from "@/app/units/[id]/UnitDetail";
+import DispatchPage from "@/app/dispatch/page";
+import ViolationsPage from "@/app/dispatch-extras/violations/page";
+import ViolationDetail from "@/app/dispatch-extras/violations/[id]/ViolationDetail";
+import SafetyTestsPage from "@/app/dispatch-extras/safety-tests/page";
+import SafetyTestDetail from "@/app/dispatch-extras/safety-tests/[id]/SafetyTestDetail";
+import EstimatesPage from "@/app/estimates/page";
+import EstimateDetail from "@/app/estimates/[id]/EstimateDetail";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -127,6 +148,167 @@ export function TabContent() {
     return (
       <JobResultDetail
         jobId={jobId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for cash-receipts route
+  if (activeTab.route === "/cash-receipts") {
+    return <CashReceiptsPage />;
+  }
+
+  // Check for cash-receipts detail route pattern: /cash-receipts/[id]
+  const cashReceiptDetailMatch = activeTab.route.match(/^\/cash-receipts\/([^?]+)$/);
+  if (cashReceiptDetailMatch) {
+    const depositId = cashReceiptDetailMatch[1];
+    return (
+      <CashReceiptDetail
+        depositId={depositId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for apply-payments route
+  if (activeTab.route === "/apply-payments") {
+    return <ApplyPaymentsPage />;
+  }
+
+  // Check for process-contracts route
+  if (activeTab.route === "/process-contracts") {
+    return <ProcessContractsPage />;
+  }
+
+  // Check for collections route
+  if (activeTab.route === "/collections") {
+    return <CollectionsPage />;
+  }
+
+  // Check for renew-escalate route
+  if (activeTab.route === "/renew-escalate") {
+    return <RenewEscalatePage />;
+  }
+
+  // Check for vendors route
+  if (activeTab.route === "/vendors") {
+    return <VendorsPage />;
+  }
+
+  // Check for vendor detail route pattern: /vendors/[id]
+  const vendorDetailMatch = activeTab.route.match(/^\/vendors\/([^?]+)$/);
+  if (vendorDetailMatch) {
+    const vendorId = vendorDetailMatch[1];
+    return (
+      <VendorDetail
+        vendorId={vendorId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for purchase-orders route
+  if (activeTab.route === "/purchase-orders") {
+    return <PurchaseOrdersPage />;
+  }
+
+  // Check for purchase-journal route
+  if (activeTab.route === "/purchase-journal") {
+    return <PurchaseJournalPage />;
+  }
+
+  // Check for purchase-journal detail route pattern: /purchase-journal/[id]
+  const journalDetailMatch = activeTab.route.match(/^\/purchase-journal\/([^?]+)$/);
+  if (journalDetailMatch) {
+    const entryId = journalDetailMatch[1];
+    return (
+      <JournalEntryDetail
+        entryId={entryId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for purchase-order detail route pattern: /purchase-orders/[id]
+  const poDetailMatch = activeTab.route.match(/^\/purchase-orders\/([^?]+)$/);
+  if (poDetailMatch) {
+    const poId = poDetailMatch[1];
+    return (
+      <PurchaseOrderDetail
+        poId={poId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for units route
+  if (activeTab.route === "/units") {
+    return <UnitsPage />;
+  }
+
+  // Check for unit detail route pattern: /units/[id]
+  const unitDetailMatch = activeTab.route.match(/^\/units\/([^?]+)$/);
+  if (unitDetailMatch) {
+    const unitId = unitDetailMatch[1];
+    return (
+      <UnitDetail
+        unitId={unitId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for dispatch route
+  if (activeTab.route === "/dispatch") {
+    return <DispatchPage />;
+  }
+
+  // Check for violations route
+  if (activeTab.route === "/violations" || activeTab.route === "/dispatch-extras/violations") {
+    return <ViolationsPage />;
+  }
+
+  // Check for violation detail route pattern: /dispatch-extras/violations/[id]
+  const violationDetailMatch = activeTab.route.match(/^\/dispatch-extras\/violations\/([^?]+)$/);
+  if (violationDetailMatch) {
+    const violationId = violationDetailMatch[1];
+    return (
+      <ViolationDetail
+        violationId={violationId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for safety-tests route
+  if (activeTab.route === "/dispatch-extras/safety-tests") {
+    return <SafetyTestsPage />;
+  }
+
+  // Check for safety-test detail route pattern: /dispatch-extras/safety-tests/[id]
+  const safetyTestDetailMatch = activeTab.route.match(/^\/dispatch-extras\/safety-tests\/([^?]+)$/);
+  if (safetyTestDetailMatch) {
+    const testId = safetyTestDetailMatch[1];
+    return (
+      <SafetyTestDetail
+        testId={testId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for estimates route
+  if (activeTab.route === "/estimates") {
+    return <EstimatesPage />;
+  }
+
+  // Check for estimate detail route pattern: /estimates/[id]
+  const estimateDetailMatch = activeTab.route.match(/^\/estimates\/([^?]+)$/);
+  if (estimateDetailMatch) {
+    const estimateId = estimateDetailMatch[1];
+    return (
+      <EstimateDetail
+        estimateId={estimateId}
         onClose={() => closeTab(activeTab.id)}
       />
     );

@@ -9,14 +9,14 @@ import { TabContent } from "@/components/TabContent";
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <TabProvider>
-      <div className="flex h-screen">
-        {/* Sidebar */}
-        <Sidebar />
+      <div className="flex flex-col h-screen">
+        {/* Top navigation with ZEUS logo and tabs - spans full width */}
+        <TopNav />
 
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Top navigation with tabs */}
-          <TopNav />
+        {/* Main area: Sidebar + Content side by side */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <Sidebar />
 
           {/* Tab content area */}
           <main className="flex-1 overflow-auto bg-[#c0c0c0]">

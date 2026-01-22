@@ -560,6 +560,46 @@ model Invoice {
 }
 
 // ============================================
+// BANK ACCOUNTS
+// ============================================
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  name          String
+  accountNumber String?  @map("account_number")
+  type          String   @default("Checking")  // Checking, Payroll, Savings
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  cashReceipts  CashReceipt[]
+
+  @@map("bank_accounts")
+}
+
+// ============================================
+// CASH RECEIPTS (Deposits)
+// ============================================
+
+model CashReceipt {
+  id            String   @id @default(cuid())
+  refNumber     Int      @unique @map("ref_number")
+  date          DateTime
+  description   String?
+  amount        Decimal  @default(0) @db.Decimal(12, 2)
+  fsCatalogue   String?  @map("fs_catalogue")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  bankAccountId String      @map("bank_account_id")
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+
+  @@map("cash_receipts")
+}
+
+// ============================================
 // INVOICE ITEMS (Line Items)
 // ============================================
 
