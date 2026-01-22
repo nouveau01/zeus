@@ -16,6 +16,7 @@ import {
   HelpCircle,
   X,
 } from "lucide-react";
+import { useTabs } from "@/context/TabContext";
 
 interface Contact {
   id: string;
@@ -113,17 +114,58 @@ interface CustomerDetailProps {
 }
 
 export default function CustomerDetail({ customerId, onClose }: CustomerDetailProps) {
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { openTab, closeTab } = useTabs();
+  const isNew = customerId === "new";
+
+  const [customer, setCustomer] = useState<Customer | null>(isNew ? {
+    id: "",
+    name: "",
+    accountNumber: null,
+    address: null,
+    city: null,
+    state: null,
+    zipCode: null,
+    country: "United States",
+    contact: null,
+    phone: null,
+    fax: null,
+    cellular: null,
+    email: null,
+    website: null,
+    type: "General",
+    isActive: true,
+    billing: "Individual",
+    custom1: null,
+    custom2: null,
+    balance: 0,
+    portalAccess: false,
+    remarks: null,
+    salesRemarks: null,
+    currentYearSales: 0,
+    priorYearSales: 0,
+    premises: [],
+    contacts: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  } : null);
+  const [loading, setLoading] = useState(!isNew);
   const [activeTab, setActiveTab] = useState("1 General");
-  const [formData, setFormData] = useState<Partial<Customer>>({});
+  const [formData, setFormData] = useState<Partial<Customer>>(isNew ? {
+    name: "",
+    type: "General",
+    isActive: true,
+    billing: "Individual",
+    country: "United States",
+  } : {});
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    fetchCustomer();
-  }, [customerId]);
+    if (!isNew) {
+      fetchCustomer();
+    }
+  }, [customerId, isNew]);
 
   const fetchCustomer = async () => {
     setLoading(true);
@@ -147,17 +189,39 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   };
 
   const handleSave = async () => {
+    if (!formData.name?.trim()) {
+      alert("Customer name is required");
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/customers/${customerId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setCustomer(data);
-        setFormData(data);
-        setIsDirty(false);
+      if (isNew) {
+        // Create new customer
+        const response = await fetch("/api/customers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsDirty(false);
+          // Close the "new" tab and open the created customer's tab
+          if (onClose) onClose();
+          openTab(data.name, `/customers/${data.id}`);
+        }
+      } else {
+        // Update existing customer
+        const response = await fetch(`/api/customers/${customerId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCustomer(data);
+          setFormData(data);
+          setIsDirty(false);
+        }
       }
     } catch (error) {
       console.error("Error saving customer:", error);
@@ -368,16 +432,48 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center gap-1 py-1">
                 <span className="font-medium text-[12px]">Account Listing</span>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => !isNew && openTab("New Account", `/accounts/new?customerId=${customerId}`)}
+                  disabled={isNew}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Add
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      openTab("New Account (Copy)", `/accounts/new?customerId=${customerId}&copyFrom=${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Rep
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      const acct = customer.premises.find(p => p.id === selectedAccount);
+                      if (acct) openTab(acct.name || acct.address, `/accounts/${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Edit
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={async () => {
+                    if (selectedAccount && confirm("Delete this account?")) {
+                      try {
+                        const res = await fetch(`/api/premises/${selectedAccount}`, { method: "DELETE" });
+                        if (res.ok) { setSelectedAccount(null); fetchCustomer(); }
+                      } catch (e) { console.error(e); }
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Del
                 </button>
               </div>
@@ -531,16 +627,48 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center gap-1 py-1">
                 <span className="font-medium text-[12px]">Account Listing</span>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => !isNew && openTab("New Account", `/accounts/new?customerId=${customerId}`)}
+                  disabled={isNew}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Add
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      openTab("New Account (Copy)", `/accounts/new?customerId=${customerId}&copyFrom=${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Rep
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      const acct = customer.premises.find(p => p.id === selectedAccount);
+                      if (acct) openTab(acct.name || acct.address, `/accounts/${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Edit
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={async () => {
+                    if (selectedAccount && confirm("Delete this account?")) {
+                      try {
+                        const res = await fetch(`/api/premises/${selectedAccount}`, { method: "DELETE" });
+                        if (res.ok) { setSelectedAccount(null); fetchCustomer(); }
+                      } catch (e) { console.error(e); }
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Del
                 </button>
               </div>
@@ -661,16 +789,48 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center gap-1 py-1">
                 <span className="font-medium text-[12px]">Account Listing</span>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => !isNew && openTab("New Account", `/accounts/new?customerId=${customerId}`)}
+                  disabled={isNew}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Add
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      openTab("New Account (Copy)", `/accounts/new?customerId=${customerId}&copyFrom=${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Rep
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      const acct = customer.premises.find(p => p.id === selectedAccount);
+                      if (acct) openTab(acct.name || acct.address, `/accounts/${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Edit
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={async () => {
+                    if (selectedAccount && confirm("Delete this account?")) {
+                      try {
+                        const res = await fetch(`/api/premises/${selectedAccount}`, { method: "DELETE" });
+                        if (res.ok) { setSelectedAccount(null); fetchCustomer(); }
+                      } catch (e) { console.error(e); }
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Del
                 </button>
               </div>
@@ -745,16 +905,48 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center gap-1 py-1">
                 <span className="font-medium text-[12px]">Account Listing</span>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => !isNew && openTab("New Account", `/accounts/new?customerId=${customerId}`)}
+                  disabled={isNew}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Add
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      openTab("New Account (Copy)", `/accounts/new?customerId=${customerId}&copyFrom=${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Rep
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      const acct = customer.premises.find(p => p.id === selectedAccount);
+                      if (acct) openTab(acct.name || acct.address, `/accounts/${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Edit
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={async () => {
+                    if (selectedAccount && confirm("Delete this account?")) {
+                      try {
+                        const res = await fetch(`/api/premises/${selectedAccount}`, { method: "DELETE" });
+                        if (res.ok) { setSelectedAccount(null); fetchCustomer(); }
+                      } catch (e) { console.error(e); }
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Del
                 </button>
               </div>
@@ -866,16 +1058,48 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center gap-1 py-1">
                 <span className="font-medium text-[12px]">Account Listing</span>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => !isNew && openTab("New Account", `/accounts/new?customerId=${customerId}`)}
+                  disabled={isNew}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Add
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      openTab("New Account (Copy)", `/accounts/new?customerId=${customerId}&copyFrom=${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Rep
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      const acct = customer.premises.find(p => p.id === selectedAccount);
+                      if (acct) openTab(acct.name || acct.address, `/accounts/${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Edit
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={async () => {
+                    if (selectedAccount && confirm("Delete this account?")) {
+                      try {
+                        const res = await fetch(`/api/premises/${selectedAccount}`, { method: "DELETE" });
+                        if (res.ok) { setSelectedAccount(null); fetchCustomer(); }
+                      } catch (e) { console.error(e); }
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Del
                 </button>
               </div>
@@ -960,16 +1184,48 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center gap-1 py-1">
                 <span className="font-medium text-[12px]">Account Listing</span>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => !isNew && openTab("New Account", `/accounts/new?customerId=${customerId}`)}
+                  disabled={isNew}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Add
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      openTab("New Account (Copy)", `/accounts/new?customerId=${customerId}&copyFrom=${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Rep
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={() => {
+                    if (selectedAccount && customer) {
+                      const acct = customer.premises.find(p => p.id === selectedAccount);
+                      if (acct) openTab(acct.name || acct.address, `/accounts/${selectedAccount}`);
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Edit
                 </button>
-                <button className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+                <button
+                  onClick={async () => {
+                    if (selectedAccount && confirm("Delete this account?")) {
+                      try {
+                        const res = await fetch(`/api/premises/${selectedAccount}`, { method: "DELETE" });
+                        if (res.ok) { setSelectedAccount(null); fetchCustomer(); }
+                      } catch (e) { console.error(e); }
+                    }
+                  }}
+                  disabled={!selectedAccount}
+                  className="px-3 py-0.5 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+                >
                   Del
                 </button>
               </div>

@@ -5,13 +5,13 @@ import CustomersPage from "@/app/customers/page";
 import CustomerDetail from "@/app/customers/[id]/CustomerDetail";
 import AccountsPage from "@/app/accounts/page";
 import AccountDetail from "@/app/accounts/[id]/AccountDetail";
-import InvoicesPage from "@/app/invoices/page";
+import InvoicesView from "@/app/invoices/InvoicesView";
 import InvoiceDetail from "@/app/invoices/[id]/InvoiceDetail";
-import CompletedTicketsPage from "@/app/completed-tickets/page";
+import CompletedTicketsView from "@/app/completed-tickets/CompletedTicketsView";
 import CompletedTicketDetail from "@/app/completed-tickets/[id]/CompletedTicketDetail";
-import JobMaintenancePage from "@/app/job-maintenance/page";
+import JobMaintenanceView from "@/app/job-maintenance/JobMaintenanceView";
 import JobDetail from "@/app/job-maintenance/[id]/JobDetail";
-import JobResultsPage from "@/app/job-results/page";
+import JobResultsView from "@/app/job-results/JobResultsView";
 import JobResultDetail from "@/app/job-results/[id]/JobResultDetail";
 import CashReceiptsPage from "@/app/cash-receipts/page";
 import CashReceiptDetail from "@/app/cash-receipts/[id]/CashReceiptDetail";
@@ -38,6 +38,7 @@ import AwardJobPage from "@/app/award-job/page";
 import BidResultsPage from "@/app/bid-results/page";
 import QuotesPage from "@/app/quotes/page";
 import QuoteDetail from "@/app/quotes/[id]/QuoteDetail";
+import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -65,9 +66,10 @@ export function TabContent() {
     );
   }
 
-  // Check for account detail route pattern: /accounts/[id]
+  // Check for account detail route pattern: /accounts/[id] or /accounts/new?customerId=xxx
   const accountDetailMatch = activeTab.route.match(/^\/accounts\/(.+)$/);
   if (accountDetailMatch) {
+    // Pass the full path including query params for new accounts
     const accountId = accountDetailMatch[1];
     return (
       <AccountDetail
@@ -82,7 +84,7 @@ export function TabContent() {
   if (activeTab.route === "/invoices" || activeTab.route.startsWith("/invoices?")) {
     const url = new URL(activeTab.route, "http://localhost");
     const premisesId = url.searchParams.get("premisesId");
-    return <InvoicesPage premisesId={premisesId} />;
+    return <InvoicesView premisesId={premisesId} />;
   }
 
   // Check for invoice detail route pattern: /invoices/[id]
@@ -102,7 +104,7 @@ export function TabContent() {
   if (activeTab.route === "/completed-tickets" || activeTab.route.startsWith("/completed-tickets?")) {
     const url = new URL(activeTab.route, "http://localhost");
     const premisesId = url.searchParams.get("premisesId");
-    return <CompletedTicketsPage premisesId={premisesId} />;
+    return <CompletedTicketsView premisesId={premisesId} />;
   }
 
   // Check for completed ticket detail route pattern: /completed-tickets/[id]
@@ -122,7 +124,7 @@ export function TabContent() {
   if (activeTab.route === "/job-maintenance" || activeTab.route.startsWith("/job-maintenance?")) {
     const url = new URL(activeTab.route, "http://localhost");
     const premisesId = url.searchParams.get("premisesId");
-    return <JobMaintenancePage premisesId={premisesId} />;
+    return <JobMaintenanceView premisesId={premisesId} />;
   }
 
   // Check for job detail route pattern: /job-maintenance/[id]
@@ -142,7 +144,7 @@ export function TabContent() {
   if (activeTab.route === "/job-results" || activeTab.route.startsWith("/job-results?")) {
     const url = new URL(activeTab.route, "http://localhost");
     const premisesId = url.searchParams.get("premisesId");
-    return <JobResultsPage premisesId={premisesId} />;
+    return <JobResultsView premisesId={premisesId} />;
   }
 
   // Check for job-results detail route pattern: /job-results/[id]
@@ -340,6 +342,18 @@ export function TabContent() {
     return (
       <QuoteDetail
         quoteId={quoteId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for invoice preview route pattern: /invoice-preview/[id]
+  const invoicePreviewMatch = activeTab.route.match(/^\/invoice-preview\/([^?]+)$/);
+  if (invoicePreviewMatch) {
+    const invoiceId = invoicePreviewMatch[1];
+    return (
+      <InvoicePreview
+        invoiceId={invoiceId}
         onClose={() => closeTab(activeTab.id)}
       />
     );

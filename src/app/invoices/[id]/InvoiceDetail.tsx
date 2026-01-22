@@ -234,6 +234,11 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   const salesTax = taxable * 0.08875;
   const totalInvoice = subTotal + salesTax;
 
+  // Open PDF preview in new tab
+  const handleGeneratePDF = () => {
+    openTab(`Invoice #${invoice.invoiceNumber} Preview`, `/invoice-preview/${invoice.id}`);
+  };
+
   // Account/General Tab Content
   const renderAccountGeneralTab = () => (
     <>
@@ -656,6 +661,16 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         <button className="p-1 hover:bg-[#e0e0e0] rounded" title="Print">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+        </button>
+        <button
+          onClick={handleGeneratePDF}
+          className="p-1 hover:bg-[#e0e0e0] rounded"
+          title="Generate PDF"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="#dc2626" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-6 4h4" />
           </svg>
         </button>
         <div className="w-px h-5 bg-[#c0c0c0] mx-1" />

@@ -43,27 +43,27 @@ type SortField = "name" | "type" | "status" | "accts" | "units" | "balance";
 type SortDirection = "asc" | "desc";
 
 const toolbarIcons = [
-  { icon: FileText, color: "#4a7c59" },
-  { icon: Pencil, color: "#d4a574" },
-  { icon: ClipboardList, color: "#6b8cae" },
-  { icon: X, color: "#c45c5c" },
-  { icon: FolderOpen, color: "#d4c574" },
-  { icon: ChevronDown, color: "#7c6b8e" },
-  { icon: Scissors, color: "#5c8c8c" },
-  { icon: Check, color: "#5cb85c" },
-  { icon: Check, color: "#5c5cb8" },
-  { icon: DollarSign, color: "#5cb85c" },
-  { icon: BarChart3, color: "#e67e22" },
-  { icon: FileEdit, color: "#3498db" },
-  { icon: Printer, color: "#9b59b6" },
-  { icon: Paperclip, color: "#7f8c8d" },
-  { icon: Paperclip, color: "#27ae60" },
-  { icon: Sigma, color: "#2c3e50" },
-  { icon: Lock, color: "#f39c12" },
-  { icon: Plus, color: "#27ae60" },
-  { icon: Home, color: "#e74c3c" },
-  { icon: HelpCircle, color: "#3498db" },
-  { icon: X, color: "#95a5a6" },
+  { icon: FileText, color: "#4a7c59", title: "Add New Record", action: "new" },
+  { icon: Pencil, color: "#d4a574", title: "Edit", action: "edit" },
+  { icon: ClipboardList, color: "#6b8cae", title: "View" },
+  { icon: X, color: "#c45c5c", title: "Delete", action: "delete" },
+  { icon: FolderOpen, color: "#d4c574", title: "Open" },
+  { icon: ChevronDown, color: "#7c6b8e", title: "Expand" },
+  { icon: Scissors, color: "#5c8c8c", title: "Cut" },
+  { icon: Check, color: "#5cb85c", title: "Approve" },
+  { icon: Check, color: "#5c5cb8", title: "Confirm" },
+  { icon: DollarSign, color: "#5cb85c", title: "Billing" },
+  { icon: BarChart3, color: "#e67e22", title: "Reports" },
+  { icon: FileEdit, color: "#3498db", title: "Edit Document" },
+  { icon: Printer, color: "#9b59b6", title: "Print" },
+  { icon: Paperclip, color: "#7f8c8d", title: "Attach" },
+  { icon: Paperclip, color: "#27ae60", title: "Link" },
+  { icon: Sigma, color: "#2c3e50", title: "Sum" },
+  { icon: Lock, color: "#f39c12", title: "Lock" },
+  { icon: Plus, color: "#27ae60", title: "Add" },
+  { icon: Home, color: "#e74c3c", title: "Home" },
+  { icon: HelpCircle, color: "#3498db", title: "Help" },
+  { icon: X, color: "#95a5a6", title: "Close" },
 ];
 
 const STORAGE_KEY = "zeus-customers-state";
@@ -247,6 +247,23 @@ export default function CustomersPage() {
             <button
               key={i}
               className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
+              title={item.title}
+              onClick={async () => {
+                if (item.action === "new") {
+                  openTab("New Customer", "/customers/new");
+                } else if (item.action === "edit" && selectedRow) {
+                  const customer = customers.find(c => c.id === selectedRow);
+                  if (customer) openTab(customer.name, `/customers/${customer.id}`);
+                } else if (item.action === "delete" && selectedRow) {
+                  const customer = customers.find(c => c.id === selectedRow);
+                  if (customer && confirm(`Delete customer "${customer.name}"?`)) {
+                    try {
+                      const res = await fetch(`/api/customers/${selectedRow}`, { method: "DELETE" });
+                      if (res.ok) { setSelectedRow(null); fetchCustomers(); }
+                    } catch (e) { console.error(e); }
+                  }
+                }
+              }}
             >
               <IconComponent className="w-4 h-4" style={{ color: item.color }} />
             </button>

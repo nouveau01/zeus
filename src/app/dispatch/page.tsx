@@ -37,7 +37,7 @@ interface Ticket {
   accountTag: string;
   address: string;
   unit: string;
-  unitId: string;
+  unitId?: string;
   description: string;
   status: "Open" | "Assigned" | "En Route" | "On Site" | "Completed" | "Closed";
   callDate: string;
@@ -77,7 +77,7 @@ interface TicketDetail {
   // Ticket Details
   category: string;
   level: string;
-  unitId: string;
+  unitId?: string;
   unitNumber: string;
   nature: string;
   jobId: string;

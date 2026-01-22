@@ -74,11 +74,45 @@ const US_STATES = [
 ];
 
 export default function AccountDetail({ accountId, onClose }: AccountDetailProps) {
-  const { openTab } = useTabs();
-  const [account, setAccount] = useState<Account | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { openTab, closeTab } = useTabs();
+
+  // Parse URL params for new account creation
+  const isNew = accountId.startsWith("new");
+  const urlParams = new URLSearchParams(accountId.replace("new?", "").replace("new", ""));
+  const customerId = urlParams.get("customerId");
+  const copyFromId = urlParams.get("copyFrom");
+
+  const [account, setAccount] = useState<Account | null>(isNew ? {
+    id: "",
+    premisesId: null,
+    name: null,
+    address: "",
+    city: null,
+    state: null,
+    zipCode: null,
+    country: "United States",
+    contact: null,
+    phone: null,
+    fax: null,
+    cellular: null,
+    email: null,
+    website: null,
+    type: "Non-Contract",
+    isActive: true,
+    balance: 0,
+    customerId: customerId || "",
+    customer: { id: customerId || "", name: "" },
+    units: [],
+    _count: { units: 0, jobs: 0 },
+  } : null);
+  const [loading, setLoading] = useState(!isNew);
   const [activeTab, setActiveTab] = useState("General");
-  const [formData, setFormData] = useState<Partial<Account>>({});
+  const [formData, setFormData] = useState<Partial<Account>>(isNew ? {
+    customerId: customerId || "",
+    type: "Non-Contract",
+    isActive: true,
+    country: "United States",
+  } : {});
   const [isDirty, setIsDirty] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
@@ -97,8 +131,53 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   const [pmContracts, setPmContracts] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchAccount();
-  }, [accountId]);
+    if (!isNew) {
+      fetchAccount();
+    } else if (copyFromId) {
+      // Copy data from existing account
+      fetchAccountToCopy();
+    } else if (customerId) {
+      // Fetch customer name for display
+      fetchCustomerName();
+    }
+  }, [accountId, isNew, copyFromId, customerId]);
+
+  const fetchCustomerName = async () => {
+    try {
+      const response = await fetch(`/api/customers/${customerId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAccount(prev => prev ? { ...prev, customer: { id: customerId!, name: data.name } } : null);
+      }
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+    }
+  };
+
+  const fetchAccountToCopy = async () => {
+    try {
+      const response = await fetch(`/api/premises/${copyFromId}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Copy the data but keep it as a new record
+        setFormData({
+          ...data,
+          id: undefined,
+          premisesId: null, // Clear the ID so it gets a new one
+          customerId: customerId || data.customerId,
+        });
+        setAccount(prev => prev ? {
+          ...prev,
+          ...data,
+          id: "",
+          premisesId: null,
+          customerId: customerId || data.customerId,
+        } : null);
+      }
+    } catch (error) {
+      console.error("Error fetching account to copy:", error);
+    }
+  };
 
   const fetchAccount = async () => {
     setLoading(true);
@@ -122,17 +201,38 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   };
 
   const handleSave = async () => {
+    if (!formData.address?.trim()) {
+      alert("Address is required");
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/premises/${accountId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        setAccount(updated);
-        setFormData(updated);
-        setIsDirty(false);
+      if (isNew) {
+        // Create new account
+        const response = await fetch("/api/premises", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...formData, customerId: customerId || formData.customerId }),
+        });
+        if (response.ok) {
+          const created = await response.json();
+          setIsDirty(false);
+          if (onClose) onClose();
+          openTab(created.name || created.address, `/accounts/${created.id}`);
+        }
+      } else {
+        // Update existing
+        const response = await fetch(`/api/premises/${accountId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const updated = await response.json();
+          setAccount(updated);
+          setFormData(updated);
+          setIsDirty(false);
+        }
       }
     } catch (error) {
       console.error("Error saving account:", error);
@@ -162,7 +262,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     }).format(amount);
   };
 
-  if (loading) {
+  if (loading && !isNew) {
     return (
       <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
         <span className="text-gray-500">Loading...</span>
@@ -170,7 +270,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     );
   }
 
-  if (!account) {
+  if (!account && !isNew) {
     return (
       <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
         <span className="text-red-500">Account not found</span>
@@ -319,25 +419,25 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             Customer
           </button>
           <button
-            onClick={() => openTab(`Jobs - ${account.name || account.premisesId}`, `/job-maintenance?premisesId=${account.id}`)}
+            onClick={() => account && openTab(`Jobs - ${account.name || account.premisesId}`, `/job-maintenance?premisesId=${account.id}`)}
             className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
           >
             Jobs
           </button>
           <button
-            onClick={() => openTab(`Job Results - ${account.name || account.premisesId}`, `/job-results?premisesId=${account.id}`)}
+            onClick={() => account && openTab(`Job Results - ${account.name || account.premisesId}`, `/job-results?premisesId=${account.id}`)}
             className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
           >
             Job Results
           </button>
           <button
-            onClick={() => openTab(`Invoices - ${account.name || account.premisesId}`, `/invoices?premisesId=${account.id}`)}
+            onClick={() => account && openTab(`Invoices - ${account.name || account.premisesId}`, `/invoices?premisesId=${account.id}`)}
             className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
           >
             Invoices
           </button>
           <button
-            onClick={() => openTab(`Tickets - ${account.name || account.premisesId}`, `/completed-tickets?premisesId=${account.id}`)}
+            onClick={() => account && openTab(`Tickets - ${account.name || account.premisesId}`, `/completed-tickets?premisesId=${account.id}`)}
             className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
           >
             Completed Tickets
@@ -366,7 +466,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           <label className="text-[12px]"># Units</label>
           <input
             type="text"
-            value={account._count?.units || 0}
+            value={account?._count?.units || 0}
             readOnly
             className="w-12 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-[#f0f0f0] text-center"
           />
@@ -393,7 +493,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           <label className="text-[12px]">Balance</label>
           <input
             type="text"
-            value={formatCurrency(Number(account.balance))}
+            value={formatCurrency(Number(account?.balance || 0))}
             readOnly
             className="w-28 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-[#f0f0f0] text-right"
           />
@@ -432,14 +532,14 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
               </tr>
             </thead>
             <tbody>
-              {account.units.length === 0 ? (
+              {(account?.units?.length || 0) === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-2 py-4 text-center text-[#808080] border border-[#d0d0d0]">
                     No units found
                   </td>
                 </tr>
               ) : (
-                account.units.map((unit) => (
+                account?.units?.map((unit) => (
                   <tr
                     key={unit.id}
                     onClick={() => setSelectedUnit(unit.id)}
@@ -478,7 +578,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
               onClick={openCustomer}
               className="flex-1 px-2 py-1 text-[12px] text-[#0066cc] hover:underline text-left"
             >
-              {account.customer?.name || ""}
+              {account?.customer?.name || ""}
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -1128,8 +1228,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
         <span>EDIT</span>
         <div className="flex gap-8">
-          <span>{account.createdAt ? new Date(account.createdAt).toLocaleDateString() : ""}</span>
-          <span>{account.updatedAt ? new Date(account.updatedAt).toLocaleDateString() : ""}</span>
+          <span>{account?.createdAt ? new Date(account.createdAt).toLocaleDateString() : ""}</span>
+          <span>{account?.updatedAt ? new Date(account.updatedAt).toLocaleDateString() : ""}</span>
         </div>
       </div>
     </div>

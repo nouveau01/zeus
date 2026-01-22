@@ -50,21 +50,41 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, accountNumber, phone, email, website, type, balance } = body;
 
-    if (!name) {
+    if (!body.name) {
       return NextResponse.json({ error: "Customer name is required" }, { status: 400 });
     }
 
     const customer = await prisma.customer.create({
       data: {
-        name,
-        accountNumber: accountNumber || null,
-        phone: phone || null,
-        email: email || null,
-        website: website || null,
-        type: type || "General",
-        balance: balance || 0,
+        name: body.name,
+        accountNumber: body.accountNumber || null,
+        address: body.address || null,
+        city: body.city || null,
+        state: body.state || null,
+        zipCode: body.zipCode || null,
+        country: body.country || "United States",
+        contact: body.contact || null,
+        phone: body.phone || null,
+        fax: body.fax || null,
+        cellular: body.cellular || null,
+        email: body.email || null,
+        website: body.website || null,
+        type: body.type || "General",
+        isActive: body.isActive !== undefined ? body.isActive : true,
+        billing: body.billing || "Individual",
+        custom1: body.custom1 || null,
+        custom2: body.custom2 || null,
+        balance: body.balance || 0,
+        portalAccess: body.portalAccess || false,
+        remarks: body.remarks || null,
+        salesRemarks: body.salesRemarks || null,
+        currentYearSales: body.currentYearSales || 0,
+        priorYearSales: body.priorYearSales || 0,
+      },
+      include: {
+        premises: true,
+        contacts: true,
       },
     });
 
