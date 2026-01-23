@@ -701,10 +701,11 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             >
               <option value="">Select...</option>
-              <option value="Contract">Contract</option>
+              <option value="S">S - Full Service</option>
+              <option value="H">H - Hourly</option>
+              <option value="MOD">MOD - Modernization</option>
+              <option value="Resident Mech.">Resident Mech.</option>
               <option value="Non-Contract">Non-Contract</option>
-              <option value="Modernization">Modernization</option>
-              <option value="Inspection">Inspection</option>
             </select>
           </div>
           <div className="flex items-center gap-2">

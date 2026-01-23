@@ -180,7 +180,7 @@ async function main() {
       await prisma.unit.create({
         data: {
           unitNumber: `${unitTemplate.unitNumber}`,
-          category: unitTemplate.category,
+          cat: unitTemplate.category,
           unitType: unitTemplate.unitType,
           serial: `${unitTemplate.serial}-${i}${j}`,
           manufacturer: unitTemplate.manufacturer,
@@ -245,7 +245,7 @@ async function main() {
         salesTax: 0,
         total: invData.total,
         remainingUnpaid: invData.status === "Paid" ? 0 : invData.total,
-        emailStatus: "No Email Sent",
+        emailStatusCode: 0,
         premisesId: randomPremisesId,
         items: {
           create: [

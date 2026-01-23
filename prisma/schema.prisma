@@ -1,5 +1,17 @@
 // Prisma Schema for ZEUS Field Service Management
-// Clean snake_case database column names
+//
+// SQL Server 2008 Legacy Mapping Reference:
+// ==========================================
+// Customer  → Owner table (ID, settings) + Rol table (Name, Address, Contact via Owner.Rol → Rol.ID)
+// Premises  → Loc table (Loc, settings) + Rol table (Name, Address, Contact via Loc.Rol → Rol.ID)
+// Unit      → Elev table
+// Job       → Job table
+// Ticket    → TicketO table (Open tickets)
+// Contract  → Contract table
+// Contact   → Rol table (Type determines usage)
+//
+// Note: Currently using PostgreSQL. @map decorators show SQL Server column names.
+// When migrating to SQL Server, uncomment the sqlserver provider and update types.
 
 generator client {
   provider = "prisma-client-js"
@@ -8,6 +20,9 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // SQL Server 2008 (uncomment when ready):
+  // provider = "sqlserver"
+  // url      = env("SQLSERVER_URL")
 }
 
 // ============================================
@@ -34,47 +49,72 @@ model User {
 }
 
 // ============================================
-// CUSTOMERS
+// CUSTOMERS (SQL Server: Owner + Rol tables)
 // ============================================
+// Legacy: Owner.ID is PK, Owner.Rol → Rol.ID for name/address/contact
+// OwnerWithRol view joins these tables
 
 model Customer {
   id            String   @id @default(cuid())
-  name          String
+  // SQL Server: Owner.ID (int) - will need Int type when migrating
+
+  // From Rol table (via Owner.Rol → Rol.ID)
+  name          String                              // Rol.Name
+  address       String?                             // Rol.Address
+  city          String?                             // Rol.City
+  state         String?                             // Rol.State
+  zipCode       String?  @map("zip_code")           // Rol.Zip
+  country       String?  @default("United States")  // Rol.Country
+  contact       String?                             // Rol.Contact
+  phone         String?                             // Rol.Phone
+  fax           String?                             // Rol.Fax
+  cellular      String?                             // Rol.Cellular
+  email         String?                             // Rol.EMail
+  website       String?                             // Rol.Website
+  remarks       String?                             // Rol.Remarks
+  salesRemarks  String?  @map("sales_remarks")      // Rol.SalesRemarks
+  position      String?                             // Rol.Position
+  category      String?                             // Rol.Category
+
+  // From Owner table directly
+  status        Int?     @default(1)                // Owner.Status (smallint)
+  locs          Int?     @default(0)                // Owner.Locs - count of locations
+  elevs         Int?     @default(0)                // Owner.Elevs - count of elevators
+  balance       Decimal  @default(0) @db.Decimal(12, 2)  // Owner.Balance
+  type          String   @default("General")        // Owner.Type (varchar 15)
+  billing       Int?     @default(0)                // Owner.Billing (smallint)
+  internet      Int?     @default(0)                // Owner.Internet - portal access
+  password      String?                             // Owner.Password
+  custom1       String?                             // Owner.Custom1
+  custom2       String?                             // Owner.Custom2
+  ticketEmail   String?  @map("ticket_email")       // Owner.TicketEmail
+  quoteEmail    String?  @map("quote_email")        // Owner.QuoteEmail
+
+  // Internal reference to Rol record
+  rolId         Int?     @map("rol_id")             // Owner.Rol → Rol.ID
+
+  // Legacy flags (smallint in Owner table)
+  ticketO       Int?     @default(0) @map("ticket_o")     // Owner.TicketO
+  ticketD       Int?     @default(0) @map("ticket_d")     // Owner.TicketD
+  ledger        Int?     @default(0)                      // Owner.Ledger
+  statement     Int?     @default(0)                      // Owner.Statement
+  approve       Int?     @default(0)                      // Owner.Approve
+  invoiceO      Int?     @default(0) @map("invoice_o")    // Owner.InvoiceO
+  quote         Int?     @default(0)                      // Owner.Quote
+  quoteX        Int?     @default(0) @map("quote_x")      // Owner.QuoteX
+  dispatch      Int?     @default(0)                      // Owner.Dispatch
+  service       Int?     @default(0)                      // Owner.Service
+  pay           Int?     @default(0)                      // Owner.Pay
+  safety        Int?     @default(0)                      // Owner.Safety
+
+  // Computed/display fields (not in legacy, for our app)
   accountNumber String?  @unique @map("account_number")
-
-  // Address fields
-  address       String?
-  city          String?
-  state         String?
-  zipCode       String?  @map("zip_code")
-  country       String?  @default("United States")
-
-  // Contact fields
-  contact       String?
-  phone         String?
-  fax           String?
-  cellular      String?
-  email         String?
-  website       String?
-
-  // Classification
-  type          String   @default("General")
   isActive      Boolean  @default(true) @map("is_active")
-  billing       String?  @default("Individual")
-  custom1       String?
-  custom2       String?
-  balance       Decimal  @default(0) @db.Decimal(12, 2)
-
-  // Portal
   portalAccess  Boolean  @default(false) @map("portal_access")
-
-  // Remarks
-  remarks           String?
-  salesRemarks      String?  @map("sales_remarks")
   currentYearSales  Decimal  @default(0) @db.Decimal(12, 2) @map("current_year_sales")
   priorYearSales    Decimal  @default(0) @db.Decimal(12, 2) @map("prior_year_sales")
 
-  // Timestamps
+  // Timestamps (not in legacy - our app tracking)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -82,8 +122,11 @@ model Customer {
   premises      Premises[]
   jobs          Job[]
   contacts      Contact[]
+  contracts     Contract[]
+  tickets       Ticket[]   @relation("CustomerTickets")
 
   @@map("customers")
+  // SQL Server: @@map("Owner") - but need to handle Rol join
 }
 
 // ============================================
@@ -111,153 +154,350 @@ model Contact {
 }
 
 // ============================================
-// PREMISES (Accounts/Buildings)
+// PREMISES (SQL Server: Loc + Rol tables)
 // ============================================
+// Legacy: Loc.Loc is PK (int), Loc.Rol → Rol.ID for contact info
+// Loc.Owner → Owner.ID links to Customer
 
 model Premises {
   id          String   @id @default(cuid())
+  // SQL Server: Loc.Loc (int) - will need Int type when migrating
+
+  // From Loc table directly
+  locId       String?  @unique @map("loc_id")       // Loc.ID (varchar 15) - display ID like "195BROAD"
+  tag         String?                               // Loc.Tag (varchar 50)
+  address     String                                // Loc.Address
+  city        String?                               // Loc.City
+  state       String?                               // Loc.State
+  zipCode     String?  @map("zip_code")             // Loc.Zip
+  country     String?  @default("United States")    // Loc.Country
+  elevs       Int?     @default(0)                  // Loc.Elevs - count of elevators
+  status      Int?     @default(1)                  // Loc.Status (smallint)
+  balance     Decimal  @default(0) @db.Decimal(12, 2)  // Loc.Balance
+  type        String?  @default("Non-Contract")     // Loc.Type (varchar 15)
+  billing     Int?     @default(0)                  // Loc.Billing (smallint)
+  route       Int?     @default(0)                  // Loc.Route
+  zone        Int?     @default(0)                  // Loc.Zone
+  terr        Int?     @default(0)                  // Loc.Terr (territory)
+  priceL      Int?     @default(0) @map("price_l")  // Loc.PriceL (price level)
+  maint       Int?     @default(0)                  // Loc.Maint
+  inUse       Int?     @default(0) @map("in_use")   // Loc.InUse
+  wk          Int?                                  // Loc.WK
+  terms       Int?                                  // Loc.Terms
+  credit      Int?                                  // Loc.Credit
+  creditReason String? @map("credit_reason")        // Loc.CreditReason
+
+  // Tax settings
+  sTax        String?  @map("s_tax")                // Loc.STax
+  sTax2       String?  @map("s_tax_2")              // Loc.STax2
+  uTax        String?  @map("u_tax")                // Loc.UTax
+
+  // Markup rates
+  markup1     Float?                                // Loc.Markup1
+  markup2     Float?                                // Loc.Markup2
+  markup3     Float?                                // Loc.Markup3
+  markup4     Float?                                // Loc.Markup4
+  markup5     Float?                                // Loc.Markup5
+
+  // Location
+  longitude   Float?   @map("longitude")            // Loc.fLong
+  latitude    Float?   @map("latitude")             // Loc.Latt
+  geoLock     Int?     @default(0) @map("geo_lock") // Loc.GeoLock
+
+  // From Rol table (via Loc.Rol → Rol.ID)
+  name        String?                               // Rol.Name
+  contact     String?                               // Rol.Contact
+  phone       String?                               // Rol.Phone
+  fax         String?                               // Rol.Fax
+  cellular    String?                               // Rol.Cellular
+  email       String?                               // Rol.EMail (mapped from Loc.Email flag + Rol)
+  website     String?                               // Rol.Website
+  careof      String?                               // Loc.Careof
+
+  // Remarks
+  remarks     String?                               // Loc.Remarks
+  colRemarks  String?  @map("col_remarks")          // Loc.ColRemarks
+  salesRemarks String? @map("sales_remarks")        // Loc.SalesRemarks
+
+  // Custom fields
+  custom1     String?                               // Loc.Custom1
+  custom2     String?                               // Loc.Custom2
+  custom3     String?                               // Loc.Custom3
+  custom4     String?                               // Loc.Custom4
+  custom5     String?                               // Loc.Custom5
+  custom6     String?                               // Loc.Custom6
+  custom7     String?                               // Loc.Custom7
+  custom8     String?                               // Loc.Custom8
+  custom9     String?                               // Loc.Custom9
+  custom10    String?                               // Loc.Custom10
+  custom11    String?                               // Loc.Custom11
+  custom12    String?                               // Loc.Custom12
+  custom13    String?                               // Loc.Custom13
+  custom14    String?                               // Loc.Custom14
+  custom15    String?                               // Loc.Custom15
+
+  // Payment statistics
+  paidNumb    Int?     @map("paid_numb")            // Loc.PaidNumb - number of payments
+  paidDays    Int?     @map("paid_days")            // Loc.PaidDays - days to pay
+  writeOff    Decimal? @db.Decimal(12, 2) @map("write_off") // Loc.WriteOff
+
+  // Payment processing
+  merchantServicesId    Int? @map("merchant_services_id")     // Loc.MerchantServicesId
+  idCreditCardDefault   Int? @map("id_credit_card_default")   // Loc.idCreditCardDefault
+
+  // Flags
+  dispAlert     Int?     @default(0) @map("disp_alert")       // Loc.DispAlert (tinyint)
+  dispAlertType String?  @map("disp_alert_type")              // Loc.DispAlertType (varchar 15)
+  emailFlag     Int?     @default(0) @map("email_flag")       // Loc.Email (tinyint) - flag for email preference
+  emailTicket   Boolean  @default(false) @map("email_ticket") // Loc.EmailTicket (bit)
+  printTicket   Boolean  @default(false) @map("print_ticket") // Loc.PrintTicket (bit)
+  printInvoice  Boolean  @default(false) @map("print_invoice")// Loc.PrintInvoice (bit)
+  require       Int?     @map("require")                      // Loc.Require
+
+  // TFM Integration
+  tfmId         String?  @map("tfm_id")             // Loc.TFMID (varchar 100)
+  tfmSource     String?  @map("tfm_source")         // Loc.TFMSource (varchar 10)
+
+  // Internal references to Rol records
+  rolId              Int?  @map("rol_id")                  // Loc.Rol → Rol.ID (main contact)
+  idRolCustomContact Int?  @map("id_rol_custom_contact")   // Loc.idRolCustomContact → Rol.ID
+
+  // Reference to current/default job
+  currentJobId  Int?     @map("current_job_id")     // Loc.Job → Job.ID
+
+  // Computed/display fields (not in legacy, for our app)
   premisesId  String?  @unique @map("premises_id")
-  name        String?
-  address     String
-  city        String?
-  state       String?
-  zipCode     String?  @map("zip_code")
-  country     String?  @default("United States")
-
-  // Contact fields
-  contact     String?
-  phone       String?
-  fax         String?
-  cellular    String?
-  email       String?
-  website     String?
-
-  // Classification
-  type        String?  @default("Non-Contract")
   isActive    Boolean  @default(true) @map("is_active")
-  balance     Decimal  @default(0) @db.Decimal(12, 2)
 
-  // Timestamps
+  // Timestamps (not in legacy - our app tracking)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  customerId  String   @map("customer_id")
+  customerId  String   @map("customer_id")          // Loc.Owner → Owner.ID
   customer    Customer @relation(fields: [customerId], references: [id])
   jobs        Job[]
   units       Unit[]
   invoices    Invoice[]
   tickets     Ticket[]
+  contracts   Contract[]
+  quotes      Quote[]
 
   @@map("premises")
+  // SQL Server: @@map("Loc")
 }
 
 // ============================================
-// UNITS (Elevator Units at a Premises)
+// UNITS (SQL Server: Elev table)
 // ============================================
+// Legacy: Elev.ID is PK (int)
+// Elev.Loc → Loc.Loc, Elev.Owner → Owner.ID
 
 model Unit {
   id           String   @id @default(cuid())
-  unitNumber   String   @map("unit_number")
-  unitType     String?  @map("unit_type")
-  category     String?
-  serial       String?
-  manufacturer String?
-  status       String?  @default("Active")
-  description  String?
+  // SQL Server: Elev.ID (int) - will need Int type when migrating
+
+  // From Elev table
+  unitNumber   String   @map("unit_number")         // Elev.Unit (varchar 255) - display name
+  state        String?                              // Elev.State (varchar 25) - state number
+  cat          String?  @map("category")            // Elev.Cat (varchar 20) - category
+  unitType     String?  @map("unit_type")           // Elev.Type (varchar 20)
+  building     String?                              // Elev.Building (varchar 20)
+  manufacturer String?                              // Elev.Manuf (varchar 50)
+  serial       String?                              // Elev.Serial (varchar 50)
+  description  String?                              // Elev.fDesc (varchar 255)
+  remarks      String?                              // Elev.Remarks (text)
+  status       String?  @default("Active")           // Elev.Status (smallint in SQL Server: 1=Active)
+  price        Decimal? @db.Decimal(12, 2)          // Elev.Price
+  group        String?                              // Elev.fGroup (varchar 25)
+  week         String?                              // Elev.Week (varchar 50)
+  template     String?                              // Elev.Template (smallint in SQL Server)
+
+  // Dates
+  installDate  DateTime? @map("install_date")       // Elev.Install
+  installBy    String?   @map("install_by")         // Elev.InstallBy (varchar 25)
+  sinceDate    DateTime? @map("since_date")         // Elev.Since
+  lastDate     DateTime? @map("last_date")          // Elev.Last
+
+  // Custom fields (Elev.Custom1 through Custom20)
+  custom1      String?
+  custom2      String?
+  custom3      String?
+  custom4      String?
+  custom5      String?
+  custom6      String?
+  custom7      String?
+  custom8      String?
+  custom9      String?
+  custom10     String?
+  custom11     String?
+  custom12     String?
+  custom13     String?
+  custom14     String?
+  custom15     String?
+  custom16     String?
+  custom17     String?
+  custom18     String?
+  custom19     String?
+  custom20     String?
+
+  // Computed/display fields
+  isActive     Boolean  @default(true) @map("is_active")
+
+  // Timestamps (not in legacy - our app tracking)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  premisesId   String   @map("premises_id")
+  premisesId   String   @map("premises_id")         // Elev.Loc → Loc.Loc
   premises     Premises @relation(fields: [premisesId], references: [id])
   jobs         Job[]
+  tickets      Ticket[]
 
   @@map("units")
+  // SQL Server: @@map("Elev")
 }
 
 // ============================================
-// JOBS
+// JOBS (SQL Server: Job table)
 // ============================================
+// Legacy: Job.ID is PK (int)
+// Job.Loc → Loc.Loc, Job.Owner → Owner.ID, Job.Elev → Elev.ID
 
 model Job {
   id              String    @id @default(cuid())
+  // SQL Server: Job.ID (int) - will need Int type when migrating
 
-  // Core Fields
-  jobName         String    @map("job_name")
+  // From Job table
+  jobName         String    @map("job_name")        // Job.fDesc (varchar 255)
   externalId      String?   @unique @map("external_id")
-  jobDescription  String?   @map("job_description")
-
-  // Status & Type
-  status          String    @default("Open")
-  type            String?
-  contractType    String?   @map("contract_type")
-  customJobType   String?   @map("custom_job_type")
-  customStatus    String?   @map("custom_status")
-  priorityLevel   String?   @map("priority_level")
+  jobDescription  String?   @map("job_description") // Job.Remarks (varchar max)
+  status          String?   @default("Open")        // Job.Status (smallint in SQL Server)
+  type            String?                           // Job.Type (smallint in SQL Server)
+  po              String?                           // Job.PO (varchar 25)
+  group           String?                           // Job.fGroup (varchar 25)
+  cType           String?   @map("c_type")          // Job.CType (varchar 15)
+  fp              String?                           // Job.FP (varchar 15)
+  skill           String?                           // From Contract.Skill
 
   // Dates
-  date            DateTime?
-  customDate      DateTime? @map("custom_date")
-  dueDate         DateTime? @map("due_date")
-  scheduleDate    DateTime? @map("schedule_date")
-  compDate        DateTime? @map("comp_date")
-  closeDate       DateTime? @map("close_date")
+  date            DateTime? @map("date")            // Job.fDate
+  closeDate       DateTime? @map("close_date")      // Job.CloseDate
+  estDate         DateTime? @map("est_date")        // Job.EstDate
+  dueDate         DateTime? @map("due_date")        // Job.DueDate
+
+  // Financial - Revenue
+  rev             Decimal   @default(0) @db.Decimal(12, 2)  // Job.Rev
+  bRev            Decimal   @default(0) @db.Decimal(12, 2) @map("b_rev")  // Job.BRev (budget)
+
+  // Financial - Costs
+  mat             Decimal   @default(0) @db.Decimal(12, 2)  // Job.Mat (materials)
+  labor           Decimal   @default(0) @db.Decimal(12, 2)  // Job.Labor
+  cost            Decimal   @default(0) @db.Decimal(12, 2)  // Job.Cost
+  profit          Decimal   @default(0) @db.Decimal(12, 2)  // Job.Profit
+  ratio           Decimal   @default(0) @db.Decimal(10, 2)  // Job.Ratio
+  bMat            Decimal   @default(0) @db.Decimal(12, 2) @map("b_mat")  // Job.BMat
+  bLabor          Decimal   @default(0) @db.Decimal(12, 2) @map("b_labor") // Job.BLabor
+  bCost           Decimal   @default(0) @db.Decimal(12, 2) @map("b_cost")  // Job.BCost
+  bProfit         Decimal   @default(0) @db.Decimal(12, 2) @map("b_profit") // Job.BProfit
+  bRatio          Decimal   @default(0) @db.Decimal(10, 2) @map("b_ratio")  // Job.BRatio
 
   // Hours
-  reg             Decimal?  @db.Decimal(10, 2)
-  ot              Decimal?  @db.Decimal(10, 2)
-  ot17            Decimal?  @db.Decimal(10, 2)
-  dt              Decimal?  @db.Decimal(10, 2)
-  tt              Decimal?  @db.Decimal(10, 2)
-  totalHours      Decimal?  @db.Decimal(10, 2) @map("total_hours")
+  reg             Decimal   @default(0) @db.Decimal(10, 2)  // Job.Reg
+  ot              Decimal   @default(0) @db.Decimal(10, 2)  // Job.OT
+  dt              Decimal   @default(0) @db.Decimal(10, 2)  // Job.DT
+  tt              Decimal   @default(0) @db.Decimal(10, 2)  // Job.TT
+  nt              Decimal   @default(0) @db.Decimal(10, 2)  // Job.NT
+  hour            Decimal   @default(0) @db.Decimal(10, 2)  // Job.Hour
+  bHour           Decimal   @default(0) @db.Decimal(10, 2) @map("b_hour")  // Job.BHour
+  comm            Decimal   @default(0) @db.Decimal(10, 2)  // Job.Comm
 
-  // Assignment
-  supervisor      String?
-  projectManager  String?   @map("project_manager")
-  employeeFirstName String? @map("employee_first_name")
+  // Rates
+  billRate        Decimal   @default(0) @db.Decimal(10, 2) @map("bill_rate")  // Job.BillRate
+  markup          Decimal   @default(0) @db.Decimal(10, 2)  // Job.Markup
+  rateTravel      Decimal?  @db.Decimal(10, 2) @map("rate_travel")  // Job.RateTravel
+  rateOT          Decimal?  @db.Decimal(10, 2) @map("rate_ot")      // Job.RateOT
+  rateNT          Decimal?  @db.Decimal(10, 2) @map("rate_nt")      // Job.RateNT
+  rateDT          Decimal?  @db.Decimal(10, 2) @map("rate_dt")      // Job.RateDT
+  rateMileage     Decimal?  @db.Decimal(10, 2) @map("rate_mileage") // Job.RateMileage
 
-  // Billing
-  billingTerms    String?   @map("billing_terms")
-  chargeable      Boolean   @default(false)
+  // Overhead
+  gAndA           Decimal   @default(0) @db.Decimal(10, 2) @map("g_and_a")  // Job.GandA
+  ohLabor         Decimal   @default(0) @db.Decimal(10, 2) @map("oh_labor") // Job.OHLabor
+  lastOH          Decimal   @default(0) @db.Decimal(10, 2) @map("last_oh")  // Job.LastOH
+  etc             Decimal   @default(0) @db.Decimal(10, 2)  // Job.etc
+  etcModifier     Decimal   @default(0) @db.Decimal(10, 2) @map("etc_modifier") // Job.ETCModifier
 
-  // Notes & Remarks
-  sRemarks        String?   @map("s_remarks")
-  customerRemarks String?   @map("customer_remarks")
-  comments        String?
+  // Settings
+  template        String?                           // Job.Template (smallint in SQL Server)
+  wageC           Int?      @map("wage_c")          // Job.WageC (wage code)
+  post            Int?      @default(0)             // Job.Post
+  en              Int?      @default(0)             // Job.EN
+  certified       Int?      @default(0)             // Job.Certified
+  apprentice      Int?      @default(0)             // Job.Apprentice
+  useCat          Int?      @default(0) @map("use_cat")   // Job.UseCat
+  useDed          Int?      @default(0) @map("use_ded")   // Job.UseDed
+  pType           Int?      @default(0) @map("p_type")    // Job.PType
+  charge          Int?      @default(0)             // Job.Charge
+  amount          Decimal   @default(0) @db.Decimal(12, 2) // Job.Amount
+  gl              Int?                              // Job.GL
+  glRev           Int?      @map("gl_rev")          // Job.GLRev
+  elevs           Int?                              // Job.Elevs
+  level           Int?                              // Job.Level
 
-  // Other Fields
-  template        String?
-  level           String?
-  source          String?
-  office          String?
-  reopen          Boolean   @default(false)
-  tsCreatedBy     String?   @map("ts_created_by")
-  repRequest      String?   @map("rep_request")
-  bRev            String?   @map("b_rev")
-  lastSyncTime    DateTime? @map("last_sync_time")
+  // Remarks
+  sRemarks        String?   @map("s_remarks")       // Job.SRemarks
+  comments        String?                           // Job.Comments
 
-  // Custom Fields
-  reqDate         DateTime? @map("req_date")
-  folder          String?
-  url             String?
-  fineFault       String?   @map("fine_fault")
-  wfMisu          String?   @map("wf_misu")
-  mrRequest       String?   @map("mr_request")
-  guzman          String?
+  // Audit
+  source          String?                           // Job.Source
+  reopen          Int?      @default(0)             // Job.Reopen
+  audit           Int?      @default(0)             // Job.Audit
+  auditBy         String?   @map("audit_by")        // Job.AuditBy
+  auditDate       DateTime? @map("audit_date")      // Job.AuditDate
+  ncsLock         Int?      @default(0) @map("ncs_lock")   // Job.NCSLock
+  ncsClose        DateTime? @map("ncs_close")       // Job.NCSClose
+  fInt            Int?      @default(0) @map("f_int")      // Job.fInt
 
-  // Timestamps
+  // Tech assignment
+  tech            String?                           // Job.Tech
+  techOrRoute     Int?      @map("tech_or_route")   // Job.TechOrRoute
+  techAlert       String?   @map("tech_alert")      // Job.TechAlert
+
+  // Custom fields (Job.Custom1 through Custom20)
+  custom1         String?
+  custom2         String?
+  custom3         String?
+  custom4         String?
+  custom5         String?
+  custom6         String?
+  custom7         String?
+  custom8         String?
+  custom9         String?
+  custom10        String?
+  custom11        String?
+  custom12        String?
+  custom13        String?
+  custom14        String?
+  custom15        String?
+  custom16        String?
+  custom17        String?
+  custom18        String?
+  custom19        String?
+  custom20        String?
+
+  // Timestamps (not in legacy - our app tracking)
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  customerId      String?   @map("customer_id")
+  customerId      String?   @map("customer_id")     // Job.Owner → Owner.ID
   customer        Customer? @relation(fields: [customerId], references: [id])
 
-  premisesId      String?   @map("premises_id")
+  premisesId      String?   @map("premises_id")     // Job.Loc → Loc.Loc
   premises        Premises? @relation(fields: [premisesId], references: [id])
 
-  unitId          String?   @map("unit_id")
+  unitId          String?   @map("unit_id")         // Job.Elev → Elev.ID
   unit            Unit?     @relation(fields: [unitId], references: [id])
 
   createdById     String?   @map("created_by_id")
@@ -270,8 +510,89 @@ model Job {
   notes           Note[]
   tickets         Ticket[]
   invoices        Invoice[]
+  invoiceItems    InvoiceItem[]
+  contracts       Contract[]
+  quotes          Quote[]
 
   @@map("jobs")
+  // SQL Server: @@map("Job")
+}
+
+// ============================================
+// CONTRACTS (SQL Server: Contract table)
+// ============================================
+// Legacy: Contract.ID is PK (int)
+// Contract.Loc → Loc.Loc, Contract.Owner → Owner.ID, Contract.Job → Job.ID
+
+model Contract {
+  id            String    @id @default(cuid())
+  // SQL Server: Contract.ID (int) - will need Int type when migrating
+
+  // Dates
+  review        DateTime?                           // Contract.Review
+  bStart        DateTime? @map("b_start")           // Contract.BStart (billing start)
+  bFinish       DateTime? @map("b_finish")          // Contract.BFinish (billing finish)
+  sStart        DateTime? @map("s_start")           // Contract.SStart (service start)
+  sTime         DateTime? @map("s_time")            // Contract.STime
+  sTime2        DateTime? @map("s_time_2")          // Contract.sTime2
+  escLast       DateTime? @map("esc_last")          // Contract.EscLast (last escalation)
+  offService    DateTime? @map("off_service")       // Contract.OffService
+
+  // Discounts
+  disc1         Decimal   @default(0) @db.Decimal(12, 2)  // Contract.Disc1
+  disc2         Decimal   @default(0) @db.Decimal(12, 2)  // Contract.Disc2
+  disc3         Decimal   @default(0) @db.Decimal(12, 2)  // Contract.Disc3
+  disc4         Decimal   @default(0) @db.Decimal(12, 2)  // Contract.Disc4
+  disc5         Decimal   @default(0) @db.Decimal(12, 2)  // Contract.Disc5
+  disc6         Decimal   @default(0) @db.Decimal(12, 2)  // Contract.Disc6
+  discType      Int?      @map("disc_type")               // Contract.DiscType (smallint)
+  discRate      Decimal   @default(0) @db.Decimal(12, 2) @map("disc_rate")  // Contract.DiscRate
+
+  // Billing
+  bCycle        Int?      @map("b_cycle")           // Contract.BCycle (billing cycle)
+  bLength       Int?      @map("b_length")          // Contract.BLenght (typo in legacy)
+  bAmt          Decimal   @default(0) @db.Decimal(12, 2) @map("b_amt")  // Contract.BAmt (billing amount)
+  bEscType      Int?      @map("b_esc_type")        // Contract.BEscType
+  bEscCycle     Int?      @map("b_esc_cycle")       // Contract.BEscCycle
+  bEscFact      Decimal   @default(0) @db.Decimal(12, 2) @map("b_esc_fact")  // Contract.BEscFact
+
+  // Service scheduling
+  sCycle        Int?      @map("s_cycle")           // Contract.SCycle
+  sType         String?   @map("s_type")            // Contract.SType (varchar 10)
+  sDay          Int?      @map("s_day")             // Contract.SDay
+  sDate         Int?      @map("s_date")            // Contract.SDate
+  sWE           Int       @default(0) @map("s_we")  // Contract.SWE
+  sDay2         Int?      @map("s_day_2")           // Contract.sDay2
+  sDate2        Int?      @map("s_date_2")          // Contract.sDate2
+  sWE2          Int?      @map("s_we_2")            // Contract.sWE2
+
+  // Other settings
+  detail        Int?                                // Contract.Detail
+  cycle         Int?                                // Contract.Cycle
+  oldAmt        Decimal   @default(0) @db.Decimal(12, 2) @map("old_amt")  // Contract.OldAmt
+  wk            Int?                                // Contract.WK
+  skill         String?                             // Contract.Skill (varchar 25)
+  status        Int?      @default(1)               // Contract.Status (smallint)
+  hours         Decimal   @default(0) @db.Decimal(10, 2)  // Contract.Hours
+  hour          Decimal   @default(0) @db.Decimal(10, 2)  // Contract.Hour
+  terms         Int?                                // Contract.Terms
+
+  // Timestamps (not in legacy - our app tracking)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  customerId    String?   @map("customer_id")       // Contract.Owner → Owner.ID
+  customer      Customer? @relation(fields: [customerId], references: [id])
+
+  premisesId    String?   @map("premises_id")       // Contract.Loc → Loc.Loc
+  premises      Premises? @relation(fields: [premisesId], references: [id])
+
+  jobId         String?   @map("job_id")            // Contract.Job → Job.ID
+  job           Job?      @relation(fields: [jobId], references: [id])
+
+  @@map("contracts")
+  // SQL Server: @@map("Contract")
 }
 
 // ============================================
@@ -356,104 +677,111 @@ model Note {
 }
 
 // ============================================
-// TICKETS (Completed Time Tickets)
+// TICKETS (SQL Server: TicketO table)
 // ============================================
+// Legacy: TicketO.ID is PK (int)
+// TicketO.LID → Loc.Loc, TicketO.Owner → Owner.ID, TicketO.Job → Job.ID, TicketO.LElev → Elev.ID
+//
+// SQL Server Field Mappings (for migration reference):
+// ticketNumber → TicketO.ID, date → TicketO.CDate, type → TicketO.Type
+// category → TicketO.Cat, status → computed, accountId → TicketO.LDesc1
+// mechCrew → TicketO.DWork, hours → TicketO.Reg, unitName → from Elev relation
 
 model Ticket {
   id              String   @id @default(cuid())
-  ticketNumber    Int      @unique @map("ticket_number")
-  workOrderNumber Int?     @map("work_order_number")
+  ticketNumber    Int      @unique @map("ticket_number")  // TicketO.ID
+  workOrderNumber Int?     @map("work_order_number")      // TicketO.WorkOrder
 
   // Date/Time
-  date            DateTime
-  completedDate   DateTime? @map("completed_date")
+  date            DateTime                          // TicketO.CDate
+  completedDate   DateTime? @map("completed_date")  // TicketO.EDate
 
   // Classification
-  type            String   @default("Other")  // Maintenance, Modernization, Repair, Other
-  category        String?
-  level           String?                     // e.g., "4-Violations"
-  status          String   @default("Open")   // Open, Completed, Void
+  type            String   @default("Other")        // TicketO.Type (map: Maintenance=1, etc.)
+  category        String?                           // TicketO.Cat
+  level           String?                           // TicketO.Level
+  status          String   @default("Open")         // Computed from TicketO fields
 
-  // Location identifier (like 110WIL, 50HAV, etc.)
-  accountId       String?  @map("account_id")
+  // Location identifier
+  accountId       String?  @map("account_id")       // TicketO.LDesc1
 
   // Personnel
-  mechCrew        String?  @map("mech_crew")
-  supervisor      String?
-  wage            String?                     // e.g., "460 - A MECH MOD/REPAIR" (TODO: link to WageCodes table later)
+  mechCrew        String?  @map("mech_crew")        // TicketO.DWork
+  supervisor      String?                           // From Job relation
+  wage            String?
 
-  // Job & Unit (TODO: unitId relation to Unit model later)
+  // Job & Unit
   phase           Int?     @default(1)
-  unitName        String?  @map("unit_name")  // e.g., "BARD P1" - currently text, will be relation later
+  unitName        String?  @map("unit_name")        // From Elev.Unit via relation
 
-  // Name & Address display (pulled from Premises, but can be overridden)
-  nameAddress     String?  @map("name_address")
+  // Name & Address display
+  nameAddress     String?  @map("name_address")     // TicketO.LDesc3
 
-  // Scope of Work (textarea)
-  scopeOfWork     String?  @map("scope_of_work")
+  // Scope of Work
+  scopeOfWork     String?  @map("scope_of_work")    // TicketO.fDesc
 
-  // Resolution (textarea)
-  resolution      String?
+  // Resolution
+  resolution      String?                           // TicketO.Resolution
 
-  // Parts Used (textarea)
-  partsUsed       String?  @map("parts_used")
+  // Parts Used
+  partsUsed       String?  @map("parts_used")       // TicketO.PartsUsed
 
   // Work Performed section
-  workTime        String?  @map("work_time")  // Time like "03:42 PM"
+  workTime        String?  @map("work_time")
 
   // Time Frame
-  enRouteTime     String?  @map("en_route_time")
-  onSiteTime      String?  @map("on_site_time")
-  completedTime   String?  @map("completed_time")
+  enRouteTime     String?  @map("en_route_time")    // TicketO.TimeRoute
+  onSiteTime      String?  @map("on_site_time")     // TicketO.TimeSite
+  completedTime   String?  @map("completed_time")   // TicketO.TimeComp
 
   // Mileage
-  mileageStarting Int?     @default(0) @map("mileage_starting")
-  mileageEnding   Int?     @default(0) @map("mileage_ending")
+  mileageStarting Int?     @default(0) @map("mileage_starting")  // TicketO.SMile
+  mileageEnding   Int?     @default(0) @map("mileage_ending")    // TicketO.EMile
   mileageTraveled Int?     @default(0) @map("mileage_traveled")
 
   // Time Spent (hours breakdown)
-  hours           Decimal  @default(0) @db.Decimal(10, 2)  // This is "Regular" hours
-  overtimeHours   Decimal  @default(0) @db.Decimal(10, 2) @map("overtime_hours")
-  oneSevenHours   Decimal  @default(0) @db.Decimal(10, 2) @map("one_seven_hours")  // 1.7 Time
-  doubleTimeHours Decimal  @default(0) @db.Decimal(10, 2) @map("double_time_hours")
-  travelHours     Decimal  @default(0) @db.Decimal(10, 2) @map("travel_hours")
-  totalHours      Decimal  @default(0) @db.Decimal(10, 2) @map("total_hours")
-  estTime         Decimal  @default(0) @db.Decimal(10, 2) @map("est_time")
+  hours           Decimal  @default(0) @db.Decimal(10, 2)  // TicketO.Reg
+  overtimeHours   Decimal  @default(0) @db.Decimal(10, 2) @map("overtime_hours")  // TicketO.OT
+  oneSevenHours   Decimal  @default(0) @db.Decimal(10, 2) @map("one_seven_hours")
+  doubleTimeHours Decimal  @default(0) @db.Decimal(10, 2) @map("double_time_hours")  // TicketO.DT
+  travelHours     Decimal  @default(0) @db.Decimal(10, 2) @map("travel_hours")  // TicketO.TT
+  totalHours      Decimal  @default(0) @db.Decimal(10, 2) @map("total_hours")  // TicketO.Total
+  estTime         Decimal  @default(0) @db.Decimal(10, 2) @map("est_time")  // TicketO.Est
   difference      Decimal  @default(0) @db.Decimal(10, 2)
 
   // Expenses
   expensePhase    Int?     @default(1) @map("expense_phase")
-  expenseMileage  Decimal  @default(0) @db.Decimal(10, 2) @map("expense_mileage")
-  expenseZone     Decimal  @default(0) @db.Decimal(10, 2) @map("expense_zone")
-  expenseTolls    Decimal  @default(0) @db.Decimal(10, 2) @map("expense_tolls")
-  expenseMisc     Decimal  @default(0) @db.Decimal(10, 2) @map("expense_misc")
+  expenseMileage  Decimal  @default(0) @db.Decimal(10, 2) @map("expense_mileage")  // TicketO.Mileage
+  expenseZone     Decimal  @default(0) @db.Decimal(10, 2) @map("expense_zone")  // TicketO.Zone
+  expenseTolls    Decimal  @default(0) @db.Decimal(10, 2) @map("expense_tolls")  // TicketO.Toll
+  expenseMisc     Decimal  @default(0) @db.Decimal(10, 2) @map("expense_misc")  // TicketO.OtherE
   expenseTotal    Decimal  @default(0) @db.Decimal(10, 2) @map("expense_total")
 
-  // Checkbox statuses (from list view)
+  // Checkbox statuses
   bill            Boolean  @default(false)
   reviewed        Boolean  @default(false)
-  pr              Boolean  @default(false)    // Payroll
-  vd              Boolean  @default(false)    // Void
-  inv             Boolean  @default(false)    // Invoiced
+  pr              Boolean  @default(false)
+  vd              Boolean  @default(false)
+  inv             Boolean  @default(false)
 
-  // Checkbox statuses (from detail view)
+  // Detail view checkboxes
   workCompleted   Boolean  @default(false) @map("work_completed")
   chargeable      Boolean  @default(false)
   emailOnSave     Boolean  @default(false) @map("email_on_save")
   updateLocation  Boolean  @default(false) @map("update_location")
-  internetAccess  Boolean  @default(true) @map("internet_access")
+  internetAccess  Boolean  @default(true) @map("internet_access")  // TicketO.Internet
 
   // Review Status
   reviewStatus    String?  @default("Dispatch Review") @map("review_status")
 
-  // Contract Type (pulled from Premises/Job, but can store here)
+  // Contract Type
   contractType    String?  @map("contract_type")
 
-  // Internal Comments Only (textarea)
-  internalComments String? @map("internal_comments")
+  // Internal Comments
+  internalComments String? @map("internal_comments")  // TicketO.Notes
 
-  // Call tracking (shown in status bar)
-  calledInBy      String?  @map("called_in_by")
+  // Call tracking
+  calledInBy      String?  @map("called_in_by")  // TicketO.fBy
   calledInDate    DateTime? @map("called_in_date")
   takenBy         String?  @map("taken_by")
   resolvedBy      String?  @map("resolved_by")
@@ -461,7 +789,7 @@ model Ticket {
   // Email
   emailStatus     String?  @default("No Email Sent") @map("email_status")
 
-  // Description/Notes (legacy field)
+  // Description/Notes
   description     String?
 
   // Timestamps
@@ -469,20 +797,26 @@ model Ticket {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  premisesId      String?  @map("premises_id")
+  customerId      String?  @map("customer_id")  // TicketO.Owner
+  customer        Customer? @relation("CustomerTickets", fields: [customerId], references: [id])
+
+  premisesId      String?  @map("premises_id")  // TicketO.LID
   premises        Premises? @relation(fields: [premisesId], references: [id])
 
-  jobId           String?  @map("job_id")
+  unitId          String?  @map("unit_id")  // TicketO.LElev
+  unit            Unit?    @relation(fields: [unitId], references: [id])
+
+  jobId           String?  @map("job_id")  // TicketO.Job
   job             Job?     @relation(fields: [jobId], references: [id])
 
   invoiceId       String?  @map("invoice_id")
   invoice         Invoice? @relation(fields: [invoiceId], references: [id])
 
-  // TODO: Add unitId relation when Unit module is built
-  // unitId       String?  @map("unit_id")
-  // unit         Unit?    @relation(fields: [unitId], references: [id])
+  // Quotes generated from this ticket
+  quotes          Quote[]
 
   @@map("tickets")
+  // SQL Server: @@map("TicketO")
 }
 
 // ============================================
@@ -491,84 +825,520 @@ model Ticket {
 
 model Invoice {
   id              String    @id @default(cuid())
-  invoiceNumber   Int       @unique @map("invoice_number")
+  // SQL Server: Invoice.Ref (int, PK) - will need Int type when migrating
 
-  // Dates
-  postingDate     DateTime  @map("posting_date")
-  date            DateTime
+  // From Invoice table
+  ref             Int?      @unique                         // Invoice.Ref (int) - invoice reference number
+  invoiceNumber   Int       @unique @map("invoice_number")  // Display number (same as Ref for legacy)
+  fDate           DateTime? @map("f_date")                  // Invoice.fDate - invoice date
+  iDate           DateTime? @map("i_date")                  // Invoice.IDate - ? date
+  fDesc           String?   @map("f_desc")                  // Invoice.fDesc (text) - description
+  remarks         String?                                   // Invoice.Remarks (text)
+
+  // Amounts
+  amount          Decimal   @default(0) @db.Decimal(12, 2)  // Invoice.Amount - subtotal before tax
+  sTax            Decimal   @default(0) @db.Decimal(12, 2) @map("s_tax")  // Invoice.STax - sales tax
+  total           Decimal   @default(0) @db.Decimal(12, 2)  // Invoice.Total
+  taxable         Decimal   @default(0) @db.Decimal(12, 2)  // Invoice.Taxable - taxable amount
+  gTax            Decimal?  @db.Decimal(12, 2) @map("g_tax") // Invoice.GTax - GST/other tax
+  pstOnlyAmount   Decimal?  @db.Decimal(12, 2) @map("pst_only_amount") // Invoice.PSTOnlyAmount
+
+  // Tax Settings
+  taxRegion       String?   @map("tax_region")              // Invoice.TaxRegion (varchar 25)
+  taxRate         Decimal   @default(0) @db.Decimal(8, 4) @map("tax_rate") // Invoice.TaxRate
+  taxFactor       Decimal   @default(100) @db.Decimal(8, 2) @map("tax_factor") // Invoice.TaxFactor
+  taxRegion2      String?   @map("tax_region_2")            // Invoice.TaxRegion2
+  taxRate2        Decimal   @default(0) @db.Decimal(8, 4) @map("tax_rate_2") // Invoice.TaxRate2
 
   // Classification
-  type            String    @default("Other")  // Other, Maintenance, Modernization, Repair
-  terms           String?   @default("Net 30 Days")
-  priceLevel      String?   @map("price_level")
+  type            String?   @default("Other")               // Invoice.Type (smallint in SQL Server)
+  terms           String?   @default("Net 30 Days")         // Invoice.Terms (smallint in SQL Server)
+  pricing         Int?      @default(0)                     // Invoice.Pricing (smallint)
+  status          String?   @default("Open")                // Invoice.Status (smallint in SQL Server)
 
   // Reference Fields
-  poNumber        String?   @map("po_number")
-  mechSales       String?   @map("mech_sales")
-  creditReq       String?   @map("credit_req")
-  backup          String?
+  po              String?                                   // Invoice.PO (varchar 25)
+  batch           Int?                                      // Invoice.Batch
+  transId         Int?      @map("trans_id")                // Invoice.TransID
+  mech            Int?                                      // Invoice.Mech - mechanic/tech ID
 
-  // Status
-  status          String    @default("Open")  // Open, Paid, Void
-  emailSent       Boolean   @default(false) @map("email_sent")
-  emailStatus     String?   @default("No Email Sent") @map("email_status")
+  // Bill To
+  billToOpt       Int?      @map("bill_to_opt")             // Invoice.BillToOpt (tinyint)
+  billTo          String?   @map("bill_to")                 // Invoice.BillTo (varchar 1000)
 
-  // Description
-  description     String?
-  jobRemarks      String?   @map("job_remarks")
+  // Custom Fields
+  custom1         String?                                   // Invoice.Custom1 (varchar 50)
+  custom2         String?                                   // Invoice.Custom2 (varchar 50)
+  custom3         String?                                   // Invoice.Custom3 (varchar 1000)
 
-  // Tax Fields
-  taxRegion1      String?   @map("tax_region_1")
-  taxRate1        Decimal   @default(0) @db.Decimal(8, 4) @map("tax_rate_1")
-  taxRegion2      String?   @map("tax_region_2")
-  taxRate2        Decimal   @default(0) @db.Decimal(8, 4) @map("tax_rate_2")
-  taxFactor       Decimal   @default(100) @db.Decimal(8, 2) @map("tax_factor")
+  // User/Audit
+  fUser           String?   @map("f_user")                  // Invoice.fUser (varchar 50)
 
-  // Labor Hours
+  // Collection Fields
+  collMethod      Int?      @map("coll_method")             // Invoice.fieldcollmethod (smallint)
+  collAmount      Decimal?  @db.Decimal(12, 2) @map("coll_amount") // Invoice.fieldcollamount
+  collRef         String?   @map("coll_ref")                // Invoice.fieldcollref (varchar 100)
+
+  // Email Tracking
+  emailStatusCode Int       @default(0) @map("email_status_code") // Invoice.EMailStatus (int in SQL Server)
+  sentBy          String?   @map("sent_by")                 // Invoice.SentBy (nvarchar 50)
+  sentOn          DateTime? @map("sent_on")                 // Invoice.SentOn
+
+  // TFM Integration
+  tfmId           String?   @map("tfm_id")                  // Invoice.TFMID (varchar 100)
+  tfmSource       String?   @map("tfm_source")              // Invoice.TFMSource (varchar 10)
+
+  // Legacy display fields (for our app compatibility)
+  date            DateTime                                  // Display date (maps to fDate)
+  postingDate     DateTime  @map("posting_date")            // Posting date
+  description     String?                                   // Display description (maps to fDesc)
+  poNumber        String?   @map("po_number")               // Display PO (maps to po)
+  statusDisplay   String    @default("Open") @map("status_display") // String status for UI
+
+  // Labor Hours (app-specific, may map to JobI)
   reg             Decimal?  @db.Decimal(10, 2)
   ot              Decimal?  @db.Decimal(10, 2)
   ot17            Decimal?  @db.Decimal(10, 2)
   dt              Decimal?  @db.Decimal(10, 2)
   tt              Decimal?  @db.Decimal(10, 2)
 
-  // Amounts
-  taxable         Decimal   @default(0) @db.Decimal(12, 2)
-  nonTaxable      Decimal   @default(0) @db.Decimal(12, 2) @map("non_taxable")
+  // Computed amounts for app display
   subTotal        Decimal   @default(0) @db.Decimal(12, 2) @map("sub_total")
   salesTax        Decimal   @default(0) @db.Decimal(12, 2) @map("sales_tax")
-  total           Decimal   @default(0) @db.Decimal(12, 2)
+  nonTaxable      Decimal   @default(0) @db.Decimal(12, 2) @map("non_taxable")
   remainingUnpaid Decimal   @default(0) @db.Decimal(12, 2) @map("remaining_unpaid")
 
-  // Timestamps
+  // Timestamps (app tracking, not in legacy)
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  premisesId      String?   @map("premises_id")
+  premisesId      String?   @map("premises_id")             // Invoice.Loc → Loc.Loc
   premises        Premises? @relation(fields: [premisesId], references: [id])
 
-  jobId           String?   @map("job_id")
+  jobId           String?   @map("job_id")                  // Invoice.Job → Job.ID
   job             Job?      @relation(fields: [jobId], references: [id])
 
-  // Line Items
+  // Line Items (InvoiceI table)
   items           InvoiceItem[]
 
   // Tickets linked to this invoice
   tickets         Ticket[]
 
   @@map("invoices")
+  // SQL Server: @@map("Invoice")
 }
 
 // ============================================
-// BANK ACCOUNTS
+// QUOTES (SQL Server: Quote table)
+// ============================================
+// Legacy: Quote.Ref is PK (int)
+// Quote.Loc → Loc.Loc, Quote.Job → Job.ID, Quote.Invoice → Invoice.Ref
+
+model Quote {
+  id              String    @id @default(cuid())
+  // SQL Server: Quote.Ref (int, PK)
+
+  // From Quote table
+  ref             Int?      @unique                         // Quote.Ref (int) - quote reference number
+  fDate           DateTime? @map("f_date")                  // Quote.fDate - quote date
+  fDesc           String?   @map("f_desc")                  // Quote.fDesc (text) - description
+  fComments       String?   @map("f_comments")              // Quote.fComments (varchar max) - comments
+
+  // Amounts
+  amount          Decimal   @default(0) @db.Decimal(12, 4)  // Quote.Amount
+  sTax            Decimal   @default(0) @db.Decimal(12, 4) @map("s_tax")  // Quote.STax - sales tax
+  total           Decimal   @default(0) @db.Decimal(12, 4)  // Quote.Total
+  taxable         Decimal   @default(0) @db.Decimal(12, 4)  // Quote.Taxable
+  gTax            Decimal?  @db.Decimal(12, 4) @map("g_tax") // Quote.GTax - GST/other tax
+  pstOnlyAmount   Decimal?  @db.Decimal(12, 2) @map("pst_only_amount") // Quote.PSTOnlyAmount
+
+  // Tax Settings
+  taxRegion       String?   @map("tax_region")              // Quote.TaxRegion (varchar 25)
+  taxRate         Decimal   @default(0) @db.Decimal(8, 4) @map("tax_rate") // Quote.TaxRate
+  taxFactor       Decimal   @default(100) @db.Decimal(8, 4) @map("tax_factor") // Quote.TaxFactor
+  taxRegion2      String?   @map("tax_region_2")            // Quote.TaxRegion2
+  taxRate2        Decimal   @default(0) @db.Decimal(8, 4) @map("tax_rate_2") // Quote.TaxRate2
+
+  // Classification
+  type            Int?      @default(0)                     // Quote.Type (smallint)
+  lType           Int?      @map("l_type")                  // Quote.LType (smallint)
+  terms           Int?      @default(0)                     // Quote.Terms (smallint)
+  pricing         Int?      @default(0)                     // Quote.Pricing (smallint)
+  status          Int?      @default(0)                     // Quote.Status (smallint)
+  nature          Int?                                      // Quote.Nature (smallint)
+  template        Int?                                      // Quote.Template (smallint)
+  source          String?                                   // Quote.Source (varchar 20)
+
+  // Reference Fields
+  po              String?                                   // Quote.PO (varchar 25)
+  mech            Int?                                      // Quote.Mech - mechanic/tech ID
+  tfmMech         Int?      @map("tfm_mech")                // Quote.TFMMech
+
+  // Contact reference
+  rolId           Int?      @map("rol_id")                  // Quote.Rol → Rol.ID
+
+  // Markup
+  groupMarkup     Decimal   @default(0) @db.Decimal(12, 4) @map("group_markup") // Quote.GroupMarkup
+
+  // Custom Fields
+  custom1         String?                                   // Quote.Custom1 (varchar 50)
+  custom2         String?                                   // Quote.Custom2 (varchar 50)
+  custom3         String?                                   // Quote.Custom3 (varchar 1000)
+
+  // TFM Integration
+  tfmId           String?   @map("tfm_id")                  // Quote.TFMID (varchar 100)
+  tfmSource       String?   @map("tfm_source")              // Quote.TFMSource (varchar 10)
+
+  // Timestamps (app tracking)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  premisesId      String?   @map("premises_id")             // Quote.Loc → Loc.Loc
+  premises        Premises? @relation(fields: [premisesId], references: [id])
+
+  jobId           String?   @map("job_id")                  // Quote.Job → Job.ID
+  job             Job?      @relation(fields: [jobId], references: [id])
+
+  ticketId        String?   @map("ticket_id")               // Quote.Ticket → TicketO.ID
+  ticket          Ticket?   @relation(fields: [ticketId], references: [id])
+
+  invoiceRef      Int?      @map("invoice_ref")             // Quote.Invoice → Invoice.Ref (if converted)
+
+  @@map("quotes")
+  // SQL Server: @@map("Quote")
+}
+
+// ============================================
+// VENDORS (SQL Server: Vendor table)
+// ============================================
+// Legacy: Vendor.ID is PK (int)
+// Vendor.Rol → Rol.ID for contact info
+
+model Vendor {
+  id              String    @id @default(cuid())
+  // SQL Server: Vendor.ID (int, PK)
+
+  // From Vendor table
+  legacyId        Int?      @unique @map("legacy_id")       // Vendor.ID
+  acct            String?                                   // Vendor.Acct (varchar 15) - account code
+  acctNumber      String?   @map("acct_number")             // Vendor.Acct# (varchar 25)
+  type            String    @default("General")             // Vendor.Type (varchar 15)
+  status          Int       @default(1)                     // Vendor.Status (smallint)
+  balance         Decimal   @default(0) @db.Decimal(12, 2)  // Vendor.Balance
+  creditLimit     Decimal?  @db.Decimal(12, 2) @map("credit_limit") // Vendor.CLimit
+  terms           Int?                                      // Vendor.Terms (smallint)
+  discPercent     Decimal?  @db.Decimal(10, 2) @map("disc_percent") // Vendor.Disc
+  discDays        Int?      @map("disc_days")               // Vendor.Days (smallint)
+  inUse           Int       @default(1) @map("in_use")      // Vendor.InUse (smallint)
+
+  // 1099 Settings
+  is1099          Int       @default(0) @map("is_1099")     // Vendor.1099 (smallint)
+  fid             String?                                   // Vendor.FID (varchar 15) - Federal ID
+  misc1099Rpt     Int       @default(0) @map("misc_1099_rpt") // Vendor.MISC1099Rpt
+  nec1099Rpt      Int       @default(0) @map("nec_1099_rpt")  // Vendor.NEC1099Rpt
+  intBox          Int       @default(0) @map("int_box")     // Vendor.intBox (tinyint)
+
+  // Default Account
+  defaultAcct     Int?      @map("default_acct")            // Vendor.DA (int) - default GL account
+
+  // Remittance
+  remitAddress    String?   @map("remit_address")           // Vendor.Remit (varchar 255)
+  onePer          Int       @default(0) @map("one_per")     // Vendor.OnePer (smallint) - one check per invoice
+
+  // Banking/ACH
+  defaultBank     String?   @map("default_bank")            // Vendor.DBank (varchar 100)
+  bankAcctNo      String?   @map("bank_acct_no")            // Vendor.BankAcctNo (varchar 17)
+  routeNo         String?   @map("route_no")                // Vendor.RouteNo (varchar 9)
+  transCode       Int?      @map("trans_code")              // Vendor.TransCode (tinyint)
+
+  // Shipping
+  shipVia         String?   @map("ship_via")                // Vendor.ShipVia (varchar 50)
+
+  // Custom Fields
+  custom1         String?                                   // Vendor.Custom1 (varchar 50)
+  custom2         String?                                   // Vendor.Custom2 (varchar 50)
+  custom3         String?                                   // Vendor.Custom3 (varchar 50)
+  custom4         String?                                   // Vendor.Custom4 (varchar 50)
+  custom5         String?                                   // Vendor.Custom5 (varchar 50)
+  custom6         String?                                   // Vendor.Custom6 (varchar 50)
+  custom7         String?                                   // Vendor.Custom7 (varchar 50)
+  custom8         DateTime?                                 // Vendor.Custom8 (datetime)
+  custom9         DateTime?                                 // Vendor.Custom9 (datetime)
+  custom10        DateTime?                                 // Vendor.Custom10 (datetime)
+
+  // TFM Integration
+  tfmId           String?   @map("tfm_id")                  // Vendor.TFMID (varchar 100)
+  tfmSource       String?   @map("tfm_source")              // Vendor.TFMSource (varchar 10)
+
+  // Contact info from Rol table (via Vendor.Rol → Rol.ID)
+  rolId           Int?      @map("rol_id")                  // Vendor.Rol → Rol.ID
+  name            String?                                   // Rol.Name
+  contact         String?                                   // Rol.Contact
+  address         String?                                   // Rol.Address
+  city            String?                                   // Rol.City
+  state           String?                                   // Rol.State
+  zipCode         String?   @map("zip_code")                // Rol.Zip
+  phone           String?                                   // Rol.Phone
+  fax             String?                                   // Rol.Fax
+  email           String?                                   // Rol.EMail
+  website         String?                                   // Rol.Website
+
+  // App display fields
+  isActive        Boolean   @default(true) @map("is_active")
+
+  // Timestamps (app tracking)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  purchaseOrders  PurchaseOrder[]
+  apInvoices      APInvoice[]
+
+  @@map("vendors")
+  // SQL Server: @@map("Vendor")
+}
+
+// ============================================
+// PURCHASE ORDERS (SQL Server: PO table)
+// ============================================
+// Legacy: PO.ID is PK (int)
+// PO.Vendor → Vendor.ID
+
+model PurchaseOrder {
+  id              String    @id @default(cuid())
+  // SQL Server: PO.ID (int, PK)
+
+  // From PO table
+  legacyId        Int?      @unique @map("legacy_id")       // PO.ID
+  poNumber        Int?      @map("po_number")               // PO.PO (int) - PO number
+  fDate           DateTime? @map("f_date")                  // PO.fDate - PO date
+  fDesc           String?   @map("f_desc")                  // PO.fDesc (varchar 8000)
+  amount          Decimal   @default(0) @db.Decimal(12, 2)  // PO.Amount
+  status          Int?      @default(0)                     // PO.Status (smallint)
+  dueDate         DateTime? @map("due_date")                // PO.Due
+  shipVia         String?   @map("ship_via")                // PO.ShipVia (varchar 50)
+  terms           Int?                                      // PO.Terms (smallint)
+  fob             String?                                   // PO.FOB (varchar 50)
+  shipTo          String?   @map("ship_to")                 // PO.ShipTo (varchar 8000)
+  approved        Int?      @default(0)                     // PO.Approved (smallint)
+  approvedBy      String?   @map("approved_by")             // PO.ApprovedBy (varchar 25)
+  reqBy           Int?      @map("req_by")                  // PO.ReqBy (int) - requested by employee
+  fBy             String?   @map("f_by")                    // PO.fBy (varchar 50) - created by
+
+  // Lock tracking
+  inUseBy         String?   @map("in_use_by")               // PO.InUseby (varchar 50)
+  inUseTime       DateTime? @map("in_use_time")             // PO.InUseTime
+
+  // Custom Fields
+  custom1         String?                                   // PO.Custom1 (varchar 50)
+  custom2         String?                                   // PO.Custom2 (varchar 50)
+
+  // Related IDs
+  ticketId        Int?      @map("ticket_id")               // PO.Ticket
+  quoteId         Int?      @map("quote_id")                // PO.QuoteID
+
+  // TFM Integration
+  tfmId           String?   @map("tfm_id")                  // PO.TFMID (varchar 100)
+  tfmSource       String?   @map("tfm_source")              // PO.TFMSource (varchar 10)
+
+  // Timestamps (app tracking)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  vendorId        String?   @map("vendor_id")               // PO.Vendor → Vendor.ID
+  vendor          Vendor?   @relation(fields: [vendorId], references: [id])
+
+  @@map("purchase_orders")
+  // SQL Server: @@map("PO")
+}
+
+// ============================================
+// AP INVOICES (SQL Server: PJ table - Purchase Journal)
+// ============================================
+// Legacy: PJ.ID is PK (int)
+// PJ.Vendor → Vendor.ID
+
+model APInvoice {
+  id              String    @id @default(cuid())
+  // SQL Server: PJ.ID (int, PK)
+
+  // From PJ table
+  legacyId        Int?      @unique @map("legacy_id")       // PJ.ID
+  fDate           DateTime? @map("f_date")                  // PJ.fDate - invoice date
+  ref             String?                                   // PJ.Ref (varchar 50) - vendor invoice #
+  fDesc           String?   @map("f_desc")                  // PJ.fDesc (varchar 8000)
+  amount          Decimal   @default(0) @db.Decimal(12, 2)  // PJ.Amount
+  status          Int?      @default(0)                     // PJ.Status (smallint)
+  batch           Int?                                      // PJ.Batch
+  terms           Int?                                      // PJ.Terms (smallint)
+  poId            Int?      @map("po_id")                   // PJ.PO → PO.ID
+  transId         Int?      @map("trans_id")                // PJ.TRID - transaction ID
+  spec            Int?                                      // PJ.Spec (smallint)
+  iDate           DateTime? @map("i_date")                  // PJ.IDate
+  useTax          Decimal?  @db.Decimal(12, 2) @map("use_tax") // PJ.UseTax
+  disc            Decimal?  @db.Decimal(10, 4)              // PJ.Disc - discount
+  reqBy           Int?      @map("req_by")                  // PJ.ReqBy (int) - requested by
+  voidReason      String?   @map("void_reason")             // PJ.VoidR (varchar 75)
+
+  // Custom Fields
+  custom1         String?                                   // PJ.Custom1 (varchar 50)
+  custom2         String?                                   // PJ.Custom2 (varchar 50)
+
+  // Timestamps (app tracking)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  vendorId        String?   @map("vendor_id")               // PJ.Vendor → Vendor.ID
+  vendor          Vendor?   @relation(fields: [vendorId], references: [id])
+
+  @@map("ap_invoices")
+  // SQL Server: @@map("PJ")
+}
+
+// ============================================
+// RECURRING AP INVOICES (SQL Server: PJRecur table)
+// ============================================
+
+model APInvoiceRecurring {
+  id              String    @id @default(cuid())
+  // SQL Server: PJRecur.ID (int, PK)
+
+  legacyId        Int?      @unique @map("legacy_id")       // PJRecur.ID
+  fDate           DateTime? @map("f_date")                  // PJRecur.fDate
+  ref             String?                                   // PJRecur.Ref (varchar 50)
+  fDesc           String?   @map("f_desc")                  // PJRecur.fDesc (varchar 8000)
+  amount          Decimal   @default(0) @db.Decimal(12, 2)  // PJRecur.Amount
+  iDate           DateTime? @map("i_date")                  // PJRecur.IDate
+  status          Int?      @default(0)                     // PJRecur.Status (smallint)
+  frequency       Int?                                      // PJRecur.Frequency (smallint)
+  spec            Int?                                      // PJRecur.Spec (smallint)
+  dDate           DateTime? @map("d_date")                  // PJRecur.DDate - next due date
+
+  vendorId        Int?      @map("vendor_id")               // PJRecur.Vendor → Vendor.ID
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("ap_invoices_recurring")
+  // SQL Server: @@map("PJRecur")
+}
+
+// ============================================
+// CASH DISBURSEMENTS (SQL Server: CD table)
+// ============================================
+// Check payments to vendors
+
+model CashDisbursement {
+  id              String    @id @default(cuid())
+  // SQL Server: CD.ID (int, PK)
+
+  legacyId        Int?      @unique @map("legacy_id")       // CD.ID
+  fDate           DateTime? @map("f_date")                  // CD.fDate - check date
+  ref             Int?                                      // CD.Ref (int) - check number
+  fDesc           String?   @map("f_desc")                  // CD.fDesc (varchar 50)
+  amount          Decimal   @default(0) @db.Decimal(12, 2)  // CD.Amount
+  bankId          Int?      @map("bank_id")                 // CD.Bank → Bank account
+  type            Int?                                      // CD.Type (smallint)
+  status          Int?      @default(0)                     // CD.Status (smallint)
+  transId         Int?      @map("trans_id")                // CD.TransID
+  vendorId        Int?      @map("vendor_id")               // CD.Vendor → Vendor.ID
+  french          String?                                   // CD.French (varchar 255) - written amount
+  memo            String?                                   // CD.Memo (varchar 75)
+  voidReason      String?   @map("void_reason")             // CD.VoidR (varchar 75)
+  ach             Int?      @default(0)                     // CD.ACH (tinyint) - is ACH payment
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("cash_disbursements")
+  // SQL Server: @@map("CD")
+}
+
+// ============================================
+// OPEN AP (SQL Server: OpenAP table)
+// ============================================
+// Tracks unpaid vendor bills
+
+model OpenAP {
+  id              String    @id @default(cuid())
+
+  vendorId        Int?      @map("vendor_id")               // OpenAP.Vendor → Vendor.ID
+  fDate           DateTime? @map("f_date")                  // OpenAP.fDate - invoice date
+  dueDate         DateTime? @map("due_date")                // OpenAP.Due
+  type            Int?                                      // OpenAP.Type (smallint)
+  fDesc           String?   @map("f_desc")                  // OpenAP.fDesc (varchar 255)
+  original        Decimal   @default(0) @db.Decimal(12, 2)  // OpenAP.Original - original amount
+  balance         Decimal   @default(0) @db.Decimal(12, 2)  // OpenAP.Balance - remaining
+  selected        Decimal   @default(0) @db.Decimal(12, 2)  // OpenAP.Selected - selected for payment
+  disc            Decimal   @default(0) @db.Decimal(12, 2)  // OpenAP.Disc - discount available
+  pjId            Int?      @map("pj_id")                   // OpenAP.PJID → PJ.ID (AP Invoice)
+  transId         Int?      @map("trans_id")                // OpenAP.TRID - transaction ID
+  ref             String?                                   // OpenAP.Ref (varchar 50) - vendor invoice #
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("open_ap")
+  // SQL Server: @@map("OpenAP")
+}
+
+// ============================================
+// BANK ACCOUNTS (SQL Server: Bank table)
 // ============================================
 
 model BankAccount {
   id            String   @id @default(cuid())
-  name          String
-  accountNumber String?  @map("account_number")
-  type          String   @default("Checking")  // Checking, Payroll, Savings
+  // SQL Server: Bank.ID (int, PK)
+
+  legacyId      Int?     @unique @map("legacy_id")         // Bank.ID
+  fDesc         String?  @map("f_desc")                    // Bank.fDesc (varchar 75) - account name
+  rolId         Int?     @map("rol_id")                    // Bank.Rol → Rol.ID
+
+  // Account Numbers
+  branchNumber  String?  @map("branch_number")             // Bank.NBranch (varchar 20)
+  accountNumber String?  @map("account_number")            // Bank.NAcct (varchar 20)
+  routingNumber String?  @map("routing_number")            // Bank.NRoute (varchar 20)
+
+  // Next check/deposit numbers
+  nextCheck     Int?     @map("next_check")                // Bank.NextC
+  nextDeposit   Int?     @map("next_deposit")              // Bank.NextD
+  nextEft       Int?     @map("next_eft")                  // Bank.NextE
+
+  // Balances & Limits
+  rate          Decimal? @db.Decimal(10, 2)                // Bank.Rate
+  creditLimit   Decimal? @db.Decimal(12, 2) @map("credit_limit") // Bank.CLimit
+  reconBalance  Decimal? @db.Decimal(12, 2) @map("recon_balance") // Bank.Recon
+  balance       Decimal  @default(0) @db.Decimal(12, 2)    // Bank.Balance
+
+  // Status
+  status        Int?                                       // Bank.Status (smallint)
+  inUse         Int      @default(1) @map("in_use")        // Bank.InUse (smallint)
+  warn          Int      @default(0)                       // Bank.Warn (smallint)
+  bankType      Int?     @map("bank_type")                 // Bank.BankType
+  chartId       Int?     @map("chart_id")                  // Bank.ChartID → Chart.ID
+
+  // ACH Settings
+  achFileHeaderA    String? @map("ach_file_header_a")      // Bank.ACHFileHeaderStringA
+  achFileHeaderB    String? @map("ach_file_header_b")      // Bank.ACHFileHeaderStringB
+  achFileHeaderC    String? @map("ach_file_header_c")      // Bank.ACHFileHeaderStringC
+  achCompanyHeader1 String? @map("ach_company_header_1")   // Bank.ACHCompanyHeaderString1
+  achCompanyHeader2 String? @map("ach_company_header_2")   // Bank.ACHCompanyHeaderString2
+  achBatchControl1  String? @map("ach_batch_control_1")    // Bank.ACHBatchControlString1
+  achBatchControl2  String? @map("ach_batch_control_2")    // Bank.ACHBatchControlString2
+  achBatchControl3  String? @map("ach_batch_control_3")    // Bank.ACHBatchControlString3
+  achFileControl1   String? @map("ach_file_control_1")     // Bank.ACHFileControlString1
+  apAchCompanyId    String? @map("ap_ach_company_id")      // Bank.APACHCompanyID
+  apImmediateOrigin String? @map("ap_immediate_origin")    // Bank.APImmediateOrigin
+
+  // App display fields
+  name          String?                                    // Display name (from fDesc)
+  type          String   @default("Checking")              // Checking, Payroll, Savings
   isActive      Boolean  @default(true) @map("is_active")
+
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -576,6 +1346,154 @@ model BankAccount {
   cashReceipts  CashReceipt[]
 
   @@map("bank_accounts")
+  // SQL Server: @@map("Bank")
+}
+
+// ============================================
+// OPEN AR (SQL Server: OpenAR table)
+// ============================================
+// Tracks unpaid customer invoices
+
+model OpenAR {
+  id            String   @id @default(cuid())
+
+  locId         Int?     @map("loc_id")                    // OpenAR.Loc → Loc.Loc
+  fDate         DateTime? @map("f_date")                   // OpenAR.fDate - invoice date
+  dueDate       DateTime? @map("due_date")                 // OpenAR.Due
+  type          Int?                                       // OpenAR.Type (smallint)
+  ref           Int?                                       // OpenAR.Ref - invoice reference
+  fDesc         String?  @map("f_desc")                    // OpenAR.fDesc (varchar 8000)
+  original      Decimal  @default(0) @db.Decimal(12, 2)    // OpenAR.Original - original amount
+  balance       Decimal  @default(0) @db.Decimal(12, 2)    // OpenAR.Balance - remaining
+  selected      Decimal? @db.Decimal(12, 2)                // OpenAR.Selected - selected for payment
+  transId       Int?     @map("trans_id")                  // OpenAR.TransID
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("open_ar")
+  // SQL Server: @@map("OpenAR")
+}
+
+// ============================================
+// AR AGE CASH (SQL Server: ARAgeCash table)
+// ============================================
+// AR aging and cash receipts tracking
+
+model ARAgeCash {
+  id            String   @id @default(cuid())
+  // SQL Server: ARAgeCash.ID (int, PK)
+
+  legacyId      Int?     @unique @map("legacy_id")         // ARAgeCash.ID
+  cDate         DateTime? @map("c_date")                   // ARAgeCash.CDate - cash date
+  fDate         DateTime? @map("f_date")                   // ARAgeCash.fDate - invoice date
+  ref           Int?                                       // ARAgeCash.Ref - invoice reference
+  locId         Int?     @map("loc_id")                    // ARAgeCash.Loc → Loc.Loc
+  fDesc         String?  @map("f_desc")                    // ARAgeCash.fDesc (varchar 255)
+  dueDate       DateTime? @map("due_date")                 // ARAgeCash.Due
+  amount        Decimal? @db.Decimal(12, 2)                // ARAgeCash.Amt
+  fPrint        Int?     @map("f_print")                   // ARAgeCash.fPrint (tinyint)
+  jobType       String?  @map("job_type")                  // ARAgeCash.JobType (varchar 15)
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("ar_age_cash")
+  // SQL Server: @@map("ARAgeCash")
+}
+
+// ============================================
+// PAID (SQL Server: Paid table)
+// ============================================
+// Payment applications - links payments to invoices
+
+model PaymentApplication {
+  id            String   @id @default(cuid())
+
+  pitr          Int?                                       // Paid.PITR - payment transaction ref
+  fDate         DateTime? @map("f_date")                   // Paid.fDate - payment date
+  type          Int?                                       // Paid.Type (smallint)
+  line          Int?                                       // Paid.Line (smallint) - line number
+  fDesc         String?  @map("f_desc")                    // Paid.fDesc (varchar 255)
+  original      Decimal  @default(0) @db.Decimal(12, 2)    // Paid.Original - original invoice amount
+  balance       Decimal  @default(0) @db.Decimal(12, 2)    // Paid.Balance - remaining after payment
+  disc          Decimal  @default(0) @db.Decimal(12, 2)    // Paid.Disc - discount taken
+  paid          Decimal  @default(0) @db.Decimal(12, 2)    // Paid.Paid - amount paid
+  transId       Int?     @map("trans_id")                  // Paid.TRID - transaction ID
+  ref           String?                                    // Paid.Ref (varchar 50) - reference
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("payment_applications")
+  // SQL Server: @@map("Paid")
+}
+
+// ============================================
+// CREDIT CARDS (SQL Server: CreditCard table)
+// ============================================
+// Stored credit cards for customers/locations
+
+model CreditCard {
+  id              String   @id @default(cuid())
+  // SQL Server: CreditCard.idCreditCard (int, PK)
+
+  legacyId        Int?     @unique @map("legacy_id")       // CreditCard.idCreditCard
+  holderType      Boolean  @default(false) @map("holder_type") // CreditCard.HolderType (bit) - 0=Owner, 1=Loc
+  holderId        Int      @map("holder_id")               // CreditCard.idHolder - Owner.ID or Loc.Loc
+  cardType        String?  @map("card_type")               // CreditCard.CardType (varchar 10)
+  maskedAccount   String   @map("masked_account")          // CreditCard.MaskedAccount (varchar 20)
+  merchantServiceId Int    @map("merchant_service_id")     // CreditCard.idMerchantService
+  nickName        String?  @map("nick_name")               // CreditCard.NickName (varchar 30)
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  transactions    CreditCardTransaction[]
+
+  @@map("credit_cards")
+  // SQL Server: @@map("CreditCard")
+}
+
+// ============================================
+// CREDIT CARD TRANSACTIONS (SQL Server: CreditCardTrans)
+// ============================================
+
+model CreditCardTransaction {
+  id              String    @id @default(cuid())
+  // SQL Server: CreditCardTrans.idCreditCardTrans (int, PK)
+
+  legacyId        Int?      @unique @map("legacy_id")      // CreditCardTrans.idCreditCardTrans
+  transState      Int       @map("trans_state")            // CreditCardTrans.TransState
+  transIdInternal Int?      @map("trans_id_internal")      // CreditCardTrans.idTrans_Internal
+  transIdExternal String?   @map("trans_id_external")      // CreditCardTrans.idTrans_External (varchar 20)
+  batchId         String?   @map("batch_id")               // CreditCardTrans.idBatch (varchar 20)
+  refNum          String?   @map("ref_num")                // CreditCardTrans.RefNum (varchar 50)
+  note            String?                                  // CreditCardTrans.Note (varchar 255)
+  accountType     Boolean?  @map("account_type")           // CreditCardTrans.AccountType (bit)
+  accountId       Int?      @map("account_id")             // CreditCardTrans.idAccount
+  amount          Decimal?  @db.Decimal(19, 4)             // CreditCardTrans.Amount (money)
+  bankAccountId   Int?      @map("bank_account_id")        // CreditCardTrans.idBankAccount
+  depositId       Int?      @map("deposit_id")             // CreditCardTrans.idDep
+  dateCreated     DateTime  @map("date_created")           // CreditCardTrans.DateCreated
+  dateSubmitted   DateTime? @map("date_submitted")         // CreditCardTrans.DateSubmitted
+  dateApproved    DateTime? @map("date_approved")          // CreditCardTrans.DateApproved
+  dateDeposited   DateTime? @map("date_deposited")         // CreditCardTrans.DateDeposited
+  dateApplied     DateTime? @map("date_applied")           // CreditCardTrans.DateApplied
+  receiptData     String?   @map("receipt_data")           // CreditCardTrans.ReceiptData (text)
+  userName        String?   @map("user_name")              // CreditCardTrans.UserName (varchar 50)
+  branchId        Int?      @map("branch_id")              // CreditCardTrans.idBranch
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  creditCardId    String?   @map("credit_card_id")
+  creditCard      CreditCard? @relation(fields: [creditCardId], references: [id])
+
+  @@map("credit_card_transactions")
+  // SQL Server: @@map("CreditCardTrans")
 }
 
 // ============================================
@@ -605,23 +1523,243 @@ model CashReceipt {
 
 model InvoiceItem {
   id            String   @id @default(cuid())
-  name          String
-  quantity      Decimal  @default(1) @db.Decimal(10, 2)
-  description   String?
-  tax           Boolean  @default(false)
-  price         Decimal  @default(0) @db.Decimal(12, 2)
+  // SQL Server: InvoiceI.ID (int, PK)
+
+  // From InvoiceI table
+  legacyId      Int?     @unique @map("legacy_id")         // InvoiceI.ID (int)
+  line          Int?                                        // InvoiceI.Line (smallint) - line number
+  acct          Int?                                        // InvoiceI.Acct (int) - GL account
+  quan          Decimal  @default(1) @db.Decimal(10, 2)     // InvoiceI.Quan
+  fDesc         String?  @map("f_desc")                     // InvoiceI.fDesc (varchar 8000)
+  price         Decimal  @default(0) @db.Decimal(12, 4)     // InvoiceI.Price
+  amount        Decimal  @default(0) @db.Decimal(12, 2)     // InvoiceI.Amount
+  sTax          Int?     @default(0) @map("s_tax")          // InvoiceI.STax (smallint) - taxable flag
+  measure       String?  @default("Each")                   // InvoiceI.Measure (varchar 15)
+  disc          Decimal? @db.Decimal(10, 4)                 // InvoiceI.Disc - discount
+  pstTax        Int?     @default(0) @map("pst_tax")        // InvoiceI.PSTTax (smallint)
+  savingsAmount Decimal? @db.Decimal(12, 2) @map("savings_amount") // InvoiceI.savingsAmount
+  originalPrice Decimal? @db.Decimal(12, 4) @map("original_price") // InvoiceI.OriginalPrice
+  flatRateId    Int?     @map("flat_rate_id")               // InvoiceI.FlatRateID
+  usa           Boolean  @default(false)                    // InvoiceI.USA (bit)
+  coupon        Boolean  @default(false)                    // InvoiceI.Coupon (bit)
+
+  // Transaction references
+  transId       Int?     @map("trans_id")                   // InvoiceI.TransID
+  jobItemId     Int?     @map("job_item_id")                // InvoiceI.JobItem → JobI.ID
+
+  // TFM Integration
+  tfmId         String?  @map("tfm_id")                     // InvoiceI.TFMID (varchar 100)
+  tfmSource     String?  @map("tfm_source")                 // InvoiceI.TFMSource (varchar 10)
+
+  // App display fields (for compatibility)
+  name          String                                      // Display name
+  description   String?                                     // Display description (maps to fDesc)
+  quantity      Decimal  @default(1) @db.Decimal(10, 2)     // Display quantity (maps to quan)
+  tax           Boolean  @default(false)                    // Display tax flag
   markupPercent Decimal  @default(0) @db.Decimal(5, 2) @map("markup_percent")
-  amount        Decimal  @default(0) @db.Decimal(12, 2)
-  measure       String?  @default("Each")
   phase         Int?     @default(0)
 
-  // Timestamps
+  // Timestamps (app tracking)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  invoiceId     String   @map("invoice_id")
+  invoiceId     String   @map("invoice_id")                 // InvoiceI.Ref → Invoice.Ref
   invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
+  jobId         String?  @map("job_id")                     // InvoiceI.Job → Job.ID
+  job           Job?     @relation(fields: [jobId], references: [id])
+
   @@map("invoice_items")
+  // SQL Server: @@map("InvoiceI")
+}
+
+// ============================================
+// CHART OF ACCOUNTS (SQL Server: Chart table)
+// ============================================
+// General Ledger accounts
+
+model ChartAccount {
+  id            String   @id @default(cuid())
+  // SQL Server: Chart.ID (int, PK)
+
+  legacyId      Int?     @unique @map("legacy_id")         // Chart.ID
+  acct          Int?     @map("acct")                      // Chart.Acct (int) - account number
+  fDesc         String?  @map("f_desc")                    // Chart.fDesc (varchar 75) - description
+  type          Int?                                       // Chart.Type (smallint) - account type
+  cat           Int?                                       // Chart.Cat (smallint) - category
+  bal           Int?                                       // Chart.Bal (smallint) - normal balance
+  status        Int?     @default(1)                       // Chart.Status (smallint)
+  budget        Decimal? @db.Decimal(12, 2)                // Chart.Budget
+  budgetM       Decimal? @db.Decimal(12, 2) @map("budget_m") // Chart.BudgetM
+  bank          Int?                                       // Chart.Bank (smallint) - is bank account
+  bankType      Int?     @map("bank_type")                 // Chart.BankType
+  reportO       Int?     @map("report_o")                  // Chart.ReportO (smallint)
+  inUse         Int      @default(1) @map("in_use")        // Chart.InUse (smallint)
+  fsGroup       Int?     @map("fs_group")                  // Chart.fsGroup
+  fsCatalogue   String?  @map("fs_catalogue")              // Chart.fsCatalogue (varchar 50)
+  custom1       String?                                    // Chart.Custom1 (varchar 50)
+  custom2       String?                                    // Chart.Custom2 (varchar 50)
+
+  // App display fields
+  name          String?                                    // Display name (from fDesc)
+  accountNumber String?  @map("account_number")            // Display account number (from acct)
+  isActive      Boolean  @default(true) @map("is_active")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  balances      ChartAccountBalance[]
+  transactions  Transaction[]
+
+  @@map("chart_accounts")
+  // SQL Server: @@map("Chart")
+}
+
+// ============================================
+// CHART ACCOUNT BALANCES (SQL Server: ChartA table)
+// ============================================
+// GL account balances by period
+
+model ChartAccountBalance {
+  id            String   @id @default(cuid())
+
+  chartId       Int?     @map("chart_id")                  // ChartA.Chart → Chart.ID
+  period        Int?                                       // ChartA.Period (smallint) - accounting period
+  fYear         Int?     @map("f_year")                    // ChartA.fYear (smallint) - fiscal year
+  db            Decimal  @default(0) @db.Decimal(12, 2)    // ChartA.DB - debit
+  cr            Decimal  @default(0) @db.Decimal(12, 2)    // ChartA.CR - credit
+  balance       Decimal  @default(0) @db.Decimal(12, 2)    // ChartA.Balance
+  transNum      Int?     @map("trans_num")                 // ChartA.TransN - transaction count
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  chartAccountId String? @map("chart_account_id")
+  chartAccount   ChartAccount? @relation(fields: [chartAccountId], references: [id])
+
+  @@map("chart_account_balances")
+  // SQL Server: @@map("ChartA")
+}
+
+// ============================================
+// TRANSACTIONS (SQL Server: Trans table)
+// ============================================
+// General ledger journal entries
+
+model Transaction {
+  id            String   @id @default(cuid())
+  // SQL Server: Trans.ID (int, PK)
+
+  legacyId      Int?     @unique @map("legacy_id")         // Trans.ID
+  ref           Int?                                       // Trans.Ref (int) - reference number
+  fDate         DateTime? @map("f_date")                   // Trans.fDate - transaction date
+  fDesc         String?  @map("f_desc")                    // Trans.fDesc (varchar 255)
+  type          Int?                                       // Trans.Type (smallint)
+  source        String?                                    // Trans.Source (varchar 15) - origin module
+  period        Int?                                       // Trans.Period (smallint)
+  fYear         Int?     @map("f_year")                    // Trans.fYear (smallint)
+  status        Int?     @default(0)                       // Trans.Status (smallint)
+  batch         Int?                                       // Trans.Batch
+  db            Decimal  @default(0) @db.Decimal(12, 2)    // Trans.DB - total debit
+  cr            Decimal  @default(0) @db.Decimal(12, 2)    // Trans.CR - total credit
+  fUser         String?  @map("f_user")                    // Trans.fUser (varchar 50)
+
+  // Optional references
+  locId         Int?     @map("loc_id")                    // Trans.Loc → Loc.Loc
+  jobId         Int?     @map("job_legacy_id")             // Trans.Job → Job.ID
+  vendorId      Int?     @map("vendor_legacy_id")          // Trans.Vendor → Vendor.ID
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  chartAccountId String? @map("chart_account_id")
+  chartAccount   ChartAccount? @relation(fields: [chartAccountId], references: [id])
+
+  items         TransactionItem[]
+
+  @@map("transactions")
+  // SQL Server: @@map("Trans")
+}
+
+// ============================================
+// TRANSACTION ITEMS (SQL Server: TransI table)
+// ============================================
+// Journal entry line items
+
+model TransactionItem {
+  id            String   @id @default(cuid())
+
+  line          Int?                                       // TransI.Line (smallint) - line number
+  acct          Int?                                       // TransI.Acct (int) - GL account
+  fDesc         String?  @map("f_desc")                    // TransI.fDesc (varchar 255)
+  db            Decimal  @default(0) @db.Decimal(12, 2)    // TransI.DB - debit amount
+  cr            Decimal  @default(0) @db.Decimal(12, 2)    // TransI.CR - credit amount
+  locId         Int?     @map("loc_id")                    // TransI.Loc → Loc.Loc
+  jobId         Int?     @map("job_legacy_id")             // TransI.Job → Job.ID
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  transactionId String   @map("transaction_id")
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("transaction_items")
+  // SQL Server: @@map("TransI")
+}
+
+// ============================================
+// RECURRING GL ADJUSTMENTS (SQL Server: GLARecur)
+// ============================================
+// Recurring journal entry templates
+
+model GLARecurring {
+  id            String   @id @default(cuid())
+  // SQL Server: GLARecur.ID (int, PK)
+
+  legacyId      Int?     @unique @map("legacy_id")         // GLARecur.ID
+  fDesc         String?  @map("f_desc")                    // GLARecur.fDesc (varchar 255)
+  status        Int?     @default(1)                       // GLARecur.Status (smallint)
+  frequency     Int?                                       // GLARecur.Frequency (smallint)
+  dDate         DateTime? @map("d_date")                   // GLARecur.DDate - next due date
+  amount        Decimal? @db.Decimal(12, 2)                // GLARecur.Amount
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  items         GLARecurringItem[]
+
+  @@map("gla_recurring")
+  // SQL Server: @@map("GLARecur")
+}
+
+// ============================================
+// RECURRING GL ADJUSTMENT ITEMS (SQL Server: GLARecurI)
+// ============================================
+
+model GLARecurringItem {
+  id            String   @id @default(cuid())
+
+  line          Int?                                       // GLARecurI.Line (smallint)
+  acct          Int?                                       // GLARecurI.Acct (int) - GL account
+  fDesc         String?  @map("f_desc")                    // GLARecurI.fDesc (varchar 255)
+  db            Decimal  @default(0) @db.Decimal(12, 2)    // GLARecurI.DB - debit
+  cr            Decimal  @default(0) @db.Decimal(12, 2)    // GLARecurI.CR - credit
+  locId         Int?     @map("loc_id")                    // GLARecurI.Loc → Loc.Loc
+  jobId         Int?     @map("job_legacy_id")             // GLARecurI.Job → Job.ID
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  glaRecurringId String  @map("gla_recurring_id")
+  glaRecurring   GLARecurring @relation(fields: [glaRecurringId], references: [id], onDelete: Cascade)
+
+  @@map("gla_recurring_items")
+  // SQL Server: @@map("GLARecurI")
 }
