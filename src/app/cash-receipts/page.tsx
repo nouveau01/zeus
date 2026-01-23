@@ -172,6 +172,37 @@ export default function CashReceiptsPage() {
   // Get selected receipt for status bar
   const selectedReceipt = cashReceipts.find((r) => r.id === selectedRow);
 
+  // CRUD handlers
+  const handleNewDeposit = () => {
+    openTab("New Deposit", `/cash-receipts/new`);
+  };
+
+  const handleEditDeposit = () => {
+    if (selectedRow) {
+      const receipt = displayReceipts.find(r => r.id === selectedRow);
+      if (receipt) {
+        openTab(`Editing Deposit #${receipt.refNumber}`, `/cash-receipts/${receipt.id}`);
+      }
+    }
+  };
+
+  const handleDeleteDeposit = async () => {
+    if (selectedRow) {
+      const receipt = displayReceipts.find(r => r.id === selectedRow);
+      if (receipt && confirm(`Are you sure you want to delete deposit #${receipt.refNumber}?`)) {
+        try {
+          const response = await fetch(`/api/cash-receipts/${selectedRow}`, { method: "DELETE" });
+          if (response.ok) {
+            setSelectedRow(null);
+            fetchCashReceipts();
+          }
+        } catch (error) {
+          console.error("Error deleting deposit:", error);
+        }
+      }
+    }
+  };
+
   // Mock data for display since we don't have real data yet
   const mockReceipts: CashReceipt[] = [
     { id: "1", refNumber: 25747, date: "2025-10-02", description: "10.01.2025 NEI Acco", amount: 59730.11, bankAccount: { id: "1", name: "Checking-NEI", type: "Checking" } },
@@ -221,16 +252,30 @@ export default function CashReceiptsPage() {
 
       {/* Toolbar */}
       <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
+        <button
+          onClick={handleNewDeposit}
+          className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
+          title="New Deposit"
+        >
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
+        <button
+          onClick={handleEditDeposit}
+          disabled={!selectedRow}
+          className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] disabled:opacity-50"
+          title="Edit Deposit"
+        >
           <Pencil className="w-4 h-4" style={{ color: "#e67e22" }} />
         </button>
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
           <Copy className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
+        <button
+          onClick={handleDeleteDeposit}
+          disabled={!selectedRow}
+          className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] disabled:opacity-50"
+          title="Delete Deposit"
+        >
           <X className="w-4 h-4" style={{ color: "#e74c3c" }} />
         </button>
         <div className="w-px h-5 bg-[#c0c0c0] mx-1" />

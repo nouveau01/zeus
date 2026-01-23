@@ -106,6 +106,23 @@ export default function SafetyTestsPage() {
     openTab("New Safety Test", `/dispatch-extras/safety-tests/new`);
   };
 
+  const handleEditTest = () => {
+    if (selectedTest) {
+      openTab(`Test: ${selectedTest.customerName}`, `/dispatch-extras/safety-tests/${selectedTest.id}`);
+    }
+  };
+
+  const handleDeleteTest = () => {
+    if (selectedTest) {
+      if (confirm(`Are you sure you want to delete this safety test for ${selectedTest.customerName}?`)) {
+        const updated = tests.filter(t => t.id !== selectedTest.id);
+        setTests(updated);
+        setFilteredTests(updated);
+        setSelectedTest(updated[0] || null);
+      }
+    }
+  };
+
   // Get row background color based on status
   const getRowColor = (status: string, isSelected: boolean) => {
     if (isSelected) return "bg-[#316ac5] text-white";
@@ -168,13 +185,23 @@ export default function SafetyTestsPage() {
         >
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button
+          onClick={handleEditTest}
+          disabled={!selectedTest}
+          className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080] disabled:opacity-50"
+          title="Edit"
+        >
           <Search className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
         <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <Save className="w-4 h-4" style={{ color: "#4a90d9" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button
+          onClick={handleDeleteTest}
+          disabled={!selectedTest}
+          className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080] disabled:opacity-50"
+          title="Delete"
+        >
           <X className="w-4 h-4" style={{ color: "#e74c3c" }} />
         </button>
         <div className="w-px h-5 bg-[#808080] mx-1" />

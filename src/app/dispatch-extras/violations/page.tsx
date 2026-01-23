@@ -131,6 +131,17 @@ export default function ViolationsPage() {
     }
   };
 
+  const handleDeleteViolation = () => {
+    if (selectedViolation) {
+      if (confirm(`Are you sure you want to delete violation ${selectedViolation.visibleId}?`)) {
+        const updated = violations.filter(v => v.id !== selectedViolation.id);
+        setViolations(updated);
+        setFilteredViolations(updated);
+        setSelectedViolation(updated[0] || null);
+      }
+    }
+  };
+
   // Calculate totals
   const calculateTotals = () => {
     const total = filteredViolations.length;
@@ -181,7 +192,12 @@ export default function ViolationsPage() {
         <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <X className="w-4 h-4" style={{ color: "#e74c3c" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button
+          onClick={handleDeleteViolation}
+          disabled={!selectedViolation}
+          className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080] disabled:opacity-50"
+          title="Delete Violation"
+        >
           <Trash2 className="w-4 h-4" style={{ color: "#e74c3c" }} />
         </button>
         <div className="w-px h-5 bg-[#808080] mx-1" />

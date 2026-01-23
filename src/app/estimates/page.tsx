@@ -114,6 +114,26 @@ export default function EstimatesPage() {
     openTab("New Estimate", `/estimates/new`);
   };
 
+  const handleEditEstimate = () => {
+    if (selectedRow) {
+      const estimate = estimates.find(e => e.id === selectedRow);
+      if (estimate) {
+        openTab(`Estimate: ${estimate.estimateNumber}`, `/estimates/${estimate.id}`);
+      }
+    }
+  };
+
+  const handleDeleteEstimate = () => {
+    if (selectedRow) {
+      const estimate = estimates.find(e => e.id === selectedRow);
+      if (estimate && confirm(`Are you sure you want to delete estimate ${estimate.estimateNumber}?`)) {
+        const updated = estimates.filter(e => e.id !== selectedRow);
+        setEstimates(updated);
+        setSelectedRow(updated[0]?.id || null);
+      }
+    }
+  };
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -232,11 +252,17 @@ export default function EstimatesPage() {
       <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         {toolbarIcons.map((item, i) => {
           const IconComponent = item.icon;
+          const onClick = i === 0 ? handleNewEstimate
+            : i === 1 ? handleEditEstimate
+            : i === 3 ? handleDeleteEstimate
+            : undefined;
+          const isDisabled = (i === 1 || i === 3) && !selectedRow;
           return (
             <button
               key={i}
-              onClick={i === 0 ? handleNewEstimate : undefined}
-              className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
+              onClick={onClick}
+              disabled={isDisabled}
+              className={`w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] ${isDisabled ? 'opacity-50' : ''}`}
               title={item.title}
             >
               <IconComponent className="w-4 h-4" style={{ color: item.color }} />

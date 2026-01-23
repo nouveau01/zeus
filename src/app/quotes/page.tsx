@@ -256,9 +256,11 @@ export default function QuotesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<"createdDate" | "total" | "quoteNumber">("createdDate");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [quotes, setQuotes] = useState<Quote[]>(mockQuotes);
 
   // Filter and sort data
-  const filteredQuotes = mockQuotes
+  const filteredQuotes = quotes
     .filter((quote) => {
       if (statusFilter !== "All" && quote.status !== statusFilter) return false;
       if (searchTerm) {
@@ -283,15 +285,15 @@ export default function QuotesPage() {
 
   // Calculate statistics
   const stats = {
-    total: mockQuotes.length,
-    draft: mockQuotes.filter((q) => q.status === "Draft").length,
-    sent: mockQuotes.filter((q) => q.status === "Sent").length,
-    accepted: mockQuotes.filter((q) => q.status === "Accepted").length,
-    rejected: mockQuotes.filter((q) => q.status === "Rejected").length,
-    expired: mockQuotes.filter((q) => q.status === "Expired").length,
-    converted: mockQuotes.filter((q) => q.status === "Converted").length,
-    totalValue: mockQuotes.reduce((sum, q) => sum + q.total, 0),
-    acceptedValue: mockQuotes
+    total: quotes.length,
+    draft: quotes.filter((q) => q.status === "Draft").length,
+    sent: quotes.filter((q) => q.status === "Sent").length,
+    accepted: quotes.filter((q) => q.status === "Accepted").length,
+    rejected: quotes.filter((q) => q.status === "Rejected").length,
+    expired: quotes.filter((q) => q.status === "Expired").length,
+    converted: quotes.filter((q) => q.status === "Converted").length,
+    totalValue: quotes.reduce((sum, q) => sum + q.total, 0),
+    acceptedValue: quotes
       .filter((q) => q.status === "Accepted" || q.status === "Converted")
       .reduce((sum, q) => sum + q.total, 0),
   };
@@ -342,7 +344,23 @@ export default function QuotesPage() {
   };
 
   const handleNewQuote = () => {
-    alert("New Quote dialog would open here");
+    openTab("New Quote", `/quotes/new`);
+  };
+
+  const handleEditQuote = () => {
+    if (selectedQuote) {
+      openTab(`Quote ${selectedQuote.quoteNumber}`, `/quotes/${selectedQuote.id}`);
+    }
+  };
+
+  const handleDeleteQuote = () => {
+    if (selectedQuote) {
+      if (confirm(`Are you sure you want to delete quote ${selectedQuote.quoteNumber}?`)) {
+        const updated = quotes.filter(q => q.id !== selectedQuote.id);
+        setQuotes(updated);
+        setSelectedQuote(null);
+      }
+    }
   };
 
   return (
@@ -364,6 +382,22 @@ export default function QuotesPage() {
             style={{ boxShadow: "inset 1px 1px 0 #fff, inset -1px -1px 0 #404040" }}
           >
             + New Quote
+          </button>
+          <button
+            onClick={handleEditQuote}
+            disabled={!selectedQuote}
+            className="px-3 py-1 text-[11px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e8e8e8] disabled:opacity-50"
+            style={{ boxShadow: "inset 1px 1px 0 #fff, inset -1px -1px 0 #404040" }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={handleDeleteQuote}
+            disabled={!selectedQuote}
+            className="px-3 py-1 text-[11px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e8e8e8] disabled:opacity-50"
+            style={{ boxShadow: "inset 1px 1px 0 #fff, inset -1px -1px 0 #404040" }}
+          >
+            Delete
           </button>
           <button
             className="px-3 py-1 text-[11px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e8e8e8]"
@@ -488,8 +522,11 @@ export default function QuotesPage() {
               filteredQuotes.map((quote, index) => (
                 <tr
                   key={quote.id}
+                  onClick={() => setSelectedQuote(quote)}
                   className={`${
-                    index % 2 === 0 ? "bg-white" : "bg-[#f5f5f5]"
+                    selectedQuote?.id === quote.id
+                      ? "bg-[#0078d4] text-white"
+                      : index % 2 === 0 ? "bg-white" : "bg-[#f5f5f5]"
                   } hover:bg-[#e8f4fc] cursor-pointer`}
                   onDoubleClick={() => openTab(`Quote ${quote.quoteNumber}`, `/quotes/${quote.id}`)}
                 >
