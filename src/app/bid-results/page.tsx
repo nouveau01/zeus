@@ -495,6 +495,7 @@ export default function BidResultsPage() {
                     <tr
                       key={bid.id}
                       onClick={() => setSelectedBid(bid)}
+                      onDoubleClick={() => openTab(bid.estimateNumber, `/estimates/${bid.estimateId}`)}
                       className={`cursor-pointer ${
                         isSelected
                           ? "bg-[#316ac5] text-white"

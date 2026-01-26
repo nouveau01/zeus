@@ -504,6 +504,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
                         <tr
                           key={premises.id}
                           onClick={() => setSelectedAccount(premises.id)}
+                          onDoubleClick={() => openTab(premises.name || premises.address, `/accounts/${premises.id}`)}
                           className={`cursor-pointer ${
                             selectedAccount === premises.id
                               ? "bg-[#0078d4] text-white"
@@ -699,6 +700,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
                         <tr
                           key={premises.id}
                           onClick={() => setSelectedAccount(premises.id)}
+                          onDoubleClick={() => openTab(premises.name || premises.address, `/accounts/${premises.id}`)}
                           className={`cursor-pointer ${
                             selectedAccount === premises.id
                               ? "bg-[#0078d4] text-white"
@@ -861,6 +863,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
                         <tr
                           key={premises.id}
                           onClick={() => setSelectedAccount(premises.id)}
+                          onDoubleClick={() => openTab(premises.name || premises.address, `/accounts/${premises.id}`)}
                           className={`cursor-pointer ${
                             selectedAccount === premises.id
                               ? "bg-[#0078d4] text-white"
@@ -977,6 +980,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
                         <tr
                           key={premises.id}
                           onClick={() => setSelectedAccount(premises.id)}
+                          onDoubleClick={() => openTab(premises.name || premises.address, `/accounts/${premises.id}`)}
                           className={`cursor-pointer ${
                             selectedAccount === premises.id
                               ? "bg-[#0078d4] text-white"
@@ -1130,6 +1134,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
                         <tr
                           key={premises.id}
                           onClick={() => setSelectedAccount(premises.id)}
+                          onDoubleClick={() => openTab(premises.name || premises.address, `/accounts/${premises.id}`)}
                           className={`cursor-pointer ${
                             selectedAccount === premises.id
                               ? "bg-[#0078d4] text-white"
@@ -1256,6 +1261,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
                         <tr
                           key={premises.id}
                           onClick={() => setSelectedAccount(premises.id)}
+                          onDoubleClick={() => openTab(premises.name || premises.address, `/accounts/${premises.id}`)}
                           className={`cursor-pointer ${
                             selectedAccount === premises.id
                               ? "bg-[#0078d4] text-white"

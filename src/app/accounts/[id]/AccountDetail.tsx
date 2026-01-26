@@ -543,6 +543,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
                   <tr
                     key={unit.id}
                     onClick={() => setSelectedUnit(unit.id)}
+                    onDoubleClick={() => openTab(unit.unitNumber, `/units/${unit.id}`)}
                     className={`cursor-pointer ${
                       selectedUnit === unit.id
                         ? "bg-[#0078d4] text-white"
@@ -972,6 +973,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
                   <tr
                     key={contract.id}
                     onClick={() => setSelectedContract(contract.id)}
+                    onDoubleClick={() => openTab(contract.description || contract.job, `/job-maintenance/${contract.jobId || contract.id}`)}
                     className={`cursor-pointer ${
                       selectedContract === contract.id
                         ? "bg-[#0078d4] text-white"

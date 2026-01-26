@@ -9,6 +9,7 @@ import {
   Home,
   HelpCircle,
 } from "lucide-react";
+import { useTabs } from "@/context/TabContext";
 
 interface Account {
   id: string;
@@ -32,6 +33,7 @@ interface InvoiceItem {
 }
 
 export default function ApplyPaymentsPage() {
+  const { openTab } = useTabs();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [searchBy, setSearchBy] = useState<"ID" | "Tag">("Tag");
@@ -290,6 +292,7 @@ export default function ApplyPaymentsPage() {
               <tr
                 key={invoice.id}
                 onClick={() => setSelectedRow(invoice.id)}
+                onDoubleClick={() => openTab(`Invoice ${invoice.refNumber}`, `/invoices/${invoice.id}`)}
                 className={`cursor-pointer ${
                   selectedRow === invoice.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
                 }`}

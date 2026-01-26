@@ -12,6 +12,7 @@ import {
   Home,
   HelpCircle,
 } from "lucide-react";
+import { useTabs } from "@/context/TabContext";
 
 interface Customer {
   id: string;
@@ -46,6 +47,7 @@ interface OpenItem {
 const TABS = ["Accounts", "Main Contacts", "Cust Contacts", "Acct Contacts", "Notes"];
 
 export default function CollectionsPage() {
+  const { openTab } = useTabs();
   const [searchBy, setSearchBy] = useState<"Customer" | "Account ID" | "Tag">("Account ID");
   const [selectedValue, setSelectedValue] = useState("1"); // Can be account id, tag, or customer id
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -455,6 +457,7 @@ export default function CollectionsPage() {
                     <tr
                       key={item.id}
                       onClick={() => setSelectedRow(item.id)}
+                      onDoubleClick={() => openTab(`Invoice ${item.ref}`, `/invoices/${item.id}`)}
                       className={`cursor-pointer ${
                         selectedRow === item.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
                       }`}
