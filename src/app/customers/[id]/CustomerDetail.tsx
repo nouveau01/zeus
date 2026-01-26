@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Save,
   Printer,
@@ -17,6 +17,8 @@ import {
   X,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 
 interface Contact {
   id: string;
@@ -159,7 +161,46 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   } : {});
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
+
+  // Unsaved changes handling
+  const handleSaveForHook = useCallback(async () => {
+    if (!formData.name?.trim()) {
+      throw new Error("Customer name is required");
+    }
+    if (isNew) {
+      const response = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (onClose) onClose();
+        openTab(data.name, `/customers/${data.id}`);
+      }
+    } else {
+      const response = await fetch(`/api/customers/${customerId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCustomer(data);
+        setFormData(data);
+      }
+    }
+  }, [formData, isNew, customerId, onClose, openTab]);
+
+  const {
+    isDirty,
+    setIsDirty,
+    confirmNavigation,
+    showDialog,
+    handleDialogSave,
+    handleDialogDiscard,
+    handleDialogCancel,
+  } = useUnsavedChanges({ onSave: handleSaveForHook });
 
   useEffect(() => {
     if (!isNew) {
@@ -278,7 +319,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
               key={i}
               className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
               title={item.title}
-              onClick={item.title === "Save" ? handleSave : item.title === "Close" ? onClose : undefined}
+              onClick={item.title === "Save" ? handleSave : item.title === "Close" ? () => confirmNavigation(() => onClose?.()) : undefined}
             >
               <IconComponent className="w-4 h-4" style={{ color: item.color }} />
             </button>
@@ -1294,6 +1335,15 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
           <span>{formatDate(customer.updatedAt)}</span>
         </div>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showDialog}
+        onSave={handleDialogSave}
+        onDiscard={handleDialogDiscard}
+        onCancel={handleDialogCancel}
+        message="Do you want to save changes to this customer?"
+      />
     </div>
   );
 }
