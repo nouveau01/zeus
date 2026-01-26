@@ -519,6 +519,66 @@ model Job {
 }
 
 // ============================================
+// JOB TYPES (SQL Server: JobType table)
+// ============================================
+// Categorizes jobs (Annual, Repair, Maintenance, etc.)
+
+model JobType {
+  id            String   @id @default(cuid())
+  legacyId      Int?     @unique @map("legacy_id")
+
+  name          String   @unique                          // Type name
+  description   String?                                   // Optional description
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  templates     JobTemplate[]
+
+  @@map("job_types")
+}
+
+// ============================================
+// JOB TEMPLATES (SQL Server: JobTemplate table)
+// ============================================
+// Pre-configured job settings that can be applied when creating jobs
+
+model JobTemplate {
+  id            String   @id @default(cuid())
+  legacyId      Int?     @unique @map("legacy_id")
+
+  name          String                                    // Template name/description
+  typeId        String?  @map("type_id")                  // FK to JobType
+  revNum        Int      @default(1) @map("rev_num")      // # Rev (revenue accounts)
+  expNum        Int      @default(2) @map("exp_num")      // # Exp (expense accounts)
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+
+  // Default job settings when using this template
+  defaultStatus     String?  @map("default_status")
+  defaultContractType String? @map("default_contract_type")
+  defaultBillRate   Decimal? @db.Decimal(10, 2) @map("default_bill_rate")
+  defaultMarkup     Decimal? @db.Decimal(10, 2) @map("default_markup")
+  isBillable        Boolean  @default(true) @map("is_billable")
+  isChargeable      Boolean  @default(true) @map("is_chargeable")
+
+  // GL Account defaults
+  glRevenue     Int?     @map("gl_revenue")
+  glExpense     Int?     @map("gl_expense")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  type          JobType? @relation(fields: [typeId], references: [id])
+
+  @@map("job_templates")
+}
+
+// ============================================
 // CONTRACTS (SQL Server: Contract table)
 // ============================================
 // Legacy: Contract.ID is PK (int)

@@ -39,6 +39,7 @@ import BidResultsPage from "@/app/bid-results/page";
 import QuotesPage from "@/app/quotes/page";
 import QuoteDetail from "@/app/quotes/[id]/QuoteDetail";
 import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
+import JobTemplatesPage from "@/app/job-templates/page";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -328,6 +329,11 @@ export function TabContent() {
   // Check for bid-results route
   if (activeTab.route === "/bid-results") {
     return <BidResultsPage />;
+  }
+
+  // Check for job-templates route
+  if (activeTab.route === "/job-templates") {
+    return <JobTemplatesPage />;
   }
 
   // Check for quotes route

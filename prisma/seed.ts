@@ -71,6 +71,8 @@ async function main() {
   await prisma.unit.deleteMany({});
   await prisma.premises.deleteMany({});
   await prisma.customer.deleteMany({});
+  await prisma.jobTemplate.deleteMany({});
+  await prisma.jobType.deleteMany({});
   console.log("Cleared existing data");
 
   // Create customers and store their IDs
@@ -403,6 +405,104 @@ async function main() {
     });
   }
   console.log(`Created ${jobsData.length} jobs`);
+
+  // Create Job Types
+  const jobTypesData = [
+    { name: "Annual", sortOrder: 1 },
+    { name: "Maintenance", sortOrder: 2 },
+    { name: "Modernization", sortOrder: 3 },
+    { name: "Repair", sortOrder: 4 },
+    { name: "NEW REPAIR", sortOrder: 5 },
+    { name: "Violations", sortOrder: 6 },
+    { name: "Capital Impro", sortOrder: 7 },
+    { name: "CONSULTANT", sortOrder: 8 },
+    { name: "BILLING ONL", sortOrder: 9 },
+    { name: "GL Incidents", sortOrder: 10 },
+    { name: "LAWSUITS", sortOrder: 11 },
+    { name: "NO CHARGE", sortOrder: 12 },
+    { name: "Touchless", sortOrder: 13 },
+    { name: "XCALL", sortOrder: 14 },
+    { name: "Other", sortOrder: 99 },
+  ];
+
+  const jobTypeMap: Record<string, string> = {};
+  for (const typeData of jobTypesData) {
+    const jobType = await prisma.jobType.create({
+      data: typeData,
+    });
+    jobTypeMap[typeData.name] = jobType.id;
+  }
+  console.log(`Created ${jobTypesData.length} job types`);
+
+  // Create Job Templates (from Total Service screenshot)
+  const jobTemplatesData = [
+    { name: "3D Edge", type: "NEW REPAIR", revNum: 1, expNum: 2 },
+    { name: "Annual", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2015", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2016", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2017 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2017 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2018 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2018 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2019 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2019 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2020 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2020 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2021 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2021 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2022 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2022 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2023 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2023 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2024 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2024 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2025 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2025 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Annual 2026 Billable", type: "Annual", revNum: 1, expNum: 4 },
+    { name: "Annual 2026 Non-Billable", type: "Annual", revNum: 1, expNum: 4, isBillable: false },
+    { name: "Capital Improvement", type: "Capital Impro", revNum: 1, expNum: 2 },
+    { name: "CONSULTANT REPORT", type: "CONSULTANT", revNum: 1, expNum: 2 },
+    { name: "DO NOT USE (DIV REPAIR)", type: "Repair", revNum: 1, expNum: 2, isActive: false },
+    { name: "DO NOT USE (Repair)", type: "Repair", revNum: 1, expNum: 2, isActive: false },
+    { name: "Filing Fee", type: "Violations", revNum: 1, expNum: 2 },
+    { name: "FOR SERVICES RENDERED", type: "BILLING ONL", revNum: 1, expNum: 2 },
+    { name: "GL INCIDENTS", type: "GL Incidents", revNum: 1, expNum: 2 },
+    { name: "GL INCIDENTS - ILLINOIS", type: "GL Incidents", revNum: 1, expNum: 2 },
+    { name: "INACTIVE", type: "Other", revNum: 1, expNum: 2, isActive: false },
+    { name: "Inspection / Correction", type: "Other", revNum: 1, expNum: 2 },
+    { name: "LAWSUITS", type: "LAWSUITS", revNum: 1, expNum: 2 },
+    { name: "Legal Reimbursements", type: "GL Incidents", revNum: 1, expNum: 2 },
+    { name: "LOCAL LAW 10/81", type: "Other", revNum: 1, expNum: 2 },
+    { name: "Modernization", type: "Modernization", revNum: 1, expNum: 2 },
+    { name: "NEW REPAIRS", type: "NEW REPAIR", revNum: 1, expNum: 2 },
+    { name: "NO CHARGE", type: "NO CHARGE", revNum: 1, expNum: 2, isBillable: false },
+    { name: "Regular Maintenance", type: "Maintenance", revNum: 1, expNum: 2 },
+    { name: "Shop", type: "NO CHARGE", revNum: 1, expNum: 2, isBillable: false },
+    { name: "Test", type: "Other", revNum: 1, expNum: 2 },
+    { name: "Touchless C", type: "Touchless", revNum: 1, expNum: 2 },
+    { name: "Touchless CH", type: "Touchless", revNum: 1, expNum: 2 },
+    { name: "Touchless H", type: "Touchless", revNum: 1, expNum: 2 },
+    { name: "Touchless L", type: "Touchless", revNum: 1, expNum: 2 },
+    { name: "Touchless LH", type: "Touchless", revNum: 1, expNum: 2 },
+    { name: "Vehicles", type: "Other", revNum: 1, expNum: 2 },
+    { name: "Violation", type: "Violations", revNum: 1, expNum: 2 },
+    { name: "Violations(Inactive)", type: "Other", revNum: 1, expNum: 2, isActive: false },
+    { name: "X Call", type: "XCALL", revNum: 1, expNum: 2 },
+  ];
+
+  for (const templateData of jobTemplatesData) {
+    await prisma.jobTemplate.create({
+      data: {
+        name: templateData.name,
+        typeId: jobTypeMap[templateData.type] || null,
+        revNum: templateData.revNum,
+        expNum: templateData.expNum,
+        isBillable: templateData.isBillable ?? true,
+        isActive: templateData.isActive ?? true,
+      },
+    });
+  }
+  console.log(`Created ${jobTemplatesData.length} job templates`);
 
   console.log("Database seeded successfully!");
 }
