@@ -192,3 +192,177 @@ When implementing filtered navigation from parent to child records:
 ---
 
 ## End of Session: January 21, 2026
+
+---
+
+## Session: January 26, 2026
+
+### Overview
+Comprehensive CRUD functionality implementation across all detail pages and connecting list pages to real APIs. All backend API routes verified and tested.
+
+---
+
+### CRUD Implementation - API Routes Created
+
+**New API Routes:**
+
+1. **Contacts API** (`/api/contacts`)
+   - `GET /api/contacts?customerId=xxx` - List contacts for a customer
+   - `POST /api/contacts` - Create new contact
+   - `GET /api/contacts/[id]` - Get single contact
+   - `PUT /api/contacts/[id]` - Update contact
+   - `DELETE /api/contacts/[id]` - Delete contact
+
+2. **Vendors API** (`/api/vendors`)
+   - `GET /api/vendors` - List all vendors with search/filter
+   - `POST /api/vendors` - Create new vendor
+   - `GET /api/vendors/[id]` - Get single vendor
+   - `PUT /api/vendors/[id]` - Update vendor
+   - `DELETE /api/vendors/[id]` - Delete vendor
+
+3. **Purchase Orders API** (`/api/purchase-orders`)
+   - `GET /api/purchase-orders` - List POs with filtering
+   - `POST /api/purchase-orders` - Create new PO (auto-increment PO number)
+   - `GET /api/purchase-orders/[id]` - Get single PO
+   - `PUT /api/purchase-orders/[id]` - Update PO
+   - `DELETE /api/purchase-orders/[id]` - Delete PO
+
+4. **Units API** (`/api/units`)
+   - `GET /api/units?premisesId=xxx` - List units (optionally by premises)
+   - `POST /api/units` - Create new unit (requires premisesId)
+   - `GET /api/units/[id]` - Get single unit
+   - `PUT /api/units/[id]` - Update unit
+   - `DELETE /api/units/[id]` - Delete unit
+
+---
+
+### CRUD Implementation - Bug Fixes
+
+**Invoice API Field Mapping Fixes:**
+- Fixed `priceLevel` → `pricing` (Prisma schema field)
+- Fixed `date` → `fDate` and `postingDate` → `iDate`
+- Fixed `description` → `fDesc`
+- Fixed `poNumber` → `po`
+- Added proper response mapping to frontend-friendly names
+
+**AccountDetail.tsx Fix:**
+- Fixed `setHasChanges(true)` → `markDirty()` in PM Contract handlers
+- The component uses `useUnsavedChanges` hook which provides `markDirty()` function
+
+---
+
+### CRUD Implementation - Detail Pages
+
+1. **AccountDetail.tsx** - Contacts CRUD
+   - Add Contact dialog with form fields
+   - Edit Contact functionality
+   - Delete Contact with confirmation
+   - State management for contacts list
+
+2. **AccountDetail.tsx** - PM Contracts CRUD
+   - Add Contract dialog with form fields
+   - Edit Contract functionality
+   - Delete Contract with confirmation
+   - State management for contracts list
+
+3. **UnitDetail.tsx** - Tests CRUD
+   - Edit Test button and functionality
+   - Delete Test with confirmation
+   - State management for tests list
+
+4. **InvoiceDetail.tsx** - Line Items CRUD
+   - Add Line Item dialog with form fields
+   - Edit Line Item functionality
+   - Delete Line Item with confirmation
+   - Automatic subtotal/tax/total recalculation
+
+---
+
+### CRUD Implementation - List Pages Connected to APIs
+
+1. **Units Page** (`/units`)
+   - Changed from mock data to fetching from `/api/units`
+   - Create unit calls POST API
+   - Delete unit calls DELETE API
+
+2. **Vendors Page** (`/vendors`)
+   - Changed from mock data to fetching from `/api/vendors`
+   - Create vendor calls POST API
+   - Delete vendor calls DELETE API
+
+3. **Invoices Page** (`/invoices`)
+   - Wired up "New" button to navigate to `/invoices/new`
+   - Wired up "Delete" button to call DELETE API
+
+---
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/app/api/contacts/route.ts` | Contacts list/create API |
+| `src/app/api/contacts/[id]/route.ts` | Contacts GET/PUT/DELETE API |
+| `src/app/api/vendors/route.ts` | Vendors list/create API |
+| `src/app/api/vendors/[id]/route.ts` | Vendors GET/PUT/DELETE API |
+| `src/app/api/purchase-orders/route.ts` | PO list/create API |
+| `src/app/api/purchase-orders/[id]/route.ts` | PO GET/PUT/DELETE API |
+| `src/app/api/units/route.ts` | Units list/create API |
+| `src/app/api/units/[id]/route.ts` | Units GET/PUT/DELETE API |
+
+---
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/app/accounts/[id]/AccountDetail.tsx` | +821 lines - Contacts & PM Contracts CRUD |
+| `src/app/api/invoices/route.ts` | Fixed field mappings |
+| `src/app/api/invoices/[id]/route.ts` | Fixed field mappings |
+| `src/app/invoices/InvoicesView.tsx` | Wired New/Delete buttons |
+| `src/app/invoices/[id]/InvoiceDetail.tsx` | +251 lines - Line Items CRUD |
+| `src/app/units/[id]/UnitDetail.tsx` | +336 lines - Tests Edit/Delete |
+| `src/app/units/page.tsx` | Connected to API |
+| `src/app/vendors/[id]/VendorDetail.tsx` | Connected to API |
+| `src/app/vendors/page.tsx` | Connected to API |
+
+---
+
+### Testing Performed
+
+All CRUD operations verified via curl:
+
+| Entity | GET | CREATE | UPDATE | DELETE |
+|--------|-----|--------|--------|--------|
+| Units | ✓ | ✓ (requires premisesId) | ✓ | ✓ |
+| Vendors | ✓ | ✓ | ✓ | ✓ |
+| Contacts | ✓ | ✓ | ✓ | ✓ |
+| Invoices | ✓ | ✓ | ✓ | ✓ |
+| Purchase Orders | ✓ | ✓ | ✓ | ✓ |
+
+---
+
+### Technical Notes
+
+**Database:** PostgreSQL via Docker (`nouveau-postgres` container)
+- Connection: `postgresql://postgres:nouveau123@localhost:5432/nouveau_elevator`
+- NOT SQLite - using PostgreSQL for production-like environment
+
+**Unit CREATE Constraint:**
+- `premises_id` is NOT NULL in database
+- Units must be created with a valid `premisesId` (belongs to an account)
+
+**CSS Cache Issue:**
+- Dev server CSS wasn't loading properly
+- Fixed by clearing `.next` cache: `rm -rf .next && npm run dev`
+
+---
+
+### Commit
+
+| Commit | Description |
+|--------|-------------|
+| `ea6174a` | Add CRUD functionality across all detail pages and connect list pages to APIs |
+
+---
+
+## End of Session: January 26, 2026
