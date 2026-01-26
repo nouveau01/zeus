@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 
 interface Unit {
   id: string;
@@ -113,7 +115,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     isActive: true,
     country: "United States",
   } : {});
-  const [isDirty, setIsDirty] = useState(false);
+  const [savingFromHook, setSavingFromHook] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [selectedContract, setSelectedContract] = useState<string | null>(null);
@@ -129,6 +131,51 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   // Mock PM contracts data
   const [pmContracts, setPmContracts] = useState<any[]>([]);
+
+  // Save callback for the unsaved changes hook
+  const handleSaveForHook = useCallback(async () => {
+    if (!formData.address?.trim()) {
+      throw new Error("Address is required");
+    }
+    setSavingFromHook(true);
+    try {
+      if (isNew) {
+        const response = await fetch("/api/premises", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...formData, customerId: customerId || formData.customerId }),
+        });
+        if (!response.ok) throw new Error("Failed to create account");
+        const created = await response.json();
+        if (onClose) onClose();
+        openTab(created.name || created.address, `/accounts/${created.id}`);
+      } else {
+        const response = await fetch(`/api/premises/${accountId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (!response.ok) throw new Error("Failed to update account");
+        const updated = await response.json();
+        setAccount(updated);
+        setFormData(updated);
+      }
+    } finally {
+      setSavingFromHook(false);
+    }
+  }, [formData, isNew, customerId, accountId, onClose, openTab]);
+
+  // Unsaved changes hook
+  const {
+    isDirty,
+    setIsDirty,
+    markDirty,
+    confirmNavigation,
+    showDialog,
+    handleDialogSave,
+    handleDialogDiscard,
+    handleDialogCancel,
+  } = useUnsavedChanges({ onSave: handleSaveForHook });
 
   useEffect(() => {
     if (!isNew) {
@@ -1235,6 +1282,15 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           <span>{account?.updatedAt ? new Date(account.updatedAt).toLocaleDateString() : ""}</span>
         </div>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showDialog}
+        onSave={handleDialogSave}
+        onDiscard={handleDialogDiscard}
+        onCancel={handleDialogCancel}
+        saving={savingFromHook}
+      />
     </div>
   );
 }

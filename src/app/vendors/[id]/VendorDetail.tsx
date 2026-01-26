@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import {
   FileText,
   Save,
@@ -68,7 +70,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [savingFromHook, setSavingFromHook] = useState(false);
 
   // Form state - General tab
   const [formData, setFormData] = useState({
@@ -136,6 +138,29 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
     bankRouteNumber: "",
     bankAcctType: "Checking",
   });
+
+  // Save callback for the unsaved changes hook
+  const handleSaveForHook = useCallback(async () => {
+    setSavingFromHook(true);
+    try {
+      // In real app, this would save to API
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } finally {
+      setSavingFromHook(false);
+    }
+  }, []);
+
+  // Unsaved changes hook
+  const {
+    isDirty: hasChanges,
+    setIsDirty: setHasChanges,
+    markDirty,
+    confirmNavigation,
+    showDialog,
+    handleDialogSave,
+    handleDialogDiscard,
+    handleDialogCancel,
+  } = useUnsavedChanges({ onSave: handleSaveForHook });
 
   // Mock data
   const mockVendor: Vendor = {
@@ -373,7 +398,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
           <ChevronsRight className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
         <button
-          onClick={onClose}
+          onClick={() => confirmNavigation(() => onClose())}
           className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
           title="Close"
         >
@@ -1127,6 +1152,15 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
           </div>
         </div>
       )}
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showDialog}
+        onSave={handleDialogSave}
+        onDiscard={handleDialogDiscard}
+        onCancel={handleDialogCancel}
+        saving={savingFromHook}
+      />
     </div>
   );
 }

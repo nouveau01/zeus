@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import {
   FileText,
   Save,
@@ -84,7 +86,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   const { openTab } = useTabs();
   const [activeTab, setActiveTab] = useState<"general" | "templateCustom" | "tests" | "remarks" | "unitCustom">("general");
   const [isEditing, setIsEditing] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [savingFromHook, setSavingFromHook] = useState(false);
 
   // Unit data state
   const [unit, setUnit] = useState<UnitData>({
@@ -179,6 +181,34 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
     ticketed: false,
     ticket: "",
   });
+
+  // Save callback for the unsaved changes hook
+  const handleSaveForHook = useCallback(async () => {
+    setSavingFromHook(true);
+    try {
+      // In real app, this would save to API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setOriginalUnit({ ...unit });
+      setOriginalTemplateCustom([...templateCustomFields]);
+      setOriginalTests([...tests]);
+      setOriginalRemarks(remarks);
+      setOriginalUnitCustom({ ...unitCustom });
+    } finally {
+      setSavingFromHook(false);
+    }
+  }, [unit, templateCustomFields, tests, remarks, unitCustom]);
+
+  // Unsaved changes hook
+  const {
+    isDirty: hasChanges,
+    setIsDirty: setHasChanges,
+    markDirty,
+    confirmNavigation,
+    showDialog,
+    handleDialogSave,
+    handleDialogDiscard,
+    handleDialogCancel,
+  } = useUnsavedChanges({ onSave: handleSaveForHook });
 
   // Load unit data
   useEffect(() => {
@@ -317,7 +347,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
       {/* Title Bar */}
       <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
         <span className="font-bold text-[13px]">Editing Unit '{unit.unitNumber}'</span>
-        <button onClick={onClose} className="hover:bg-[#c0c0c0] hover:text-black px-2 rounded">
+        <button onClick={() => confirmNavigation(() => onClose())} className="hover:bg-[#c0c0c0] hover:text-black px-2 rounded">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -379,7 +409,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
           <ChevronsRight className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
-        <button onClick={onClose} className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
+        <button onClick={() => confirmNavigation(() => onClose())} className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
           <X className="w-4 h-4" style={{ color: "#95a5a6" }} />
         </button>
       </div>
@@ -1018,6 +1048,15 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
           </div>
         </div>
       )}
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showDialog}
+        onSave={handleDialogSave}
+        onDiscard={handleDialogDiscard}
+        onCancel={handleDialogCancel}
+        saving={savingFromHook}
+      />
     </div>
   );
 }

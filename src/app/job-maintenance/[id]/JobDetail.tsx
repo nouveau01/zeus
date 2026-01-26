@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import {
   FileText,
   Save,
@@ -87,7 +89,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Specifications");
   const [formData, setFormData] = useState<Partial<Job>>({});
-  const [hasChanges, setHasChanges] = useState(false);
+  const [savingFromHook, setSavingFromHook] = useState(false);
 
   useEffect(() => {
     fetchJob();
@@ -108,6 +110,35 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
       setLoading(false);
     }
   };
+
+  // Save callback for the unsaved changes hook
+  const handleSaveForHook = useCallback(async () => {
+    setSavingFromHook(true);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) throw new Error("Failed to save job");
+      const updated = await response.json();
+      setJob(updated);
+    } finally {
+      setSavingFromHook(false);
+    }
+  }, [jobId, formData]);
+
+  // Unsaved changes hook
+  const {
+    isDirty: hasChanges,
+    setIsDirty: setHasChanges,
+    markDirty,
+    confirmNavigation,
+    showDialog,
+    handleDialogSave,
+    handleDialogDiscard,
+    handleDialogCancel,
+  } = useUnsavedChanges({ onSave: handleSaveForHook });
 
   const onChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -766,6 +797,15 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
           </button>
         </div>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showDialog}
+        onSave={handleDialogSave}
+        onDiscard={handleDialogDiscard}
+        onCancel={handleDialogCancel}
+        saving={savingFromHook}
+      />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 
 interface InvoiceItem {
   id: string;
@@ -89,7 +91,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   const [formData, setFormData] = useState<Partial<Invoice>>({});
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
+  const [savingFromHook, setSavingFromHook] = useState(false);
 
   // Taxes/Job Remarks state
   const [taxRegion1, setTaxRegion1] = useState("");
@@ -103,6 +105,51 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   const [ot17Hours, setOt17Hours] = useState("");
   const [dtHours, setDtHours] = useState("");
   const [ttHours, setTtHours] = useState("");
+
+  // Save callback for the unsaved changes hook (will be set after fetchInvoice)
+  const handleSaveForHook = useCallback(async () => {
+    setSavingFromHook(true);
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          items,
+          taxRegion1: taxRegion1 || null,
+          taxRate1: parseFloat(taxRate1) || 0,
+          taxRegion2: taxRegion2 || null,
+          taxRate2: parseFloat(taxRate2) || 0,
+          taxFactor: parseFloat(taxFactor) || 100,
+          jobRemarks: jobRemarks || null,
+          reg: regHours ? parseFloat(regHours) : null,
+          ot: otHours ? parseFloat(otHours) : null,
+          ot17: ot17Hours ? parseFloat(ot17Hours) : null,
+          dt: dtHours ? parseFloat(dtHours) : null,
+          tt: ttHours ? parseFloat(ttHours) : null,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save invoice");
+      const updated = await response.json();
+      setInvoice(updated);
+      setFormData(updated);
+      setItems(updated.items || []);
+    } finally {
+      setSavingFromHook(false);
+    }
+  }, [invoiceId, formData, items, taxRegion1, taxRate1, taxRegion2, taxRate2, taxFactor, jobRemarks, regHours, otHours, ot17Hours, dtHours, ttHours]);
+
+  // Unsaved changes hook
+  const {
+    isDirty,
+    setIsDirty,
+    markDirty,
+    confirmNavigation,
+    showDialog,
+    handleDialogSave,
+    handleDialogDiscard,
+    handleDialogCancel,
+  } = useUnsavedChanges({ onSave: handleSaveForHook });
 
   useEffect(() => {
     fetchInvoice();
@@ -739,6 +786,15 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         <span>{invoice.emailSent ? "Email sent" : "No E-mail sent"}</span>
         <span>EDIT</span>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showDialog}
+        onSave={handleDialogSave}
+        onDiscard={handleDialogDiscard}
+        onCancel={handleDialogCancel}
+        saving={savingFromHook}
+      />
     </div>
   );
 }

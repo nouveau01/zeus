@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import {
   FileText,
   Save,
@@ -115,7 +117,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
   const [printOnSave, setPrintOnSave] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [savingFromHook, setSavingFromHook] = useState(false);
   const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
 
   // PO State
@@ -144,6 +146,29 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
   const [glItems, setGLItems] = useState<GLItem[]>([]);
   const [jobCostingItems, setJobCostingItems] = useState<JobCostingItem[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+
+  // Save callback for the unsaved changes hook
+  const handleSaveForHook = useCallback(async () => {
+    setSavingFromHook(true);
+    try {
+      // In real app, this would save to API
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } finally {
+      setSavingFromHook(false);
+    }
+  }, []);
+
+  // Unsaved changes hook
+  const {
+    isDirty: hasChanges,
+    setIsDirty: setHasChanges,
+    markDirty,
+    confirmNavigation,
+    showDialog,
+    handleDialogSave,
+    handleDialogDiscard,
+    handleDialogCancel,
+  } = useUnsavedChanges({ onSave: handleSaveForHook });
 
   // Load mock data
   useEffect(() => {
@@ -455,7 +480,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
           <ChevronsRight className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
         <button
-          onClick={onClose}
+          onClick={() => confirmNavigation(() => onClose())}
           className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
           title="Close"
         >
@@ -1022,6 +1047,15 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
           </div>
         </div>
       )}
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={showDialog}
+        onSave={handleDialogSave}
+        onDiscard={handleDialogDiscard}
+        onCancel={handleDialogCancel}
+        saving={savingFromHook}
+      />
     </div>
   );
 }
