@@ -92,6 +92,19 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [savingFromHook, setSavingFromHook] = useState(false);
+  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+  const [editingItem, setEditingItem] = useState<InvoiceItem | null>(null);
+  const [newItem, setNewItem] = useState<Partial<InvoiceItem>>({
+    name: "",
+    quantity: 1,
+    description: "",
+    tax: true,
+    price: 0,
+    markupPercent: 0,
+    amount: 0,
+    measure: "Each",
+    phase: 0,
+  });
 
   // Taxes/Job Remarks state
   const [taxRegion1, setTaxRegion1] = useState("");
@@ -256,6 +269,102 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
     if (!dateStr) return "";
     const date = new Date(dateStr);
     return date.toISOString().split("T")[0];
+  };
+
+  // Line Item CRUD handlers
+  const handleAddItem = () => {
+    const item: InvoiceItem = {
+      id: `temp-${Date.now()}`,
+      name: newItem.name || "",
+      quantity: newItem.quantity || 1,
+      description: newItem.description || null,
+      tax: newItem.tax ?? true,
+      price: newItem.price || 0,
+      markupPercent: newItem.markupPercent || 0,
+      amount: (newItem.quantity || 1) * (newItem.price || 0),
+      measure: newItem.measure || "Each",
+      phase: newItem.phase || null,
+    };
+    setItems([...items, item]);
+    setShowAddItemDialog(false);
+    setEditingItem(null);
+    setNewItem({
+      name: "",
+      quantity: 1,
+      description: "",
+      tax: true,
+      price: 0,
+      markupPercent: 0,
+      amount: 0,
+      measure: "Each",
+      phase: 0,
+    });
+    setIsDirty(true);
+  };
+
+  const handleEditItem = () => {
+    if (!selectedItemId) return;
+    const item = items.find(i => i.id === selectedItemId);
+    if (item) {
+      setEditingItem(item);
+      setNewItem({
+        name: item.name,
+        quantity: item.quantity,
+        description: item.description || "",
+        tax: item.tax,
+        price: item.price,
+        markupPercent: item.markupPercent,
+        amount: item.amount,
+        measure: item.measure || "Each",
+        phase: item.phase || 0,
+      });
+      setShowAddItemDialog(true);
+    }
+  };
+
+  const handleUpdateItem = () => {
+    if (!editingItem) return;
+    const updatedItems = items.map(item => {
+      if (item.id === editingItem.id) {
+        return {
+          ...item,
+          name: newItem.name || "",
+          quantity: newItem.quantity || 1,
+          description: newItem.description || null,
+          tax: newItem.tax ?? true,
+          price: newItem.price || 0,
+          markupPercent: newItem.markupPercent || 0,
+          amount: (newItem.quantity || 1) * (newItem.price || 0),
+          measure: newItem.measure || "Each",
+          phase: newItem.phase || null,
+        };
+      }
+      return item;
+    });
+    setItems(updatedItems);
+    setShowAddItemDialog(false);
+    setEditingItem(null);
+    setNewItem({
+      name: "",
+      quantity: 1,
+      description: "",
+      tax: true,
+      price: 0,
+      markupPercent: 0,
+      amount: 0,
+      measure: "Each",
+      phase: 0,
+    });
+    setIsDirty(true);
+  };
+
+  const handleDeleteItem = () => {
+    if (!selectedItemId) return;
+    if (confirm("Delete this line item?")) {
+      setItems(items.filter(i => i.id !== selectedItemId));
+      setSelectedItemId(null);
+      setIsDirty(true);
+    }
   };
 
   if (loading) {
@@ -495,6 +604,33 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
       {/* Line Items Grid */}
       <div className="flex-1 flex flex-col mx-2 mb-2 overflow-hidden">
+        {/* Line Items Buttons */}
+        <div className="flex items-center gap-2 py-1 bg-[#f5f5f5] mb-1">
+          <button
+            onClick={() => {
+              setEditingItem(null);
+              setNewItem({ name: "", quantity: 1, description: "", tax: true, price: 0, markupPercent: 0, amount: 0, measure: "Each", phase: 0 });
+              setShowAddItemDialog(true);
+            }}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]"
+          >
+            Add
+          </button>
+          <button
+            onClick={handleEditItem}
+            disabled={!selectedItemId}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] disabled:opacity-50"
+          >
+            Edit
+          </button>
+          <button
+            onClick={handleDeleteItem}
+            disabled={!selectedItemId}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] disabled:opacity-50"
+          >
+            Delete
+          </button>
+        </div>
         <div className="flex-1 border border-[#a0a0a0] bg-white overflow-auto">
           <table className="w-full border-collapse text-[12px]">
             <thead className="bg-[#f0f0f0] sticky top-0">
@@ -795,6 +931,121 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         onCancel={handleDialogCancel}
         saving={savingFromHook}
       />
+
+      {/* Add/Edit Line Item Dialog */}
+      {showAddItemDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#f0f0f0] border-2 border-[#808080] shadow-lg" style={{ minWidth: "450px" }}>
+            <div className="bg-[#000080] text-white px-2 py-1 flex items-center justify-between">
+              <span className="text-[12px] font-bold">{editingItem ? "Edit Line Item" : "Add Line Item"}</span>
+              <button
+                onClick={() => { setShowAddItemDialog(false); setEditingItem(null); }}
+                className="text-white hover:bg-[#c0c0c0] hover:text-black px-1"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Name</label>
+                  <input
+                    type="text"
+                    value={newItem.name || ""}
+                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-[#ffffe1]"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Quantity</label>
+                  <input
+                    type="number"
+                    value={newItem.quantity || 1}
+                    onChange={(e) => setNewItem({ ...newItem, quantity: parseFloat(e.target.value) || 0 })}
+                    className="w-24 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white text-right"
+                    step="0.01"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Description</label>
+                  <input
+                    type="text"
+                    value={newItem.description || ""}
+                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Price</label>
+                  <input
+                    type="number"
+                    value={newItem.price || 0}
+                    onChange={(e) => setNewItem({ ...newItem, price: parseFloat(e.target.value) || 0 })}
+                    className="w-24 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white text-right"
+                    step="0.01"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Markup %</label>
+                  <input
+                    type="number"
+                    value={newItem.markupPercent || 0}
+                    onChange={(e) => setNewItem({ ...newItem, markupPercent: parseFloat(e.target.value) || 0 })}
+                    className="w-24 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white text-right"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Measure</label>
+                  <select
+                    value={newItem.measure || "Each"}
+                    onChange={(e) => setNewItem({ ...newItem, measure: e.target.value })}
+                    className="w-24 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  >
+                    <option value="Each">Each</option>
+                    <option value="Hour">Hour</option>
+                    <option value="Day">Day</option>
+                    <option value="Lot">Lot</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Phase</label>
+                  <input
+                    type="number"
+                    value={newItem.phase || 0}
+                    onChange={(e) => setNewItem({ ...newItem, phase: parseInt(e.target.value) || 0 })}
+                    className="w-24 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white text-right"
+                  />
+                </div>
+                <div className="flex items-center gap-2 ml-24">
+                  <input
+                    type="checkbox"
+                    id="item-tax"
+                    checked={newItem.tax ?? true}
+                    onChange={(e) => setNewItem({ ...newItem, tax: e.target.checked })}
+                    className="w-3 h-3"
+                  />
+                  <label htmlFor="item-tax" className="text-[12px]">Taxable</label>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#808080]">
+                <button
+                  onClick={editingItem ? handleUpdateItem : handleAddItem}
+                  className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+                >
+                  OK
+                </button>
+                <button
+                  onClick={() => { setShowAddItemDialog(false); setEditingItem(null); }}
+                  className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

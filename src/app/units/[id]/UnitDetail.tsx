@@ -173,6 +173,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
 
   // Add Test Dialog
   const [showAddTestDialog, setShowAddTestDialog] = useState(false);
+  const [editingTest, setEditingTest] = useState<Test | null>(null);
   const [newTest, setNewTest] = useState<Partial<Test>>({
     name: "",
     status: "No Proposal",
@@ -186,17 +187,84 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   const handleSaveForHook = useCallback(async () => {
     setSavingFromHook(true);
     try {
-      // In real app, this would save to API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setOriginalUnit({ ...unit });
-      setOriginalTemplateCustom([...templateCustomFields]);
-      setOriginalTests([...tests]);
-      setOriginalRemarks(remarks);
-      setOriginalUnitCustom({ ...unitCustom });
+      const response = await fetch(`/api/units/${unitId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          unitNumber: unit.unitNumber,
+          state: unit.stateNumber,
+          description: unit.description,
+          template: unit.template,
+          cat: unit.category,
+          unitType: unit.type,
+          building: unit.building,
+          manufacturer: unit.manufacturer,
+          serial: unit.serialNumber,
+          status: unit.status,
+          price: unit.priceS ? parseFloat(unit.priceS.replace(/[^0-9.-]/g, '')) : null,
+          group: unit.group,
+          week: unit.week,
+          sinceDate: unit.onServiceSince,
+          lastDate: unit.lastServiceOn,
+          installDate: unit.installed,
+          installBy: unit.installedBy,
+          premisesId: unit.accountId,
+          remarks: remarks,
+          custom1: unitCustom.testIncluded,
+          custom2: unitCustom.testCustomPricing,
+          custom3: unitCustom.custom3,
+          custom4: unitCustom.custom4,
+          custom5: unitCustom.custom5,
+          custom6: unitCustom.custom6,
+          custom7: unitCustom.custom7,
+          custom8: unitCustom.custom8,
+          custom9: unitCustom.custom9,
+          custom10: unitCustom.custom10,
+          custom11: unitCustom.custom11,
+          custom12: unitCustom.custom12,
+          custom13: unitCustom.custom13,
+          custom14: unitCustom.custom14,
+          custom15: unitCustom.custom15,
+          custom16: unitCustom.custom16,
+          custom17: unitCustom.custom17,
+          custom18: unitCustom.custom18,
+          custom19: unitCustom.custom19,
+          custom20: unitCustom.custom20,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save unit");
+      const updated = await response.json();
+      // Update local state with saved data
+      const updatedUnit: UnitData = {
+        id: updated.id,
+        unitNumber: updated.unitNumber || "",
+        description: updated.description || "",
+        stateNumber: updated.state || "",
+        template: updated.template || "Standard",
+        category: updated.cat || "",
+        type: updated.unitType || "Elevator",
+        building: updated.building || "",
+        accountId: updated.premisesId || "",
+        accountTag: updated.premises?.address || updated.premises?.premisesId || "",
+        status: updated.status || "Active",
+        group: updated.group || "",
+        onServiceSince: updated.sinceDate ? new Date(updated.sinceDate).toLocaleDateString() : "",
+        lastServiceOn: updated.lastDate ? new Date(updated.lastDate).toLocaleDateString() : "",
+        installed: updated.installDate ? new Date(updated.installDate).toLocaleDateString() : "",
+        installedBy: updated.installBy || "",
+        manufacturer: updated.manufacturer || "",
+        serialNumber: updated.serial || "",
+        priceS: updated.price ? `$${parseFloat(updated.price).toFixed(2)}` : "$0.00",
+        week: updated.week || "",
+      };
+      setUnit(updatedUnit);
+      setOriginalUnit(updatedUnit);
+      setOriginalRemarks(updated.remarks || "");
+      setRemarks(updated.remarks || "");
     } finally {
       setSavingFromHook(false);
     }
-  }, [unit, templateCustomFields, tests, remarks, unitCustom]);
+  }, [unitId, unit, remarks, unitCustom]);
 
   // Unsaved changes hook
   const {
@@ -210,38 +278,72 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
     handleDialogCancel,
   } = useUnsavedChanges({ onSave: handleSaveForHook });
 
-  // Load unit data
+  // Load unit data from API
   useEffect(() => {
-    // Mock data based on unitId
-    const mockUnit: UnitData = {
-      id: unitId,
-      unitNumber: "NORTH 2",
-      description: "PASSENGER",
-      stateNumber: "",
-      template: "Standard",
-      category: "CONSULTANT",
-      type: "Elevator",
-      building: "Office / Commercial",
-      accountId: "1CAPLAZA",
-      accountTag: "1 CA PLAZA",
-      status: "Inactive",
-      group: "",
-      onServiceSince: "5/27/2011",
-      lastServiceOn: "4/12/2022",
-      installed: "",
-      installedBy: "",
-      manufacturer: "WESTINGHOUSE",
-      serialNumber: "",
-      priceS: "$0.00",
-      week: "",
+    const fetchUnit = async () => {
+      try {
+        const response = await fetch(`/api/units/${unitId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const loadedUnit: UnitData = {
+            id: data.id,
+            unitNumber: data.unitNumber || "",
+            description: data.description || "",
+            stateNumber: data.state || "",
+            template: data.template || "Standard",
+            category: data.cat || "",
+            type: data.unitType || "Elevator",
+            building: data.building || "",
+            accountId: data.premisesId || "",
+            accountTag: data.premises?.address || data.premises?.premisesId || "",
+            status: data.status || "Active",
+            group: data.group || "",
+            onServiceSince: data.sinceDate ? new Date(data.sinceDate).toLocaleDateString() : "",
+            lastServiceOn: data.lastDate ? new Date(data.lastDate).toLocaleDateString() : "",
+            installed: data.installDate ? new Date(data.installDate).toLocaleDateString() : "",
+            installedBy: data.installBy || "",
+            manufacturer: data.manufacturer || "",
+            serialNumber: data.serial || "",
+            priceS: data.price ? `$${parseFloat(data.price).toFixed(2)}` : "$0.00",
+            week: data.week || "",
+          };
+          setUnit(loadedUnit);
+          setOriginalUnit(loadedUnit);
+          setRemarks(data.remarks || "");
+          setOriginalRemarks(data.remarks || "");
+          // Load custom fields
+          const loadedCustom: UnitCustomData = {
+            testIncluded: data.custom1 || "",
+            testCustomPricing: data.custom2 || "",
+            custom3: data.custom3 || "",
+            custom4: data.custom4 || "",
+            custom5: data.custom5 || "",
+            custom6: data.custom6 || "",
+            custom7: data.custom7 || "",
+            custom8: data.custom8 || "",
+            custom9: data.custom9 || "",
+            custom10: data.custom10 || "",
+            custom11: data.custom11 || "",
+            custom12: data.custom12 || "",
+            custom13: data.custom13 || "",
+            custom14: data.custom14 || "",
+            custom15: data.custom15 || "",
+            custom16: data.custom16 || "",
+            custom17: data.custom17 || "",
+            custom18: data.custom18 || "",
+            custom19: data.custom19 || "",
+            custom20: data.custom20 || "",
+          };
+          setUnitCustom(loadedCustom);
+          setOriginalUnitCustom(loadedCustom);
+        }
+      } catch (error) {
+        console.error("Error fetching unit:", error);
+      }
     };
-
-    setUnit(mockUnit);
-    setOriginalUnit(mockUnit);
+    fetchUnit();
     setOriginalTemplateCustom([...templateCustomFields]);
     setOriginalTests([...tests]);
-    setOriginalRemarks(remarks);
-    setOriginalUnitCustom({ ...unitCustom });
   }, [unitId]);
 
   // Track changes
@@ -256,15 +358,90 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
     }
   }, [unit, templateCustomFields, tests, remarks, unitCustom, originalUnit, originalTemplateCustom, originalTests, originalRemarks, originalUnitCustom]);
 
-  const handleSave = () => {
-    setOriginalUnit({ ...unit });
-    setOriginalTemplateCustom([...templateCustomFields]);
-    setOriginalTests([...tests]);
-    setOriginalRemarks(remarks);
-    setOriginalUnitCustom({ ...unitCustom });
-    setHasChanges(false);
-    setIsEditing(false);
-    alert("Unit saved successfully!");
+  const handleSave = async () => {
+    try {
+      const response = await fetch(`/api/units/${unitId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          unitNumber: unit.unitNumber,
+          state: unit.stateNumber,
+          description: unit.description,
+          template: unit.template,
+          cat: unit.category,
+          unitType: unit.type,
+          building: unit.building,
+          manufacturer: unit.manufacturer,
+          serial: unit.serialNumber,
+          status: unit.status,
+          price: unit.priceS ? parseFloat(unit.priceS.replace(/[^0-9.-]/g, '')) : null,
+          group: unit.group,
+          week: unit.week,
+          sinceDate: unit.onServiceSince,
+          lastDate: unit.lastServiceOn,
+          installDate: unit.installed,
+          installBy: unit.installedBy,
+          premisesId: unit.accountId,
+          remarks: remarks,
+          custom1: unitCustom.testIncluded,
+          custom2: unitCustom.testCustomPricing,
+          custom3: unitCustom.custom3,
+          custom4: unitCustom.custom4,
+          custom5: unitCustom.custom5,
+          custom6: unitCustom.custom6,
+          custom7: unitCustom.custom7,
+          custom8: unitCustom.custom8,
+          custom9: unitCustom.custom9,
+          custom10: unitCustom.custom10,
+          custom11: unitCustom.custom11,
+          custom12: unitCustom.custom12,
+          custom13: unitCustom.custom13,
+          custom14: unitCustom.custom14,
+          custom15: unitCustom.custom15,
+          custom16: unitCustom.custom16,
+          custom17: unitCustom.custom17,
+          custom18: unitCustom.custom18,
+          custom19: unitCustom.custom19,
+          custom20: unitCustom.custom20,
+        }),
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        const updatedUnit: UnitData = {
+          id: updated.id,
+          unitNumber: updated.unitNumber || "",
+          description: updated.description || "",
+          stateNumber: updated.state || "",
+          template: updated.template || "Standard",
+          category: updated.cat || "",
+          type: updated.unitType || "Elevator",
+          building: updated.building || "",
+          accountId: updated.premisesId || "",
+          accountTag: updated.premises?.address || updated.premises?.premisesId || "",
+          status: updated.status || "Active",
+          group: updated.group || "",
+          onServiceSince: updated.sinceDate ? new Date(updated.sinceDate).toLocaleDateString() : "",
+          lastServiceOn: updated.lastDate ? new Date(updated.lastDate).toLocaleDateString() : "",
+          installed: updated.installDate ? new Date(updated.installDate).toLocaleDateString() : "",
+          installedBy: updated.installBy || "",
+          manufacturer: updated.manufacturer || "",
+          serialNumber: updated.serial || "",
+          priceS: updated.price ? `$${parseFloat(updated.price).toFixed(2)}` : "$0.00",
+          week: updated.week || "",
+        };
+        setUnit(updatedUnit);
+        setOriginalUnit(updatedUnit);
+        setOriginalTemplateCustom([...templateCustomFields]);
+        setOriginalTests([...tests]);
+        setOriginalRemarks(updated.remarks || "");
+        setRemarks(updated.remarks || "");
+        setOriginalUnitCustom({ ...unitCustom });
+        setHasChanges(false);
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error("Error saving unit:", error);
+    }
   };
 
   const handleUndo = () => {
@@ -300,6 +477,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
 
   // Test handlers
   const handleAddTest = () => {
+    setEditingTest(null);
     setNewTest({
       name: "",
       status: "No Proposal",
@@ -333,6 +511,48 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
 
   const handleTestTicketedChange = (testId: string, checked: boolean) => {
     setTests(tests.map(t => t.id === testId ? { ...t, ticketed: checked } : t));
+  };
+
+  const handleEditTest = () => {
+    if (!selectedTest) return;
+    setEditingTest(selectedTest);
+    setNewTest({
+      name: selectedTest.name,
+      status: selectedTest.status,
+      last: selectedTest.last,
+      next: selectedTest.next,
+      ticketed: selectedTest.ticketed,
+      ticket: selectedTest.ticket,
+    });
+    setShowAddTestDialog(true);
+  };
+
+  const handleUpdateTest = () => {
+    if (!editingTest) return;
+    setTests(tests.map(t => {
+      if (t.id === editingTest.id) {
+        return {
+          ...t,
+          name: newTest.name || "",
+          status: newTest.status || "No Proposal",
+          last: newTest.last || "",
+          next: newTest.next || "",
+          ticketed: newTest.ticketed || false,
+          ticket: newTest.ticket || "",
+        };
+      }
+      return t;
+    }));
+    setShowAddTestDialog(false);
+    setEditingTest(null);
+  };
+
+  const handleDeleteTest = () => {
+    if (!selectedTest) return;
+    if (confirm("Delete this test?")) {
+      setTests(tests.filter(t => t.id !== selectedTest.id));
+      setSelectedTest(null);
+    }
   };
 
   const templates = ["Standard", "Hydraulic", "Traction", "MRL", "Freight"];
@@ -746,12 +966,26 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 </tbody>
               </table>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
               <button
                 onClick={handleAddTest}
                 className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
               >
                 Add
+              </button>
+              <button
+                onClick={handleEditTest}
+                disabled={!selectedTest}
+                className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px] disabled:opacity-50"
+              >
+                Edit
+              </button>
+              <button
+                onClick={handleDeleteTest}
+                disabled={!selectedTest}
+                className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px] disabled:opacity-50"
+              >
+                Delete
               </button>
             </div>
           </div>
@@ -975,14 +1209,14 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
         {hasChanges && <span className="text-[#c00] mr-4">Unsaved changes</span>}
       </div>
 
-      {/* Add Test Dialog */}
+      {/* Add/Edit Test Dialog */}
       {showAddTestDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-[#f0f0f0] border-2 border-[#808080] shadow-lg" style={{ minWidth: "400px" }}>
             <div className="bg-[#000080] text-white px-2 py-1 flex items-center justify-between">
-              <span className="text-[12px] font-bold">Add Test</span>
+              <span className="text-[12px] font-bold">{editingTest ? "Edit Test" : "Add Test"}</span>
               <button
-                onClick={() => setShowAddTestDialog(false)}
+                onClick={() => { setShowAddTestDialog(false); setEditingTest(null); }}
                 className="text-white hover:bg-[#c0c0c0] hover:text-black px-1"
               >
                 ×
@@ -1032,13 +1266,13 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
               </div>
               <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#808080]">
                 <button
-                  onClick={handleCreateTest}
+                  onClick={editingTest ? handleUpdateTest : handleCreateTest}
                   className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
                 >
                   OK
                 </button>
                 <button
-                  onClick={() => setShowAddTestDialog(false)}
+                  onClick={() => { setShowAddTestDialog(false); setEditingTest(null); }}
                   className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
                 >
                   Cancel

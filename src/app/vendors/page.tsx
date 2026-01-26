@@ -50,40 +50,36 @@ export default function VendorsPage() {
     type: "Cost of Sales" as "Cost of Sales" | "Overhead",
   });
 
-  // Mock data
-  const mockVendors: Vendor[] = [
-    { id: "1", vendorId: "#1SCP", name: "#1 SCREEM PRINTING0", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "2", vendorId: "@ROAD", name: "@ROAD", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "3", vendorId: "VISIONWIRE", name: "1 VISION WIRELESS INC.", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "4", vendorId: "1000BULB", name: "1000 BULBS", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "5", vendorId: "101WE", name: "101 WEST 24TH CONDO.", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "6", vendorId: "1035M", name: "1035 MANHATTAN AVE LLC", status: "Active", type: "Cost of Sales", balance: 150.00, catalogue: null },
-    { id: "7", vendorId: "108CH", name: "108 CHURCH ST. (BORAIE REALTY)", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "8", vendorId: "116W6", name: "116 EAST 66TH ST. CORP.", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "9", vendorId: "122BG", name: "122B GREENWICH LLC", status: "Active", type: "Cost of Sales", balance: 500.00, catalogue: null },
-    { id: "10", vendorId: "125MA", name: "125 MAIDEN EQUITIES LLC", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "11", vendorId: "14PLU", name: "14 PLUS FOUNDATION INC.", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "12", vendorId: "14111C", name: "1411 1C SIC PROP.LLC", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "13", vendorId: "150EA", name: "150 EAST TENANTS CORP.", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "14", vendorId: "169AV", name: "169 AVENUE A EQUIETIES", status: "Inactive", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "15", vendorId: "1STPE", name: "1ST PERFORMANCE MARINA", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "16", vendorId: "2BLST", name: "2 BLEEKER STREET CONDO", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "17", vendorId: "2PHILS", name: "2 PHIL'S AUTO REPAIR SHOP", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "18", vendorId: "200PA", name: "200 PARK AVE CHILDREN S", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "19", vendorId: "2000A", name: "2000 AUTO SALES INC.", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "20", vendorId: "202HI", name: "2022 HISTORY MAKERS GALA", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "21", vendorId: "2023H", name: "2023 HISTORY MAKERS GALA", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "22", vendorId: "2190B", name: "2190 BOSTON OWNERS INC.", status: "Active", type: "Cost of Sales", balance: 0.00, catalogue: null },
-    { id: "23", vendorId: "UTIL01", name: "CON EDISON", status: "Active", type: "Overhead", balance: 1250.00, catalogue: null },
-    { id: "24", vendorId: "UTIL02", name: "NATIONAL GRID", status: "Active", type: "Overhead", balance: 890.00, catalogue: null },
-    { id: "25", vendorId: "INSUR1", name: "STATE FARM INSURANCE", status: "Active", type: "Overhead", balance: 0.00, catalogue: null },
-  ];
+  // Fetch vendors from API
+  const fetchVendors = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/vendors");
+      if (response.ok) {
+        const data = await response.json();
+        const mappedVendors: Vendor[] = data.map((v: any) => ({
+          id: v.id,
+          vendorId: v.acct || "",
+          name: v.name || "",
+          status: v.isActive ? "Active" : "Inactive",
+          type: v.type || "Cost of Sales",
+          balance: Number(v.balance) || 0,
+          catalogue: null,
+        }));
+        setVendors(mappedVendors);
+        if (mappedVendors.length > 0) {
+          setSelectedVendor(mappedVendors[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching vendors:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setVendors(mockVendors);
-    setFilteredVendors(mockVendors);
-    setSelectedVendor(mockVendors[0]);
-    setLoading(false);
+    fetchVendors();
   }, []);
 
   // Filter vendors when tab changes
@@ -123,43 +119,62 @@ export default function VendorsPage() {
     setShowNewVendorDialog(true);
   };
 
-  const handleCreateVendor = () => {
+  const handleCreateVendor = async () => {
     if (!newVendor.vendorId || !newVendor.name) {
       alert("Please fill in Vendor ID and Name");
       return;
     }
 
-    const vendor: Vendor = {
-      id: String(vendors.length + 1),
-      vendorId: newVendor.vendorId,
-      name: newVendor.name,
-      status: newVendor.status,
-      type: newVendor.type,
-      balance: 0,
-      catalogue: null,
-    };
+    try {
+      const response = await fetch("/api/vendors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vendorId: newVendor.vendorId,
+          name: newVendor.name,
+          status: newVendor.status,
+          type: newVendor.type,
+        }),
+      });
 
-    setVendors([...vendors, vendor]);
-    setShowNewVendorDialog(false);
-    setNewVendor({
-      vendorId: "",
-      name: "",
-      status: "Active",
-      type: "Cost of Sales",
-    });
-
-    // Select the new vendor and open its detail
-    setSelectedVendor(vendor);
-    openTab(`Editing Vendor '${vendor.name}'`, `/vendors/${vendor.id}`);
+      if (response.ok) {
+        const created = await response.json();
+        setShowNewVendorDialog(false);
+        setNewVendor({
+          vendorId: "",
+          name: "",
+          status: "Active",
+          type: "Cost of Sales",
+        });
+        fetchVendors();
+        openTab(`Editing Vendor '${newVendor.name}'`, `/vendors/${created.id}`);
+      } else {
+        alert("Failed to create vendor");
+      }
+    } catch (error) {
+      console.error("Error creating vendor:", error);
+      alert("Error creating vendor");
+    }
   };
 
-  const handleDeleteVendor = () => {
+  const handleDeleteVendor = async () => {
     if (!selectedVendor) return;
 
     if (confirm(`Are you sure you want to delete vendor "${selectedVendor.name}"?`)) {
-      const newVendors = vendors.filter(v => v.id !== selectedVendor.id);
-      setVendors(newVendors);
-      setSelectedVendor(newVendors[0] || null);
+      try {
+        const response = await fetch(`/api/vendors/${selectedVendor.id}`, {
+          method: "DELETE",
+        });
+        if (response.ok) {
+          setSelectedVendor(null);
+          fetchVendors();
+        } else {
+          alert("Failed to delete vendor");
+        }
+      } catch (error) {
+        console.error("Error deleting vendor:", error);
+        alert("Error deleting vendor");
+      }
     }
   };
 

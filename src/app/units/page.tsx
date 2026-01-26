@@ -30,6 +30,7 @@ interface Unit {
   customerName: string;
   status: "Active" | "Inactive";
   stateNumber: string;
+  premisesId?: string;
 }
 
 interface NewUnitForm {
@@ -65,32 +66,42 @@ export default function UnitsPage() {
   const types = ["All", "Elevator", "Hydraulic", "Service"];
   const buildings = ["All", "Hospital", "Office / Commercial", "Store / Retail", "School", "Other"];
 
-  // Mock data matching the screenshot
-  const mockUnits: Unit[] = [
-    { id: "1", accountId: "1ALEX", accountTag: "1 ALEXANDER PL", unitNumber: "HYDRO", type: "Elevator", category: "CONSULTANT", building: "Hospital", customerId: "1", customerName: "SCO FAMILY OF SERVICES", status: "Inactive", stateNumber: "" },
-    { id: "2", accountId: "1AMERICANDREAM", accountTag: "1 AMERICAN DREAM WAY - STORE", unitNumber: "P1", type: "Elevator", category: "Service", building: "Store / Retail", customerId: "2", customerName: "H&M FASHION USA, INC.", status: "Inactive", stateNumber: "SE26" },
-    { id: "3", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "NORTH 1", type: "Elevator", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "4", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "NORTH 2", type: "Elevator", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "5", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "NORTH 3", type: "Elevator", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "6", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "P10 CONF C", type: "Hydraulic", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "7", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "P11 FITNESS", type: "Hydraulic", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "8", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "P12 DAY CA", type: "Hydraulic", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "9", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "S7", type: "Elevator", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "10", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "S8", type: "Hydraulic", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "11", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "S9 KITCHEN", type: "Hydraulic", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "12", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "SOUTH 1", type: "Elevator", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "13", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "SOUTH 2", type: "Elevator", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "14", accountId: "1CAPLAZA", accountTag: "1 CA PLAZA", unitNumber: "SOUTH 3", type: "Elevator", category: "CONSULTANT", building: "Office / Commercial", customerId: "3", customerName: "ONYX EQUITIES", status: "Inactive", stateNumber: "" },
-    { id: "15", accountId: "1CAROWPL", accountTag: "1 CAROW PLACE", unitNumber: "LULA", type: "Elevator", category: "Service", building: "Other", customerId: "4", customerName: "ST. PHILIP AND JAMES", status: "Active", stateNumber: "" },
-    { id: "16", accountId: "1CASTLEPOINT", accountTag: "1 CASTLE POINT TERRACE", unitNumber: "F3", type: "Elevator", category: "Public", building: "School", customerId: "5", customerName: "STEVENS INSTITUTE OF TECHN", status: "Inactive", stateNumber: "" },
-    { id: "17", accountId: "1CASTLEPOINT", accountTag: "1 CASTLE POINT TERRACE", unitNumber: "P1", type: "Elevator", category: "CONSULTANT", building: "School", customerId: "5", customerName: "STEVENS INSTITUTE OF TECHN", status: "Inactive", stateNumber: "" },
-  ];
+  // Fetch units from API
+  const fetchUnits = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/units");
+      if (response.ok) {
+        const data = await response.json();
+        // Map API response to our interface
+        const mappedUnits: Unit[] = data.map((u: any) => ({
+          id: u.id,
+          accountId: u.premises?.premisesId || "",
+          accountTag: u.premises?.address || "",
+          unitNumber: u.unitNumber || "",
+          type: u.unitType || "Elevator",
+          category: u.cat || "CONSULTANT",
+          building: u.building || "",
+          customerId: u.premises?.customer?.id || "",
+          customerName: u.premises?.customer?.name || "",
+          status: u.status || "Active",
+          stateNumber: u.state || "",
+          premisesId: u.premisesId,
+        }));
+        setUnits(mappedUnits);
+        if (mappedUnits.length > 0) {
+          setSelectedUnit(mappedUnits[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching units:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setUnits(mockUnits);
-    setFilteredUnits(mockUnits);
-    setSelectedUnit(mockUnits[0]);
-    setLoading(false);
+    fetchUnits();
   }, []);
 
   // Filter units based on selected filter type and category
@@ -133,8 +144,10 @@ export default function UnitsPage() {
   };
 
   // Navigate to Account
-  const handleNavigateToAccount = (accountId: string, accountTag: string) => {
-    openTab(accountTag, `/accounts/${accountId}`);
+  const handleNavigateToAccount = (unit: Unit) => {
+    if (unit.premisesId) {
+      openTab(unit.accountTag, `/accounts/${unit.premisesId}`);
+    }
   };
 
   // Navigate to Customer
@@ -163,30 +176,48 @@ export default function UnitsPage() {
     setShowNewUnitDialog(true);
   };
 
-  const handleCreateUnit = () => {
+  const handleCreateUnit = async () => {
     if (!newUnit.accountId || !newUnit.unitNumber) {
       alert("Please enter Account ID and Unit Number");
       return;
     }
 
-    const unit: Unit = {
-      id: String(units.length + 1),
-      accountId: newUnit.accountId,
-      accountTag: newUnit.accountId,
-      unitNumber: newUnit.unitNumber,
-      type: newUnit.type as "Elevator" | "Hydraulic" | "Service",
-      category: newUnit.category as "CONSULTANT" | "N/A" | "Other" | "Private" | "Public" | "Service",
-      building: newUnit.building,
-      customerId: "",
-      customerName: "",
-      status: "Active",
-      stateNumber: "",
-    };
+    try {
+      // First try to find the premises by ID
+      const premisesResponse = await fetch(`/api/premises?premisesId=${encodeURIComponent(newUnit.accountId)}`);
+      let premisesId = null;
+      if (premisesResponse.ok) {
+        const premises = await premisesResponse.json();
+        if (premises.length > 0) {
+          premisesId = premises[0].id;
+        }
+      }
 
-    setUnits([...units, unit]);
-    setShowNewUnitDialog(false);
-    setSelectedUnit(unit);
-    openTab(`Unit ${unit.unitNumber}`, `/units/${unit.id}`);
+      const response = await fetch("/api/units", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          unitNumber: newUnit.unitNumber,
+          unitType: newUnit.type,
+          cat: newUnit.category,
+          building: newUnit.building,
+          status: "Active",
+          premisesId: premisesId,
+        }),
+      });
+
+      if (response.ok) {
+        const created = await response.json();
+        setShowNewUnitDialog(false);
+        fetchUnits(); // Refresh the list
+        openTab(`Unit ${created.unitNumber}`, `/units/${created.id}`);
+      } else {
+        alert("Failed to create unit");
+      }
+    } catch (error) {
+      console.error("Error creating unit:", error);
+      alert("Error creating unit");
+    }
   };
 
   // Edit handler
@@ -203,12 +234,23 @@ export default function UnitsPage() {
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedUnit) {
-      const updated = units.filter(u => u.id !== selectedUnit.id);
-      setUnits(updated);
-      setSelectedUnit(updated[0] || null);
-      setShowDeleteConfirm(false);
+      try {
+        const response = await fetch(`/api/units/${selectedUnit.id}`, {
+          method: "DELETE",
+        });
+        if (response.ok) {
+          setShowDeleteConfirm(false);
+          setSelectedUnit(null);
+          fetchUnits(); // Refresh the list
+        } else {
+          alert("Failed to delete unit");
+        }
+      } catch (error) {
+        console.error("Error deleting unit:", error);
+        alert("Error deleting unit");
+      }
     }
   };
 
@@ -375,11 +417,11 @@ export default function UnitsPage() {
                 }`}
               >
                 <td
-                  className={`px-2 py-1 border border-[#e0e0e0] ${selectedUnit?.id !== unit.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
+                  className={`px-2 py-1 border border-[#e0e0e0] ${selectedUnit?.id !== unit.id && unit.premisesId ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
                   onClick={(e) => {
-                    if (selectedUnit?.id !== unit.id) {
+                    if (selectedUnit?.id !== unit.id && unit.premisesId) {
                       e.stopPropagation();
-                      handleNavigateToAccount(unit.accountId, unit.accountTag);
+                      handleNavigateToAccount(unit);
                     }
                   }}
                 >

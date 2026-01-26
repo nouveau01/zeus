@@ -4,12 +4,23 @@ import { useState, useEffect, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
+import {
+  FileText,
+  Save,
+  Undo2,
+  Printer,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 
 interface Unit {
   id: string;
   unitNumber: string;
   unitType: string | null;
-  category: string | null;
+  cat: string | null;
   serial: string | null;
   manufacturer: string | null;
   status: string | null;
@@ -120,17 +131,55 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [selectedContract, setSelectedContract] = useState<string | null>(null);
 
+  // Add Unit Dialog state
+  const [showAddUnitDialog, setShowAddUnitDialog] = useState(false);
+  const [newUnit, setNewUnit] = useState({
+    unitNumber: "",
+    description: "",
+    category: "CONSULTANT",
+    unitType: "Elevator",
+    manufacturer: "",
+    serial: "",
+    status: "Active",
+  });
+
   // Remarks state
   const [accountRemarks, setAccountRemarks] = useState("");
   const [customerRemarks, setCustomerRemarks] = useState("");
   const [collectionNotes, setCollectionNotes] = useState("");
   const [salesRemarks, setSalesRemarks] = useState("");
 
-  // Mock contacts data (will be fetched from API later)
+  // Contacts data
   const [contacts, setContacts] = useState<Contact[]>([]);
 
-  // Mock PM contracts data
+  // Add Contact Dialog state
+  const [showAddContactDialog, setShowAddContactDialog] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [newContact, setNewContact] = useState({
+    name: "",
+    title: "",
+    phone: "",
+    fax: "",
+    mobile: "",
+    email: "",
+    inv: false,
+    es: false,
+  });
+
+  // PM contracts data
   const [pmContracts, setPmContracts] = useState<any[]>([]);
+  const [showAddContractDialog, setShowAddContractDialog] = useState(false);
+  const [editingPMContract, setEditingPMContract] = useState<any>(null);
+  const [newContract, setNewContract] = useState({
+    job: "",
+    description: "",
+    schedule: "Monthly",
+    hours: "",
+    billingCycle: "Monthly",
+    billingAmt: "",
+    monthlyAmt: "",
+    active: true,
+  });
 
   // Save callback for the unsaved changes hook
   const handleSaveForHook = useCallback(async () => {
@@ -234,11 +283,27 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         const data = await response.json();
         setAccount(data);
         setFormData(data);
+        // Fetch contacts for this customer
+        if (data.customerId) {
+          fetchContacts(data.customerId);
+        }
       }
     } catch (error) {
       console.error("Error fetching account:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchContacts = async (custId: string) => {
+    try {
+      const response = await fetch(`/api/contacts?customerId=${custId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data);
+      }
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
     }
   };
 
@@ -290,6 +355,279 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     if (account?.customer) {
       openTab(account.customer.name, `/customers/${account.customer.id}`);
     }
+  };
+
+  const handleUndo = () => {
+    if (account) {
+      setFormData(account);
+      setIsDirty(false);
+    }
+  };
+
+  // Unit CRUD handlers
+  const handleAddUnit = async () => {
+    if (!newUnit.unitNumber.trim()) {
+      alert("Unit # is required");
+      return;
+    }
+    try {
+      const response = await fetch("/api/units", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newUnit,
+          premisesId: accountId,
+        }),
+      });
+      if (response.ok) {
+        const created = await response.json();
+        // Refresh account data to get updated units list
+        if (account) {
+          setAccount({
+            ...account,
+            units: [...(account.units || []), created],
+            _count: { ...account._count, units: (account._count?.units || 0) + 1 },
+          });
+        }
+        setShowAddUnitDialog(false);
+        setNewUnit({
+          unitNumber: "",
+          description: "",
+          category: "CONSULTANT",
+          unitType: "Elevator",
+          manufacturer: "",
+          serial: "",
+          status: "Active",
+        });
+      }
+    } catch (error) {
+      console.error("Error adding unit:", error);
+    }
+  };
+
+  const handleEditUnit = () => {
+    if (selectedUnit) {
+      const unit = account?.units?.find(u => u.id === selectedUnit);
+      if (unit) {
+        openTab(unit.unitNumber, `/units/${unit.id}`);
+      }
+    }
+  };
+
+  const handleDeleteUnit = async () => {
+    if (!selectedUnit) return;
+    if (!confirm("Are you sure you want to delete this unit?")) return;
+
+    try {
+      const response = await fetch(`/api/units/${selectedUnit}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        if (account) {
+          setAccount({
+            ...account,
+            units: account.units?.filter(u => u.id !== selectedUnit) || [],
+            _count: { ...account._count, units: Math.max(0, (account._count?.units || 0) - 1) },
+          });
+        }
+        setSelectedUnit(null);
+      }
+    } catch (error) {
+      console.error("Error deleting unit:", error);
+    }
+  };
+
+  // Contact CRUD handlers
+  const handleAddContact = async () => {
+    if (!newContact.name.trim()) {
+      alert("Contact name is required");
+      return;
+    }
+    try {
+      const response = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newContact,
+          customerId: account?.customerId,
+        }),
+      });
+      if (response.ok) {
+        const created = await response.json();
+        setContacts([...contacts, created]);
+        setShowAddContactDialog(false);
+        setNewContact({
+          name: "",
+          title: "",
+          phone: "",
+          fax: "",
+          mobile: "",
+          email: "",
+          inv: false,
+          es: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error adding contact:", error);
+    }
+  };
+
+  const handleEditContact = () => {
+    if (selectedContact) {
+      const contact = contacts.find(c => c.id === selectedContact);
+      if (contact) {
+        setEditingContact(contact);
+        setNewContact({
+          name: contact.name,
+          title: contact.title || "",
+          phone: contact.phone || "",
+          fax: contact.fax || "",
+          mobile: contact.mobile || "",
+          email: contact.email || "",
+          inv: contact.inv,
+          es: contact.es,
+        });
+        setShowAddContactDialog(true);
+      }
+    }
+  };
+
+  const handleUpdateContact = async () => {
+    if (!editingContact || !newContact.name.trim()) {
+      alert("Contact name is required");
+      return;
+    }
+    try {
+      const response = await fetch(`/api/contacts/${editingContact.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newContact),
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setContacts(contacts.map(c => c.id === editingContact.id ? updated : c));
+        setShowAddContactDialog(false);
+        setEditingContact(null);
+        setNewContact({
+          name: "",
+          title: "",
+          phone: "",
+          fax: "",
+          mobile: "",
+          email: "",
+          inv: false,
+          es: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating contact:", error);
+    }
+  };
+
+  const handleDeleteContact = async () => {
+    if (!selectedContact) return;
+    if (!confirm("Are you sure you want to delete this contact?")) return;
+
+    try {
+      const response = await fetch(`/api/contacts/${selectedContact}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setContacts(contacts.filter(c => c.id !== selectedContact));
+        setSelectedContact(null);
+      }
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+    }
+  };
+
+  // PM Contract CRUD handlers
+  const handleAddPMContract = () => {
+    const contract = {
+      id: `pm-${Date.now()}`,
+      job: newContract.job,
+      description: newContract.description,
+      schedule: newContract.schedule,
+      hours: newContract.hours,
+      billingCycle: newContract.billingCycle,
+      billingAmt: newContract.billingAmt,
+      monthlyAmt: newContract.monthlyAmt,
+      active: newContract.active,
+    };
+    setPmContracts([...pmContracts, contract]);
+    setShowAddContractDialog(false);
+    setEditingPMContract(null);
+    setNewContract({
+      job: "",
+      description: "",
+      schedule: "Monthly",
+      hours: "",
+      billingCycle: "Monthly",
+      billingAmt: "",
+      monthlyAmt: "",
+      active: true,
+    });
+    markDirty();
+  };
+
+  const handleEditPMContract = () => {
+    if (!selectedContract) return;
+    const contract = pmContracts.find(c => c.id === selectedContract);
+    if (contract) {
+      setEditingPMContract(contract);
+      setNewContract({
+        job: contract.job || "",
+        description: contract.description || "",
+        schedule: contract.schedule || "Monthly",
+        hours: contract.hours || "",
+        billingCycle: contract.billingCycle || "Monthly",
+        billingAmt: contract.billingAmt || "",
+        monthlyAmt: contract.monthlyAmt || "",
+        active: contract.active ?? true,
+      });
+      setShowAddContractDialog(true);
+    }
+  };
+
+  const handleUpdatePMContract = () => {
+    if (!editingPMContract) return;
+    setPmContracts(pmContracts.map(c => {
+      if (c.id === editingPMContract.id) {
+        return {
+          ...c,
+          job: newContract.job,
+          description: newContract.description,
+          schedule: newContract.schedule,
+          hours: newContract.hours,
+          billingCycle: newContract.billingCycle,
+          billingAmt: newContract.billingAmt,
+          monthlyAmt: newContract.monthlyAmt,
+          active: newContract.active,
+        };
+      }
+      return c;
+    }));
+    setShowAddContractDialog(false);
+    setEditingPMContract(null);
+    setNewContract({
+      job: "",
+      description: "",
+      schedule: "Monthly",
+      hours: "",
+      billingCycle: "Monthly",
+      billingAmt: "",
+      monthlyAmt: "",
+      active: true,
+    });
+    markDirty();
+  };
+
+  const handleDeletePMContract = () => {
+    if (!selectedContract) return;
+    if (!confirm("Delete this PM contract?")) return;
+    setPmContracts(pmContracts.filter(c => c.id !== selectedContract));
+    setSelectedContract(null);
+    markDirty();
   };
 
   const addDateToRemarks = (setter: React.Dispatch<React.SetStateAction<string>>) => {
@@ -551,16 +889,27 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       <div className="flex-1 flex flex-col mx-2 mb-2 overflow-hidden">
         <div className="flex items-center gap-2 py-1 bg-[#f5f5f5]">
           <span className="text-[12px] font-medium">Unit Listing</span>
-          <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+          <button
+            onClick={() => setShowAddUnitDialog(true)}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]"
+          >
             Add
           </button>
           <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
             Rep
           </button>
-          <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+          <button
+            onClick={handleEditUnit}
+            disabled={!selectedUnit}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] disabled:opacity-50"
+          >
             Edit
           </button>
-          <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+          <button
+            onClick={handleDeleteUnit}
+            disabled={!selectedUnit}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] disabled:opacity-50"
+          >
             Del
           </button>
         </div>
@@ -598,7 +947,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
                     }`}
                   >
                     <td className="px-2 py-1 border border-[#d0d0d0]">{unit.unitNumber}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]">{unit.category || ""}</td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]">{unit.cat || ""}</td>
                     <td className="px-2 py-1 border border-[#d0d0d0]">{unit.unitType || ""}</td>
                     <td className="px-2 py-1 border border-[#d0d0d0]">{unit.serial || ""}</td>
                     <td className="px-2 py-1 border border-[#d0d0d0]">{unit.manufacturer || ""}</td>
@@ -985,11 +1334,29 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       <div className="flex-1 flex flex-col mx-2 mt-2 mb-2 overflow-hidden">
         {/* Buttons */}
         <div className="flex items-center gap-2 py-1 bg-[#f5f5f5]">
-          <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+          <button
+            onClick={() => {
+              setEditingPMContract(null);
+              setNewContract({ job: "", description: "", schedule: "Monthly", hours: "", billingCycle: "Monthly", billingAmt: "", monthlyAmt: "", active: true });
+              setShowAddContractDialog(true);
+            }}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]"
+          >
             Add
           </button>
-          <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+          <button
+            onClick={handleEditPMContract}
+            disabled={!selectedContract}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] disabled:opacity-50"
+          >
             Edit
+          </button>
+          <button
+            onClick={handleDeletePMContract}
+            disabled={!selectedContract}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] disabled:opacity-50"
+          >
+            Delete
           </button>
         </div>
 
@@ -1053,13 +1420,28 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       <div className="flex-1 flex flex-col mx-2 mt-2 mb-2 overflow-hidden">
         {/* Buttons */}
         <div className="flex items-center gap-2 py-1 bg-[#f5f5f5]">
-          <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+          <button
+            onClick={() => {
+              setEditingContact(null);
+              setNewContact({ name: "", title: "", phone: "", fax: "", mobile: "", email: "", inv: false, es: false });
+              setShowAddContactDialog(true);
+            }}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]"
+          >
             Add
           </button>
-          <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+          <button
+            onClick={handleEditContact}
+            disabled={!selectedContact}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] disabled:opacity-50"
+          >
             Edit
           </button>
-          <button className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
+          <button
+            onClick={handleDeleteContact}
+            disabled={!selectedContact}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] disabled:opacity-50"
+          >
             Delete
           </button>
         </div>
@@ -1243,6 +1625,16 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   return (
     <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+      {/* Title Bar */}
+      <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
+        <span className="font-bold text-[13px]">
+          {isNew ? "New Account" : `Editing Account '${account?.premisesId || account?.address || ""}'`}
+        </span>
+        <button onClick={() => confirmNavigation(() => onClose?.())} className="hover:bg-[#c0c0c0] hover:text-black px-2 rounded">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
       {/* Menu Bar */}
       <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
@@ -1250,6 +1642,56 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Move</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Help</span>
+      </div>
+
+      {/* Toolbar */}
+      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="New">
+          <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={!isDirty}
+          className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] disabled:opacity-50"
+          title="Save"
+        >
+          <Save className="w-4 h-4" style={{ color: "#4a90d9" }} />
+        </button>
+        <button
+          onClick={handleUndo}
+          disabled={!isDirty}
+          className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] disabled:opacity-50"
+          title="Undo"
+        >
+          <Undo2 className="w-4 h-4" style={{ color: "#f39c12" }} />
+        </button>
+        <div className="w-px h-5 bg-[#c0c0c0] mx-1" />
+        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Print">
+          <Printer className="w-4 h-4" style={{ color: "#333" }} />
+        </button>
+        <div className="w-px h-5 bg-[#c0c0c0] mx-1" />
+        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="First">
+          <ChevronsLeft className="w-4 h-4" style={{ color: "#3498db" }} />
+        </button>
+        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Previous">
+          <ChevronLeft className="w-4 h-4" style={{ color: "#3498db" }} />
+        </button>
+        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Next">
+          <ChevronRight className="w-4 h-4" style={{ color: "#3498db" }} />
+        </button>
+        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Last">
+          <ChevronsRight className="w-4 h-4" style={{ color: "#3498db" }} />
+        </button>
+        <button
+          onClick={() => confirmNavigation(() => onClose?.())}
+          className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
+          title="Close"
+        >
+          <X className="w-4 h-4" style={{ color: "#95a5a6" }} />
+        </button>
+        {isDirty && (
+          <span className="ml-4 text-[11px] text-[#c00]">Unsaved changes</span>
+        )}
       </div>
 
       {/* Tabs */}
@@ -1291,6 +1733,361 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         onCancel={handleDialogCancel}
         saving={savingFromHook}
       />
+
+      {/* Add Unit Dialog */}
+      {showAddUnitDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#f0f0f0] border-2 border-[#808080] shadow-lg" style={{ minWidth: "450px" }}>
+            <div className="bg-[#000080] text-white px-2 py-1 flex items-center justify-between">
+              <span className="text-[12px] font-bold">Add New Unit</span>
+              <button
+                onClick={() => setShowAddUnitDialog(false)}
+                className="text-white hover:bg-[#c0c0c0] hover:text-black px-1"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Unit #</label>
+                  <input
+                    type="text"
+                    value={newUnit.unitNumber}
+                    onChange={(e) => setNewUnit({ ...newUnit, unitNumber: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-[#ffffe1]"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Description</label>
+                  <input
+                    type="text"
+                    value={newUnit.description}
+                    onChange={(e) => setNewUnit({ ...newUnit, description: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Category</label>
+                  <select
+                    value={newUnit.category}
+                    onChange={(e) => setNewUnit({ ...newUnit, category: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  >
+                    <option value="CONSULTANT">CONSULTANT</option>
+                    <option value="Public">Public</option>
+                    <option value="Service">Service</option>
+                    <option value="Private">Private</option>
+                    <option value="N/A">N/A</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Type</label>
+                  <select
+                    value={newUnit.unitType}
+                    onChange={(e) => setNewUnit({ ...newUnit, unitType: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  >
+                    <option value="Elevator">Elevator</option>
+                    <option value="Escalator">Escalator</option>
+                    <option value="Dumbwaiter">Dumbwaiter</option>
+                    <option value="Wheelchair Lift">Wheelchair Lift</option>
+                    <option value="Moving Walk">Moving Walk</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Manufacturer</label>
+                  <input
+                    type="text"
+                    value={newUnit.manufacturer}
+                    onChange={(e) => setNewUnit({ ...newUnit, manufacturer: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Serial #</label>
+                  <input
+                    type="text"
+                    value={newUnit.serial}
+                    onChange={(e) => setNewUnit({ ...newUnit, serial: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Status</label>
+                  <select
+                    value={newUnit.status}
+                    onChange={(e) => setNewUnit({ ...newUnit, status: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Pending">Pending</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#808080]">
+                <button
+                  onClick={handleAddUnit}
+                  className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+                >
+                  OK
+                </button>
+                <button
+                  onClick={() => setShowAddUnitDialog(false)}
+                  className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Contact Dialog */}
+      {showAddContactDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#f0f0f0] border-2 border-[#808080] shadow-lg" style={{ minWidth: "450px" }}>
+            <div className="bg-[#000080] text-white px-2 py-1 flex items-center justify-between">
+              <span className="text-[12px] font-bold">{editingContact ? "Edit Contact" : "Add New Contact"}</span>
+              <button
+                onClick={() => {
+                  setShowAddContactDialog(false);
+                  setEditingContact(null);
+                }}
+                className="text-white hover:bg-[#c0c0c0] hover:text-black px-1"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="w-20 text-right text-[12px]">Name</label>
+                  <input
+                    type="text"
+                    value={newContact.name}
+                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-[#ffffe1]"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-20 text-right text-[12px]">Title</label>
+                  <input
+                    type="text"
+                    value={newContact.title}
+                    onChange={(e) => setNewContact({ ...newContact, title: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-20 text-right text-[12px]">Phone</label>
+                  <input
+                    type="text"
+                    value={newContact.phone}
+                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-20 text-right text-[12px]">Fax</label>
+                  <input
+                    type="text"
+                    value={newContact.fax}
+                    onChange={(e) => setNewContact({ ...newContact, fax: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-20 text-right text-[12px]">Mobile</label>
+                  <input
+                    type="text"
+                    value={newContact.mobile}
+                    onChange={(e) => setNewContact({ ...newContact, mobile: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-20 text-right text-[12px]">Email</label>
+                  <input
+                    type="text"
+                    value={newContact.email}
+                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-4 ml-24">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="contact-inv"
+                      checked={newContact.inv}
+                      onChange={(e) => setNewContact({ ...newContact, inv: e.target.checked })}
+                      className="w-3 h-3"
+                    />
+                    <label htmlFor="contact-inv" className="text-[12px]">Invoice</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="contact-es"
+                      checked={newContact.es}
+                      onChange={(e) => setNewContact({ ...newContact, es: e.target.checked })}
+                      className="w-3 h-3"
+                    />
+                    <label htmlFor="contact-es" className="text-[12px]">End Statement</label>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#808080]">
+                <button
+                  onClick={editingContact ? handleUpdateContact : handleAddContact}
+                  className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+                >
+                  OK
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddContactDialog(false);
+                    setEditingContact(null);
+                  }}
+                  className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit PM Contract Dialog */}
+      {showAddContractDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#f0f0f0] border-2 border-[#808080] shadow-lg" style={{ minWidth: "450px" }}>
+            <div className="bg-[#000080] text-white px-2 py-1 flex items-center justify-between">
+              <span className="text-[12px] font-bold">{editingPMContract ? "Edit PM Contract" : "Add PM Contract"}</span>
+              <button
+                onClick={() => {
+                  setShowAddContractDialog(false);
+                  setEditingPMContract(null);
+                }}
+                className="text-white hover:bg-[#c0c0c0] hover:text-black px-1"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Job</label>
+                  <input
+                    type="text"
+                    value={newContract.job}
+                    onChange={(e) => setNewContract({ ...newContract, job: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-[#ffffe1]"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Description</label>
+                  <input
+                    type="text"
+                    value={newContract.description}
+                    onChange={(e) => setNewContract({ ...newContract, description: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Schedule</label>
+                  <select
+                    value={newContract.schedule}
+                    onChange={(e) => setNewContract({ ...newContract, schedule: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  >
+                    <option value="Weekly">Weekly</option>
+                    <option value="Bi-Weekly">Bi-Weekly</option>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Quarterly">Quarterly</option>
+                    <option value="Semi-Annual">Semi-Annual</option>
+                    <option value="Annual">Annual</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Hours</label>
+                  <input
+                    type="text"
+                    value={newContract.hours}
+                    onChange={(e) => setNewContract({ ...newContract, hours: e.target.value })}
+                    className="w-24 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Billing Cycle</label>
+                  <select
+                    value={newContract.billingCycle}
+                    onChange={(e) => setNewContract({ ...newContract, billingCycle: e.target.value })}
+                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  >
+                    <option value="Monthly">Monthly</option>
+                    <option value="Quarterly">Quarterly</option>
+                    <option value="Semi-Annual">Semi-Annual</option>
+                    <option value="Annual">Annual</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Billing Amt</label>
+                  <input
+                    type="text"
+                    value={newContract.billingAmt}
+                    onChange={(e) => setNewContract({ ...newContract, billingAmt: e.target.value })}
+                    className="w-32 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-24 text-right text-[12px]">Monthly Amt</label>
+                  <input
+                    type="text"
+                    value={newContract.monthlyAmt}
+                    onChange={(e) => setNewContract({ ...newContract, monthlyAmt: e.target.value })}
+                    className="w-32 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                  />
+                </div>
+                <div className="flex items-center gap-2 ml-24">
+                  <input
+                    type="checkbox"
+                    id="contract-active"
+                    checked={newContract.active}
+                    onChange={(e) => setNewContract({ ...newContract, active: e.target.checked })}
+                    className="w-3 h-3"
+                  />
+                  <label htmlFor="contract-active" className="text-[12px]">Active</label>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#808080]">
+                <button
+                  onClick={editingPMContract ? handleUpdatePMContract : handleAddPMContract}
+                  className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+                >
+                  OK
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddContractDialog(false);
+                    setEditingPMContract(null);
+                  }}
+                  className="px-4 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

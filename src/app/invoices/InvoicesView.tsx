@@ -180,15 +180,20 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
       {/* Toolbar */}
       <div className="bg-[#f5f5f5] flex items-center gap-1 px-2 py-1 border-b border-[#d0d0d0]">
         {/* New */}
-        <button className="p-1 hover:bg-[#e0e0e0] rounded" title="New Invoice">
+        <button
+          className="p-1 hover:bg-[#e0e0e0] rounded"
+          title="New Invoice"
+          onClick={() => openTab("New Invoice", "/invoices/new")}
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
         </button>
         {/* Edit */}
         <button
-          className="p-1 hover:bg-[#e0e0e0] rounded"
+          className="p-1 hover:bg-[#e0e0e0] rounded disabled:opacity-50"
           title="Edit Invoice"
+          disabled={!selectedId}
           onClick={() => selectedId && openTab(`Invoice #${invoices.find(i => i.id === selectedId)?.invoiceNumber}`, `/invoices/${selectedId}`)}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,7 +201,29 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
           </svg>
         </button>
         {/* Delete */}
-        <button className="p-1 hover:bg-[#e0e0e0] rounded" title="Delete Invoice">
+        <button
+          className="p-1 hover:bg-[#e0e0e0] rounded disabled:opacity-50"
+          title="Delete Invoice"
+          disabled={!selectedId}
+          onClick={async () => {
+            if (!selectedId) return;
+            const invoice = invoices.find(i => i.id === selectedId);
+            if (invoice && confirm(`Delete invoice #${invoice.invoiceNumber}?`)) {
+              try {
+                const res = await fetch(`/api/invoices/${selectedId}`, { method: "DELETE" });
+                if (res.ok) {
+                  setSelectedId(null);
+                  fetchInvoices();
+                } else {
+                  alert("Failed to delete invoice");
+                }
+              } catch (e) {
+                console.error(e);
+                alert("Error deleting invoice");
+              }
+            }
+          }}
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>

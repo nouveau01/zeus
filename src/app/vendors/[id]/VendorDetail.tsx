@@ -143,12 +143,21 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
   const handleSaveForHook = useCallback(async () => {
     setSavingFromHook(true);
     try {
-      // In real app, this would save to API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch(`/api/vendors/${vendorId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          ...controlData,
+          ...achData,
+          ...customData,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save vendor");
     } finally {
       setSavingFromHook(false);
     }
-  }, []);
+  }, [vendorId, formData, controlData, achData, customData]);
 
   // Unsaved changes hook
   const {
@@ -162,47 +171,102 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
     handleDialogCancel,
   } = useUnsavedChanges({ onSave: handleSaveForHook });
 
-  // Mock data
-  const mockVendor: Vendor = {
-    id: "1",
-    vendorId: "14111C",
-    name: "1411 1C SIC PROP.LLC",
-    address: "",
-    city: "",
-    state: "NY",
-    zip: "",
-    country: "United States",
-    contact: "",
-    phone: "(718) 000-0000",
-    fax: "(718) 000-0000",
-    cellular: "(718) 000-0000",
-    email: "",
-    webSite: "",
-    remitTo: "",
-    createdAt: "2016-07-18",
-    updatedAt: "2016-07-18",
+  // Fetch vendor from API
+  const fetchVendor = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/vendors/${vendorId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setVendor({
+          id: data.id,
+          vendorId: data.acct || "",
+          name: data.name || "",
+          address: data.address || "",
+          city: data.city || "",
+          state: data.state || "NY",
+          zip: data.zipCode || "",
+          country: "United States",
+          contact: data.contact || "",
+          phone: data.phone || "",
+          fax: data.fax || "",
+          cellular: "",
+          email: data.email || "",
+          webSite: data.website || "",
+          remitTo: data.remitAddress || "",
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+        });
+        setFormData({
+          vendorId: data.acct || "",
+          name: data.name || "",
+          address: data.address || "",
+          city: data.city || "",
+          state: data.state || "NY",
+          zip: data.zipCode || "",
+          country: "United States",
+          contact: data.contact || "",
+          phone: data.phone || "",
+          fax: data.fax || "",
+          cellular: "",
+          email: data.email || "",
+          webSite: data.website || "",
+          remitTo: data.remitAddress || "",
+        });
+        // Map control data
+        setControlData({
+          status: data.isActive ? "Active" : "Inactive",
+          type: data.type || "Cost of Sales",
+          creditLimit: data.creditLimit?.toString() || "0.00",
+          is1099: data.is1099 === 1,
+          box1099: data.intBox?.toString() || "7",
+          is1099MISC: data.misc1099Rpt === 1,
+          is1099NEC: data.nec1099Rpt === 1,
+          fedId: data.fid || "",
+          acctNumber: data.acctNumber || "",
+          balance: data.balance?.toString() || "0.00",
+          shipVia: data.shipVia || "UPS",
+          defaultAcct: "OTHER INCOME & EXPENSES",
+          payStyle: "Normal",
+          desiredBank: data.defaultBank || "",
+          terms: "Net 30 Days",
+          discount: data.discPercent?.toString() || "0.00",
+          ifPaidIn: data.discDays?.toString() || "10",
+        });
+        // Map ACH data
+        setACHData({
+          bankAccountNumber: data.bankAcctNo || "",
+          bankRouteNumber: data.routeNo || "",
+          bankAcctType: data.transCode === 2 ? "Savings" : "Checking",
+        });
+        // Map custom data
+        setCustomData({
+          custom1: data.custom1 || "",
+          custom2: data.custom2 || "",
+          custom3: data.custom3 || "",
+          custom4: data.custom4 || "",
+          custom5: data.custom5 || "",
+          custom6: data.custom6 || "",
+          custom7: data.custom7 || "",
+          custom8: "",
+          custom9: "",
+          custom10: "",
+          notes: "",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching vendor:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    // In real app, fetch vendor by ID
-    setVendor(mockVendor);
-    setFormData({
-      vendorId: mockVendor.vendorId,
-      name: mockVendor.name,
-      address: mockVendor.address,
-      city: mockVendor.city,
-      state: mockVendor.state,
-      zip: mockVendor.zip,
-      country: mockVendor.country,
-      contact: mockVendor.contact,
-      phone: mockVendor.phone,
-      fax: mockVendor.fax,
-      cellular: mockVendor.cellular,
-      email: mockVendor.email,
-      webSite: mockVendor.webSite,
-      remitTo: mockVendor.remitTo,
-    });
-    setLoading(false);
+    if (vendorId && vendorId !== "new") {
+      fetchVendor();
+    } else {
+      setLoading(false);
+    }
   }, [vendorId]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -236,9 +300,35 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
   };
 
   // Save handler
-  const handleSave = () => {
-    setHasChanges(false);
-    alert("Vendor saved successfully");
+  const handleSave = async () => {
+    try {
+      const response = await fetch(`/api/vendors/${vendorId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          ...controlData,
+          ...achData,
+          ...customData,
+        }),
+      });
+      if (response.ok) {
+        setHasChanges(false);
+        const updated = await response.json();
+        // Update vendor state with saved data
+        setVendor(prev => prev ? {
+          ...prev,
+          vendorId: updated.acct || formData.vendorId,
+          name: updated.name || formData.name,
+          updatedAt: updated.updatedAt,
+        } : null);
+      } else {
+        alert("Failed to save vendor");
+      }
+    } catch (error) {
+      console.error("Error saving vendor:", error);
+      alert("Error saving vendor");
+    }
   };
 
   // Undo handler

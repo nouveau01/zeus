@@ -37,7 +37,25 @@ export async function GET(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    return NextResponse.json(invoice);
+    // Map schema fields to frontend-friendly names
+    const mapped = {
+      ...invoice,
+      invoiceNumber: invoice.invoiceNumber,
+      postingDate: invoice.iDate,
+      date: invoice.fDate,
+      description: invoice.fDesc,
+      jobRemarks: invoice.remarks,
+      poNumber: invoice.po,
+      priceLevel: invoice.pricing,
+      taxRegion1: invoice.taxRegion,
+      taxRate1: invoice.taxRate,
+      salesTax: invoice.sTax,
+      subTotal: Number(invoice.amount),
+      nonTaxable: Number(invoice.total) - Number(invoice.taxable) - Number(invoice.sTax),
+      remainingUnpaid: Number(invoice.total), // Would need payment tracking
+    };
+
+    return NextResponse.json(mapped);
   } catch (error) {
     console.error("Error fetching invoice:", error);
     return NextResponse.json({ error: "Failed to fetch invoice" }, { status: 500 });
@@ -58,9 +76,6 @@ export async function PUT(
       terms,
       priceLevel,
       poNumber,
-      mechSales,
-      creditReq,
-      backup,
       status,
       description,
       jobRemarks,
@@ -69,42 +84,29 @@ export async function PUT(
       taxRegion2,
       taxRate2,
       taxFactor,
-      reg,
-      ot,
-      ot17,
-      dt,
-      tt,
       premisesId,
       jobId,
       items,
     } = body;
 
     // Calculate totals from items if provided
-    let taxable = 0;
-    let nonTaxable = 0;
+    let taxableAmount = 0;
+    let nonTaxableAmount = 0;
 
     if (items && items.length > 0) {
       items.forEach((item: any) => {
         const amount = parseFloat(item.amount) || 0;
         if (item.tax) {
-          taxable += amount;
+          taxableAmount += amount;
         } else {
-          nonTaxable += amount;
+          nonTaxableAmount += amount;
         }
       });
     }
 
-    const subTotal = taxable + nonTaxable;
-    const salesTax = taxable * 0.08875;
-    const total = subTotal + salesTax;
-
-    // Determine remaining unpaid based on status
-    let remainingUnpaid = total;
-    if (status === "Paid") {
-      remainingUnpaid = 0;
-    } else if (status === "Void") {
-      remainingUnpaid = 0;
-    }
+    const subTotal = taxableAmount + nonTaxableAmount;
+    const calculatedTax = taxableAmount * (parseFloat(taxRate1) || 0.08875);
+    const total = subTotal + calculatedTax;
 
     // Delete existing items and recreate if items provided
     if (items) {
@@ -116,36 +118,31 @@ export async function PUT(
     const invoice = await prisma.invoice.update({
       where: { id: params.id },
       data: {
-        postingDate: postingDate ? new Date(postingDate) : undefined,
         date: date ? new Date(date) : undefined,
+        postingDate: postingDate ? new Date(postingDate) : undefined,
+        fDate: date ? new Date(date) : undefined,
+        iDate: postingDate ? new Date(postingDate) : undefined,
         type: type || undefined,
         terms: terms || undefined,
-        priceLevel: priceLevel,
-        poNumber: poNumber,
-        mechSales: mechSales,
-        creditReq: creditReq,
-        backup: backup,
+        pricing: priceLevel ? parseInt(priceLevel) : undefined,
+        po: poNumber || undefined,
+        poNumber: poNumber || undefined,
         status: status || undefined,
+        fDesc: description,
         description: description,
-        jobRemarks: jobRemarks,
-        taxRegion1: taxRegion1,
-        taxRate1: taxRate1 !== undefined ? taxRate1 : undefined,
-        taxRegion2: taxRegion2,
+        remarks: jobRemarks,
+        taxRegion: taxRegion1 || undefined,
+        taxRate: taxRate1 !== undefined ? taxRate1 : undefined,
+        taxRegion2: taxRegion2 || undefined,
         taxRate2: taxRate2 !== undefined ? taxRate2 : undefined,
         taxFactor: taxFactor !== undefined ? taxFactor : undefined,
-        reg: reg,
-        ot: ot,
-        ot17: ot17,
-        dt: dt,
-        tt: tt,
-        taxable,
-        nonTaxable,
-        subTotal,
-        salesTax,
-        total,
-        remainingUnpaid,
-        premisesId: premisesId,
-        jobId: jobId,
+        taxable: taxableAmount,
+        amount: subTotal,
+        subTotal: subTotal,
+        sTax: calculatedTax,
+        total: total,
+        premisesId: premisesId || undefined,
+        jobId: jobId || undefined,
         items: items
           ? {
               create: items.map((item: any) => ({
@@ -186,7 +183,22 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json(invoice);
+    // Map response to frontend-friendly names
+    const mapped = {
+      ...invoice,
+      postingDate: invoice.iDate,
+      date: invoice.fDate,
+      description: invoice.fDesc,
+      jobRemarks: invoice.remarks,
+      poNumber: invoice.po,
+      priceLevel: invoice.pricing,
+      taxRegion1: invoice.taxRegion,
+      taxRate1: invoice.taxRate,
+      salesTax: invoice.sTax,
+      subTotal: Number(invoice.amount),
+    };
+
+    return NextResponse.json(mapped);
   } catch (error) {
     console.error("Error updating invoice:", error);
     return NextResponse.json({ error: "Failed to update invoice" }, { status: 500 });
