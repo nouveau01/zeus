@@ -12,6 +12,8 @@ import {
   Filter,
   FilterX,
   Copy,
+  Printer,
+  Settings,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";

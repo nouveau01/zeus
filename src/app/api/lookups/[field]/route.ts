@@ -89,12 +89,14 @@ export async function GET(
       }
 
       case "template": {
-        // Get all job templates
+        // Get all job templates (JobTemplate doesn't have description, just name)
         const templates = await prisma.jobTemplate.findMany({
           select: {
             id: true,
             name: true,
-            description: true,
+            type: {
+              select: { name: true },
+            },
           },
           where: { isActive: true },
           orderBy: { name: "asc" },
@@ -102,7 +104,7 @@ export async function GET(
         values = templates.map((t) => ({
           id: t.name,
           label: t.name,
-          description: t.description || undefined,
+          description: t.type?.name || undefined,
         }));
         break;
       }
