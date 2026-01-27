@@ -4,12 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Briefcase, ChevronDown, X, AlertTriangle, Copy, Trash2, Edit3, Upload } from "lucide-react";
-import { StatusPath } from "@/components/salesforce/StatusPath";
-import { HighlightsPanel } from "@/components/salesforce/HighlightsPanel";
-import { Tabs } from "@/components/salesforce/Tabs";
-import { Section } from "@/components/salesforce/Section";
-import { FieldGrid, Field } from "@/components/salesforce/FieldGrid";
-import { JobHistory } from "@/components/salesforce/JobHistory";
+import { StatusPath } from "@/components/layout/StatusPath";
+import { HighlightsPanel } from "@/components/layout/HighlightsPanel";
+import { Tabs } from "@/components/layout/Tabs";
+import { Section } from "@/components/layout/Section";
+import { FieldGrid, Field } from "@/components/layout/FieldGrid";
+import { JobHistory } from "@/components/layout/JobHistory";
 
 const JOB_STATUSES = [
   "Open",

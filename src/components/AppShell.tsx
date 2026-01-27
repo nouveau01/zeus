@@ -2,8 +2,8 @@
 
 import { ReactNode } from "react";
 import { TabProvider } from "@/context/TabContext";
-import { Sidebar } from "@/components/salesforce/Sidebar";
-import { TopNav } from "@/components/salesforce/TopNav";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { TopNav } from "@/components/layout/TopNav";
 import { TabContent } from "@/components/TabContent";
 
 export function AppShell({ children }: { children: ReactNode }) {
