@@ -368,7 +368,7 @@ export function Sidebar() {
                   onClick={() =>
                     setFlyoutSection(isOpen ? null : section.id)
                   }
-                  className={`mx-1 px-1 py-1 flex flex-col items-center justify-center rounded transition-colors text-[9px]
+                  className={`relative mx-1 px-1 py-1 flex flex-col items-center justify-center rounded transition-colors text-[9px]
                     ${isOpen
                       ? "bg-[#316ac5] text-white"
                       : hasActiveChild
@@ -378,16 +378,14 @@ export function Sidebar() {
                   `}
                   title={`${section.id} - ${section.name}`}
                 >
-                  <div className="flex items-center">
-                    {(() => {
-                      const Icon = iconMap[section.iconName];
-                      return Icon ? <Icon className="w-4 h-4" /> : null;
-                    })()}
-                    <ChevronRight className="w-3 h-3 text-[#000]" />
-                  </div>
-                  <span className="mt-0.5 leading-tight text-center whitespace-nowrap">
+                  {(() => {
+                    const Icon = iconMap[section.iconName];
+                    return Icon ? <Icon className="w-4 h-4" /> : null;
+                  })()}
+                  <span className="mt-0.5 leading-tight text-center">
                     {section.id}-{section.name}
                   </span>
+                  <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 text-[#000]" />
                 </button>
               );
             })}
