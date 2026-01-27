@@ -94,6 +94,11 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
   // Filter dialog state
   const [showFilterDialog, setShowFilterDialog] = useState(false);
 
+  // Column resize state
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [columnWidths, setColumnWidths] = useState<number[]>([80, 100, 100, 150, 250, 80, 90, 130, 100]);
+  const [resizing, setResizing] = useState<{ index: number; startX: number; startWidth: number } | null>(null);
+
   // Filter fields for Job Maintenance
   const filterFields: FilterField[] = [
     { key: "accountId", label: "Account ID*", hasLookup: true },
@@ -117,6 +122,38 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
   const clearFilters = () => {
     setActiveFilters({});
   };
+
+  // Column resize handlers
+  const handleResizeStart = (index: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing({ index, startX: e.clientX, startWidth: columnWidths[index] });
+  };
+
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - resizing.startX;
+      const newWidth = Math.max(50, resizing.startWidth + diff); // Min width 50px
+      setColumnWidths(prev => {
+        const updated = [...prev];
+        updated[resizing.index] = newWidth;
+        return updated;
+      });
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizing]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -374,6 +411,23 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
     setOpenMenu(null);
   };
 
+  // Edit menu actions
+  const handleNewRecord = () => {
+    handleToolbarClick("new");
+  };
+
+  const handleEditRecord = () => {
+    handleToolbarClick("edit");
+  };
+
+  const handleDeleteRecord = () => {
+    handleToolbarClick("delete");
+  };
+
+  const handleReplicateRecord = () => {
+    handleToolbarClick("replicate");
+  };
+
   // Toolbar click handler
   const handleToolbarClick = async (action: string) => {
     switch (action) {
@@ -627,70 +681,39 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
             Edit
           </span>
           {openMenu === "edit" && (
-            <div className="absolute top-full left-0 mt-0 bg-white border border-[#c0c0c0] shadow-md z-50 min-w-[150px]">
-              <button className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] text-[12px] text-gray-400" disabled>
-                Cut
+            <div className="absolute top-full left-0 mt-0 bg-white border border-[#c0c0c0] shadow-md z-50 min-w-[180px]">
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={() => { handleNewRecord(); setOpenMenu(null); }}
+              >
+                <FileText className="w-4 h-4 text-[#4a7c59]" />
+                Add New Record
               </button>
-              <button className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] text-[12px] text-gray-400" disabled>
-                Copy
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={() => { handleEditRecord(); setOpenMenu(null); }}
+              >
+                <Pencil className="w-4 h-4 text-[#d4a574]" />
+                Edit Existing Record
               </button>
-              <button className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] text-[12px] text-gray-400" disabled>
-                Paste
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={() => { handleDeleteRecord(); setOpenMenu(null); }}
+              >
+                <X className="w-4 h-4 text-[#c45c5c]" />
+                Delete Existing Record
               </button>
-            </div>
-          )}
-        </div>
-
-        {/* Pim Menu */}
-        <div className="relative">
-          <span
-            className={`px-3 py-1 cursor-pointer rounded ${openMenu === "pim" ? "bg-[#e5e5e5]" : "hover:bg-[#e5e5e5]"}`}
-            onClick={() => setOpenMenu(openMenu === "pim" ? null : "pim")}
-          >
-            Pim
-          </span>
-          {openMenu === "pim" && (
-            <div className="absolute top-full left-0 mt-0 bg-white border border-[#c0c0c0] shadow-md z-50 min-w-[150px]">
-              <button className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] text-[12px] text-gray-400" disabled>
-                Coming soon
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Tools Menu */}
-        <div className="relative">
-          <span
-            className={`px-3 py-1 cursor-pointer rounded ${openMenu === "tools" ? "bg-[#e5e5e5]" : "hover:bg-[#e5e5e5]"}`}
-            onClick={() => setOpenMenu(openMenu === "tools" ? null : "tools")}
-          >
-            Tools
-          </span>
-          {openMenu === "tools" && (
-            <div className="absolute top-full left-0 mt-0 bg-white border border-[#c0c0c0] shadow-md z-50 min-w-[150px]">
-              <button className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] text-[12px] text-gray-400" disabled>
-                Coming soon
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={() => { handleReplicateRecord(); setOpenMenu(null); }}
+              >
+                <Copy className="w-4 h-4 text-[#6b8cae]" />
+                Replicate Record
               </button>
             </div>
           )}
         </div>
 
-        {/* Help Menu */}
-        <div className="relative">
-          <span
-            className={`px-3 py-1 cursor-pointer rounded ${openMenu === "help" ? "bg-[#e5e5e5]" : "hover:bg-[#e5e5e5]"}`}
-            onClick={() => setOpenMenu(openMenu === "help" ? null : "help")}
-          >
-            Help
-          </span>
-          {openMenu === "help" && (
-            <div className="absolute top-full left-0 mt-0 bg-white border border-[#c0c0c0] shadow-md z-50 min-w-[150px]">
-              <button className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] text-[12px] text-gray-400" disabled>
-                About
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Toolbar */}
@@ -752,143 +775,76 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
       </div>
 
       {/* Grid Container */}
-      <div className="flex-1 bg-white border border-[#a0a0a0] mx-2 mb-2 flex flex-col overflow-hidden">
+      <div ref={tableContainerRef} className="flex-1 bg-white border border-[#a0a0a0] mx-2 mb-2 flex flex-col overflow-hidden">
         {/* Column Headers */}
-        <table className="w-full border-collapse table-fixed">
-          <thead>
-            <tr className="bg-[#f0f0f0] text-[12px]">
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "7%" }}
-                onClick={() => handleSort("jobNumber")}
+        <div className="bg-[#f0f0f0] border-b border-[#c0c0c0] flex-shrink-0">
+          <div className="flex text-[12px]">
+            {[
+              { field: "jobNumber" as SortField, label: "Job #" },
+              { field: "accountId" as SortField, label: "Account ID" },
+              { field: "date" as SortField, label: "Contract Date" },
+              { field: "tag" as SortField, label: "Account Tag" },
+              { field: "description" as SortField, label: "Description" },
+              { field: "type" as SortField, label: "Type" },
+              { field: "status" as SortField, label: "Status" },
+              { field: "template" as SortField, label: "Template" },
+              { field: "dueDate" as SortField, label: "Due Date" },
+            ].map((col, index) => (
+              <div
+                key={col.field}
+                className="relative flex-shrink-0 border-r border-[#c0c0c0] last:border-r-0"
+                style={{ width: columnWidths[index] }}
               >
-                <div className="flex items-center justify-center gap-1">
-                  Job #
-                  <SortIcon field="jobNumber" />
+                <div
+                  className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none text-center truncate"
+                  onClick={() => handleSort(col.field)}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="truncate">{col.label}</span>
+                    <SortIcon field={col.field} />
+                  </div>
                 </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "10%" }}
-                onClick={() => handleSort("accountId")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  Account ID
-                  <SortIcon field="accountId" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "9%" }}
-                onClick={() => handleSort("date")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  Contract Date
-                  <SortIcon field="date" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "14%" }}
-                onClick={() => handleSort("tag")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  Account Tag
-                  <SortIcon field="tag" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "23%" }}
-                onClick={() => handleSort("description")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  Description
-                  <SortIcon field="description" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "7%" }}
-                onClick={() => handleSort("type")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  Type
-                  <SortIcon field="type" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "8%" }}
-                onClick={() => handleSort("status")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  Status
-                  <SortIcon field="status" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "12%" }}
-                onClick={() => handleSort("template")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  Template
-                  <SortIcon field="template" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "10%" }}
-                onClick={() => handleSort("dueDate")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  Due Date
-                  <SortIcon field="dueDate" />
-                </div>
-              </th>
-            </tr>
-          </thead>
-        </table>
+                {/* Resize handle */}
+                <div
+                  className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-[#0078d4] z-10"
+                  onMouseDown={(e) => handleResizeStart(index, e)}
+                  style={{ cursor: "col-resize" }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Data Rows */}
         <div className="flex-1 overflow-auto">
-          <table className="w-full border-collapse table-fixed">
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="p-4 text-center text-[#808080] border border-[#d0d0d0]">Loading...</td>
-                </tr>
-              ) : sortedJobs.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-4 text-center text-[#808080] border border-[#d0d0d0]">No jobs found</td>
-                </tr>
-              ) : (
-                sortedJobs.map((job) => (
-                  <tr
-                    key={job.id}
-                    onClick={() => setSelectedRow(job.id)}
-                    onDoubleClick={() => handleDoubleClick(job)}
-                    className={`text-[12px] cursor-pointer ${
-                      selectedRow === job.id
-                        ? "bg-[#0078d4] text-white"
-                        : "bg-white hover:bg-[#f0f8ff]"
-                    }`}
-                  >
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "7%" }}>{job.externalId || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "10%" }}>{job.premises?.premisesId || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "9%" }}>{formatDate(job.date)}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "14%" }}>{job.premises?.name || job.premises?.address || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "23%" }}>{job.jobDescription || job.jobName}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "7%" }}>{job.type || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "8%" }}>{job.status}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "12%" }}>{job.template || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate overflow-hidden" style={{ width: "10%" }}>{formatDate(job.dueDate)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          {loading ? (
+            <div className="p-4 text-center text-[#808080]">Loading...</div>
+          ) : sortedJobs.length === 0 ? (
+            <div className="p-4 text-center text-[#808080]">No jobs found</div>
+          ) : (
+            sortedJobs.map((job) => (
+              <div
+                key={job.id}
+                onClick={() => setSelectedRow(job.id)}
+                onDoubleClick={() => handleDoubleClick(job)}
+                className={`flex text-[12px] cursor-pointer border-b border-[#d0d0d0] ${
+                  selectedRow === job.id
+                    ? "bg-[#0078d4] text-white"
+                    : "bg-white hover:bg-[#f0f8ff]"
+                }`}
+              >
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>{job.externalId || ""}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{job.premises?.premisesId || ""}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}>{formatDate(job.date)}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}>{job.premises?.name || job.premises?.address || ""}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}>{job.jobDescription || job.jobName}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[5] }}>{job.type || ""}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[6] }}>{job.status}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[7] }}>{job.template || ""}</div>
+                <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[8] }}>{formatDate(job.dueDate)}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
