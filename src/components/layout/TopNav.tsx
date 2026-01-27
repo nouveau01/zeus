@@ -68,8 +68,8 @@ export function TopNav() {
     <header className="flex-shrink-0">
       {/* Tab bar row - Chrome style gray background */}
       <div className="bg-[#dee1e6] flex items-end h-[40px] pt-[6px]">
-        {/* ZEUS Logo area */}
-        <div className="w-44 flex-shrink-0 flex items-center px-3 h-full">
+        {/* ZEUS Logo area - no fixed width, flows naturally */}
+        <div className="flex-shrink-0 flex items-center px-3 h-full">
           <Link href="/" className="flex items-center">
             <span
               className="font-bold text-xl tracking-tight"
