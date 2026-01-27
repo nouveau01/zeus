@@ -33,25 +33,55 @@ This log tracks all development changes, sessions, and modifications made to the
 - [ ] Verify status values across tables (may differ per table)
 - [ ] Add missing Account fields to Premises model (Acct Rep, COLLECTOR, etc.)
 
-## Verified vs Guessed
+## Verification Status
+
+> **IMPORTANT:** Always mark items as VERIFIED, GUESSED, or NOT WORKING.
+> Nothing ships without knowing its verification status.
 
 ### ✅ VERIFIED (confirmed against Total Service)
-- Job Maintenance filter fields
-- Job Results filter fields
-- Customer filter fields
-- Account filter fields (46 fields)
-- State lookup (US state codes)
-- Job Type lookup (from job_types table)
+| Item | What was verified | Date |
+|------|-------------------|------|
+| Job Maintenance filter fields | Field names match TS screenshot | 2026-01-27 |
+| Job Results filter fields | Field names match TS screenshot | 2026-01-27 |
+| Customer filter fields | Field names match TS screenshot | 2026-01-27 |
+| Account filter fields (46 fields) | Field names match TS screenshot | 2026-01-27 |
+| State lookup values | US state codes | 2026-01-27 |
+| Job Type lookup | Pulls from job_types table | 2026-01-27 |
+| Customer Billing Type F3 screenshot | Consolidated, Detailed, Detailed Group, Detailed Sub | 2026-01-27 |
+| Customer State F3 screenshot | State codes | 2026-01-27 |
+| Customer Status F3 screenshot | Active, Inactive | 2026-01-27 |
 
-### ⚠️ GUESSED (need to verify)
-- Billing Type values (Consolidated, Detailed, Detailed Group, Detailed Sub)
-- Customer Status values (Active/Inactive)
-- Account Status values (Active/Inactive)
-- Portal User mapping (using portalAccess boolean)
-- All Account F3 lookups (CustomContact, ID, Owner, Route, Tag, Territory, Type, Use Tax, Zone)
+### ⚠️ GUESSED (implemented but need to verify against Total Service)
+| Item | What we guessed | Needs |
+|------|-----------------|-------|
+| Billing Type int mapping | 0=Consolidated, 1=Detailed, 2=Detailed Group, 3=Detailed Sub | Verify against TS database |
+| Customer Status mapping | isActive boolean → Active/Inactive | Verify actual TS values |
+| Account Status mapping | isActive boolean → Active/Inactive | Verify actual TS values |
+| Portal User mapping | portalAccess boolean → Yes/No | May not match TS |
+| Account ID lookup | Using Premises.locId | Verify source table |
+| Account Owner lookup | Using Customer.name | Verify joins to Rol table |
+| Account Route lookup | Distinct Premises.route values | Verify source |
+| Account Tag lookup | Premises.tag/name | Verify source |
+| Account Territory lookup | Distinct Premises.terr | Verify source |
+| Account Type lookup | Distinct Premises.type | Verify source |
+| Account Zone lookup | Distinct Premises.zone | Verify source |
+| Account Sales Tax Region lookup | Distinct Premises.sTax | Verify source |
+| Account Use Tax lookup | Distinct Premises.uTax | Verify source |
 
-### ❌ NOT WORKING
-- CustomContact F3 lookup (needs Rol table join)
+### ❌ NOT WORKING / BLOCKED
+| Item | Issue | Blocker |
+|------|-------|---------|
+| Account CustomContact F3 | Needs Rol table join | Rol table not in Prisma schema |
+| Many Account filter fields | Fields don't exist in Premises model | Need schema mapping |
+
+### 🔲 NOT YET IMPLEMENTED
+| Item | Notes |
+|------|-------|
+| Vendors filter fields | Need screenshot from Total Service |
+| Units filter fields | Need screenshot from Total Service |
+| Invoices filter fields | Need screenshot from Total Service |
+| Save filter button | Feature not built yet |
+| Saved filters list | Feature not built yet |
 
 ---
 
