@@ -143,6 +143,104 @@ export async function GET(
         break;
       }
 
+      // Customer-specific lookups
+      case "billingType": {
+        // Billing type options for customers
+        values = [
+          { id: "Consolidated", label: "Consolidated" },
+          { id: "Detailed", label: "Detailed" },
+          { id: "Detailed Group", label: "Detailed Group" },
+          { id: "Detailed Sub", label: "Detailed Sub" },
+        ];
+        break;
+      }
+
+      case "state": {
+        // US State codes
+        values = [
+          { id: "AL", label: "AL", description: "Alabama" },
+          { id: "AK", label: "AK", description: "Alaska" },
+          { id: "AZ", label: "AZ", description: "Arizona" },
+          { id: "AR", label: "AR", description: "Arkansas" },
+          { id: "CA", label: "CA", description: "California" },
+          { id: "CO", label: "CO", description: "Colorado" },
+          { id: "CT", label: "CT", description: "Connecticut" },
+          { id: "DE", label: "DE", description: "Delaware" },
+          { id: "FL", label: "FL", description: "Florida" },
+          { id: "GA", label: "GA", description: "Georgia" },
+          { id: "HI", label: "HI", description: "Hawaii" },
+          { id: "ID", label: "ID", description: "Idaho" },
+          { id: "IL", label: "IL", description: "Illinois" },
+          { id: "IN", label: "IN", description: "Indiana" },
+          { id: "IA", label: "IA", description: "Iowa" },
+          { id: "KS", label: "KS", description: "Kansas" },
+          { id: "KY", label: "KY", description: "Kentucky" },
+          { id: "LA", label: "LA", description: "Louisiana" },
+          { id: "ME", label: "ME", description: "Maine" },
+          { id: "MD", label: "MD", description: "Maryland" },
+          { id: "MA", label: "MA", description: "Massachusetts" },
+          { id: "MI", label: "MI", description: "Michigan" },
+          { id: "MN", label: "MN", description: "Minnesota" },
+          { id: "MS", label: "MS", description: "Mississippi" },
+          { id: "MO", label: "MO", description: "Missouri" },
+          { id: "MT", label: "MT", description: "Montana" },
+          { id: "NE", label: "NE", description: "Nebraska" },
+          { id: "NV", label: "NV", description: "Nevada" },
+          { id: "NH", label: "NH", description: "New Hampshire" },
+          { id: "NJ", label: "NJ", description: "New Jersey" },
+          { id: "NM", label: "NM", description: "New Mexico" },
+          { id: "NY", label: "NY", description: "New York" },
+          { id: "NC", label: "NC", description: "North Carolina" },
+          { id: "ND", label: "ND", description: "North Dakota" },
+          { id: "OH", label: "OH", description: "Ohio" },
+          { id: "OK", label: "OK", description: "Oklahoma" },
+          { id: "OR", label: "OR", description: "Oregon" },
+          { id: "PA", label: "PA", description: "Pennsylvania" },
+          { id: "RI", label: "RI", description: "Rhode Island" },
+          { id: "SC", label: "SC", description: "South Carolina" },
+          { id: "SD", label: "SD", description: "South Dakota" },
+          { id: "TN", label: "TN", description: "Tennessee" },
+          { id: "TX", label: "TX", description: "Texas" },
+          { id: "UT", label: "UT", description: "Utah" },
+          { id: "VT", label: "VT", description: "Vermont" },
+          { id: "VA", label: "VA", description: "Virginia" },
+          { id: "WA", label: "WA", description: "Washington" },
+          { id: "WV", label: "WV", description: "West Virginia" },
+          { id: "WI", label: "WI", description: "Wisconsin" },
+          { id: "WY", label: "WY", description: "Wyoming" },
+          { id: "DC", label: "DC", description: "District of Columbia" },
+        ];
+        break;
+      }
+
+      case "customerStatus": {
+        // Customer status options
+        values = [
+          { id: "Active", label: "Active" },
+          { id: "Inactive", label: "Inactive" },
+        ];
+        break;
+      }
+
+      case "portalUser": {
+        // Get all portal users
+        const users = await prisma.user.findMany({
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+          orderBy: { name: "asc" },
+          take: 500,
+        });
+        values = users.map((u) => ({
+          id: u.name || u.email || u.id,
+          label: u.name || u.email || "Unknown",
+          description: u.email || undefined,
+        }));
+        break;
+      }
+
       default:
         return NextResponse.json(
           { error: `Unknown lookup field: ${field}` },
