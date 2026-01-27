@@ -1,7 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronRight, ChevronDown, ChevronLeft, Folder } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  ChevronRight,
+  ChevronDown,
+  ChevronLeft,
+  Folder,
+  DollarSign,
+  CreditCard,
+  Package,
+  BookOpen,
+  Users,
+  Truck,
+  Settings,
+  Briefcase,
+  TrendingUp,
+  Landmark,
+  BarChart3,
+  Phone,
+  Cog,
+} from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 
 interface NavItem {
@@ -12,13 +30,31 @@ interface NavItem {
 interface NavSection {
   id: string;
   name: string;
+  iconName: string;
   children: NavItem[];
 }
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  DollarSign,
+  CreditCard,
+  Package,
+  BookOpen,
+  Users,
+  Truck,
+  Settings,
+  Briefcase,
+  TrendingUp,
+  Landmark,
+  BarChart3,
+  Phone,
+  Cog,
+};
 
 const navStructure: NavSection[] = [
   {
     id: "1",
     name: "AR",
+    iconName: "DollarSign",
     children: [
       { name: "Customers", href: "/customers" },
       { name: "Accounts", href: "/accounts" },
@@ -38,6 +74,7 @@ const navStructure: NavSection[] = [
   {
     id: "2",
     name: "AP",
+    iconName: "CreditCard",
     children: [
       { name: "Vendors", href: "/vendors" },
       { name: "Purchase Orders", href: "/purchase-orders" },
@@ -56,6 +93,7 @@ const navStructure: NavSection[] = [
   {
     id: "3",
     name: "Inventory",
+    iconName: "Package",
     children: [
       { name: "Inventory Items", href: "/inventory-items" },
       { name: "Warehouses", href: "/warehouses" },
@@ -75,6 +113,7 @@ const navStructure: NavSection[] = [
   {
     id: "4",
     name: "GL",
+    iconName: "BookOpen",
     children: [
       { name: "Chart", href: "/chart" },
       { name: "Budgets", href: "/budgets" },
@@ -89,6 +128,7 @@ const navStructure: NavSection[] = [
   {
     id: "5",
     name: "Payroll",
+    iconName: "Users",
     children: [
       { name: "Employees", href: "/employees" },
       { name: "Crews", href: "/crews" },
@@ -106,6 +146,7 @@ const navStructure: NavSection[] = [
   {
     id: "6",
     name: "Dispatch",
+    iconName: "Truck",
     children: [
       { name: "Dispatch Screen", href: "/dispatch" },
       { name: "Resolve Ticket", href: "/resolve-ticket" },
@@ -120,6 +161,7 @@ const navStructure: NavSection[] = [
   {
     id: "7",
     name: "Dispatch Extras",
+    iconName: "Settings",
     children: [
       { name: "Routes", href: "/dispatch-extras/routes" },
       { name: "Route Planning", href: "/dispatch-extras/route-planning" },
@@ -136,6 +178,7 @@ const navStructure: NavSection[] = [
   {
     id: "8",
     name: "Job Cost",
+    iconName: "Briefcase",
     children: [
       { name: "Job Templates", href: "/job-templates" },
       { name: "Job Maintenance", href: "/job-maintenance" },
@@ -149,6 +192,7 @@ const navStructure: NavSection[] = [
   {
     id: "9",
     name: "Sales",
+    iconName: "TrendingUp",
     children: [
       { name: "Prospects", href: "/prospects" },
       { name: "Leads", href: "/leads" },
@@ -165,6 +209,7 @@ const navStructure: NavSection[] = [
   {
     id: "10",
     name: "Banking",
+    iconName: "Landmark",
     children: [
       { name: "Bank Accounts", href: "/bank-accounts" },
       { name: "Bank Adjustments", href: "/bank-adjustments" },
@@ -174,6 +219,7 @@ const navStructure: NavSection[] = [
   {
     id: "11",
     name: "Reports",
+    iconName: "BarChart3",
     children: [
       { name: "Report Generator", href: "/report-generator" },
       { name: "Aging Reports", href: "/aging-reports" },
@@ -191,6 +237,7 @@ const navStructure: NavSection[] = [
   {
     id: "12",
     name: "Contact",
+    iconName: "Phone",
     children: [
       { name: "Contact Listing", href: "/contact-listing" },
       { name: "Things To Do", href: "/things-to-do" },
@@ -202,6 +249,7 @@ const navStructure: NavSection[] = [
   {
     id: "13",
     name: "Control",
+    iconName: "Cog",
     children: [
       { name: "Users", href: "/users" },
       { name: "Zones", href: "/zones" },
@@ -222,17 +270,44 @@ const navStructure: NavSection[] = [
 export function Sidebar() {
   const { tabs, activeTabId, openTab } = useTabs();
   const [expandedSections, setExpandedSections] = useState<string[]>(["1"]);
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("sidebar-collapsed") === "true";
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [flyoutSection, setFlyoutSection] = useState<string | null>(null);
+  const flyoutRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  // Load collapsed state from localStorage after hydration
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved === "true") {
+      setIsCollapsed(true);
     }
-    return false;
-  });
+    setIsHydrated(true);
+  }, []);
 
   // Persist collapsed state
   useEffect(() => {
-    localStorage.setItem("sidebar-collapsed", String(isCollapsed));
-  }, [isCollapsed]);
+    if (isHydrated) {
+      localStorage.setItem("sidebar-collapsed", String(isCollapsed));
+    }
+  }, [isCollapsed, isHydrated]);
+
+  // Close flyout when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        flyoutRef.current &&
+        !flyoutRef.current.contains(event.target as Node) &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
+        setFlyoutSection(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) =>
@@ -244,6 +319,7 @@ export function Sidebar() {
 
   const handleItemClick = (name: string, href: string) => {
     openTab(name, href);
+    setFlyoutSection(null);
   };
 
   // Check if a route is open in any tab
@@ -252,23 +328,121 @@ export function Sidebar() {
     return activeTab?.route === href;
   };
 
+  // Get the position for flyout menu
+  const getFlyoutPosition = (sectionId: string) => {
+    const index = navStructure.findIndex((s) => s.id === sectionId);
+    return index * 42 + 32; // 42px per icon+label + 32px for expand button
+  };
+
+  // Collapsed view with icons and flyout
   if (isCollapsed) {
+    const activeFlyoutSection = navStructure.find((s) => s.id === flyoutSection);
+
     return (
-      <aside className="w-8 bg-[#d4d0c8] border-r border-[#808080] flex flex-col flex-shrink-0">
-        <button
-          onClick={() => setIsCollapsed(false)}
-          className="p-2 hover:bg-[#c0c0c0] text-[#000] flex items-center justify-center"
-          title="Expand sidebar"
+      <>
+        <aside
+          ref={sidebarRef}
+          className="w-[72px] bg-[#d4d0c8] border-r border-[#808080] flex flex-col flex-shrink-0"
         >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </aside>
+          {/* Expand button at top */}
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="flex items-center justify-center gap-1 py-1.5 bg-[#d4d0c8] hover:bg-[#c0c0c0] border-b border-[#808080] text-[#000] text-[11px]"
+            title="Expand sidebar"
+          >
+            <span>Expand</span>
+            <ChevronRight className="w-3 h-3" />
+          </button>
+
+          {/* Icon list with labels */}
+          <div className="flex-1 py-1 flex flex-col gap-0.5 overflow-y-auto">
+            {navStructure.map((section) => {
+              const hasActiveChild = section.children?.some(
+                (child) => child.href && isActive(child.href)
+              );
+              const isOpen = flyoutSection === section.id;
+
+              return (
+                <button
+                  key={section.id}
+                  onClick={() =>
+                    setFlyoutSection(isOpen ? null : section.id)
+                  }
+                  className={`mx-1 px-1 py-1 flex flex-col items-center justify-center rounded transition-colors text-[9px]
+                    ${isOpen
+                      ? "bg-[#316ac5] text-white"
+                      : hasActiveChild
+                      ? "bg-[#a0c0e8] text-[#000]"
+                      : "hover:bg-[#c0c0c0] text-[#000]"
+                    }
+                  `}
+                  title={`${section.id} - ${section.name}`}
+                >
+                  {(() => {
+                    const Icon = iconMap[section.iconName];
+                    return Icon ? <Icon className="w-4 h-4" /> : null;
+                  })()}
+                  <span className="mt-0.5 leading-tight text-center whitespace-nowrap">
+                    {section.id}-{section.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* Flyout menu */}
+        {flyoutSection && activeFlyoutSection && (
+          <div
+            ref={flyoutRef}
+            className="fixed bg-white border border-[#808080] shadow-lg z-50 min-w-[160px] py-1"
+            style={{
+              left: "74px",
+              top: `${getFlyoutPosition(flyoutSection) + 48}px`, // 48px for header
+              maxHeight: "calc(100vh - 100px)",
+              overflowY: "auto",
+            }}
+          >
+            {/* Section header */}
+            <div className="px-3 py-1.5 bg-[#ececec] border-b border-[#d4d4d4] text-[12px] font-medium text-[#333]">
+              {activeFlyoutSection.id} - {activeFlyoutSection.name}
+            </div>
+
+            {/* Menu items */}
+            {activeFlyoutSection.children.map((item) => (
+              <button
+                key={item.name}
+                onClick={() => item.href && handleItemClick(item.name, item.href)}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-[12px] hover:bg-[#316ac5] hover:text-white ${
+                  item.href && isActive(item.href)
+                    ? "bg-[#316ac5] text-white"
+                    : "text-[#000]"
+                }`}
+              >
+                <Folder className="w-4 h-4 text-[#e8c56c] flex-shrink-0" />
+                <span className="whitespace-nowrap">{item.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </>
     );
   }
 
+  // Expanded view
   return (
     <aside className="w-44 bg-[#d4d0c8] border-r border-[#808080] flex flex-col flex-shrink-0 text-[12px]">
-      {/* Tree View - starts flush at top */}
+      {/* Collapse Button at top */}
+      <button
+        onClick={() => setIsCollapsed(true)}
+        className="flex items-center justify-center gap-1 px-2 py-1.5 bg-[#d4d0c8] hover:bg-[#c0c0c0] border-b border-[#808080] text-[#000] text-[11px]"
+        title="Collapse sidebar"
+      >
+        <ChevronLeft className="w-3 h-3" />
+        <span>Collapse</span>
+      </button>
+
+      {/* Tree View */}
       <div className="flex-1 py-0.5 bg-white overflow-y-auto">
         {navStructure.map((section) => {
           const isExpanded = expandedSections.includes(section.id);
@@ -297,7 +471,13 @@ export function Sidebar() {
                   {section.children.map((item) => (
                     <button
                       key={item.name}
-                      onClick={() => item.href && handleItemClick(item.name, item.href)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (item.href) {
+                          handleItemClick(item.name, item.href);
+                        }
+                      }}
                       className={`flex items-center gap-1 px-1 py-0.5 text-left hover:bg-[#316ac5] hover:text-white ${
                         item.href && isActive(item.href)
                           ? "bg-[#316ac5] text-white"
@@ -314,15 +494,6 @@ export function Sidebar() {
           );
         })}
       </div>
-      {/* Collapse Button */}
-      <button
-        onClick={() => setIsCollapsed(true)}
-        className="flex items-center justify-center gap-1 px-2 py-1.5 bg-[#d4d0c8] hover:bg-[#c0c0c0] border-t border-[#808080] text-[#000] text-[11px]"
-        title="Collapse sidebar"
-      >
-        <ChevronLeft className="w-3 h-3" />
-        <span>Collapse</span>
-      </button>
     </aside>
   );
 }

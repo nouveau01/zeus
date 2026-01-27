@@ -81,6 +81,17 @@ export function TabProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Check if the active tab is blank (empty route) - if so, update it instead of creating new
+    const activeTab = tabs.find((t) => t.id === activeTabId);
+    if (activeTab && activeTab.route === "") {
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === activeTabId ? { ...t, title, route } : t
+        )
+      );
+      return;
+    }
+
     // Create new tab
     const newTab: Tab = {
       id: `tab-${Date.now()}`,

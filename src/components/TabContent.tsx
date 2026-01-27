@@ -47,11 +47,24 @@ export function TabContent() {
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
-  // No tabs open - show blank gray screen
+  // No tabs open or blank tab - show welcome screen
   if (!activeTab || activeTab.route === "") {
     return (
-      <div className="flex-1 h-full bg-[#c0c0c0]">
-        {/* Blank gray screen like Total Service */}
+      <div className="flex-1 h-full bg-[#c0c0c0] flex flex-col items-center justify-center">
+        <div className="text-center">
+          <h2
+            className="text-3xl font-bold mb-2"
+            style={{
+              fontFamily: "'SF Pro Display', 'Inter', system-ui, sans-serif",
+              color: "#1e3a5f",
+            }}
+          >
+            Z.E.U.S.
+          </h2>
+          <p className="text-[#606060] text-sm">
+            Select a module from the sidebar to get started
+          </p>
+        </div>
       </div>
     );
   }
