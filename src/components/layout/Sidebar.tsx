@@ -378,14 +378,16 @@ export function Sidebar() {
                   `}
                   title={`${section.id} - ${section.name}`}
                 >
-                  {(() => {
-                    const Icon = iconMap[section.iconName];
-                    return Icon ? <Icon className="w-4 h-4" /> : null;
-                  })()}
+                  <div className="flex items-center">
+                    {(() => {
+                      const Icon = iconMap[section.iconName];
+                      return Icon ? <Icon className="w-4 h-4" /> : null;
+                    })()}
+                    <ChevronRight className="w-3 h-3 text-[#000]" />
+                  </div>
                   <span className="mt-0.5 leading-tight text-center whitespace-nowrap">
                     {section.id}-{section.name}
                   </span>
-                  <ChevronRight className="w-4 h-4 mt-0.5 text-[#316ac5]" />
                 </button>
               );
             })}
