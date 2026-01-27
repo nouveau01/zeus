@@ -202,7 +202,12 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         const response = await fetch(`/api/premises/${accountId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            ...formData,
+            remarks: accountRemarks,
+            colRemarks: collectionNotes,
+            salesRemarks: salesRemarks,
+          }),
         });
         if (!response.ok) throw new Error("Failed to update account");
         const updated = await response.json();
@@ -212,7 +217,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     } finally {
       setSavingFromHook(false);
     }
-  }, [formData, isNew, customerId, accountId, onClose, openTab]);
+  }, [formData, isNew, customerId, accountId, onClose, openTab, accountRemarks, collectionNotes, salesRemarks]);
 
   // Unsaved changes hook
   const {
@@ -283,10 +288,16 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         const data = await response.json();
         setAccount(data);
         setFormData(data);
+        // Load remarks from database
+        setAccountRemarks(data.remarks || "");
+        setCollectionNotes(data.colRemarks || "");
+        setSalesRemarks(data.salesRemarks || "");
         // Fetch contacts for this customer
         if (data.customerId) {
           fetchContacts(data.customerId);
         }
+        // Fetch PM contracts for this account
+        fetchPMContracts();
       }
     } catch (error) {
       console.error("Error fetching account:", error);
@@ -305,6 +316,56 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     } catch (error) {
       console.error("Error fetching contacts:", error);
     }
+  };
+
+  const fetchPMContracts = async () => {
+    try {
+      const response = await fetch(`/api/contracts?premisesId=${accountId}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Map API response to UI format
+        const mapped = data.map((c: any) => ({
+          id: c.id,
+          job: c.job?.externalId || c.jobId || "",
+          jobId: c.jobId,
+          description: c.job?.jobName || "",
+          schedule: c.sType || "Monthly",
+          hours: c.hours?.toString() || "",
+          billingCycle: getBillingCycleLabel(c.bCycle),
+          billingAmt: c.bAmt?.toString() || "",
+          monthlyAmt: calculateMonthlyAmt(c.bAmt, c.bCycle),
+          active: c.status === 1,
+        }));
+        setPmContracts(mapped);
+      }
+    } catch (error) {
+      console.error("Error fetching PM contracts:", error);
+    }
+  };
+
+  const getBillingCycleLabel = (cycle: number | null) => {
+    switch (cycle) {
+      case 1: return "Monthly";
+      case 3: return "Quarterly";
+      case 6: return "Semi-Annual";
+      case 12: return "Annual";
+      default: return "Monthly";
+    }
+  };
+
+  const getBillingCycleValue = (label: string) => {
+    switch (label) {
+      case "Monthly": return 1;
+      case "Quarterly": return 3;
+      case "Semi-Annual": return 6;
+      case "Annual": return 12;
+      default: return 1;
+    }
+  };
+
+  const calculateMonthlyAmt = (bAmt: number | null, bCycle: number | null) => {
+    if (!bAmt || !bCycle) return "";
+    return (bAmt / bCycle).toFixed(2);
   };
 
   const handleInputChange = (field: keyof Account, value: string | boolean | number) => {
@@ -542,32 +603,40 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   };
 
   // PM Contract CRUD handlers
-  const handleAddPMContract = () => {
-    const contract = {
-      id: `pm-${Date.now()}`,
-      job: newContract.job,
-      description: newContract.description,
-      schedule: newContract.schedule,
-      hours: newContract.hours,
-      billingCycle: newContract.billingCycle,
-      billingAmt: newContract.billingAmt,
-      monthlyAmt: newContract.monthlyAmt,
-      active: newContract.active,
-    };
-    setPmContracts([...pmContracts, contract]);
-    setShowAddContractDialog(false);
-    setEditingPMContract(null);
-    setNewContract({
-      job: "",
-      description: "",
-      schedule: "Monthly",
-      hours: "",
-      billingCycle: "Monthly",
-      billingAmt: "",
-      monthlyAmt: "",
-      active: true,
-    });
-    markDirty();
+  const handleAddPMContract = async () => {
+    try {
+      const response = await fetch("/api/contracts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          premisesId: accountId,
+          customerId: account?.customerId,
+          sType: newContract.schedule,
+          hours: newContract.hours ? parseFloat(newContract.hours) : 0,
+          bCycle: getBillingCycleValue(newContract.billingCycle),
+          bAmt: newContract.billingAmt ? parseFloat(newContract.billingAmt) : 0,
+          status: newContract.active ? 1 : 0,
+        }),
+      });
+      if (response.ok) {
+        // Refresh contracts from database
+        fetchPMContracts();
+        setShowAddContractDialog(false);
+        setEditingPMContract(null);
+        setNewContract({
+          job: "",
+          description: "",
+          schedule: "Monthly",
+          hours: "",
+          billingCycle: "Monthly",
+          billingAmt: "",
+          monthlyAmt: "",
+          active: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error creating contract:", error);
+    }
   };
 
   const handleEditPMContract = () => {
@@ -589,45 +658,55 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     }
   };
 
-  const handleUpdatePMContract = () => {
+  const handleUpdatePMContract = async () => {
     if (!editingPMContract) return;
-    setPmContracts(pmContracts.map(c => {
-      if (c.id === editingPMContract.id) {
-        return {
-          ...c,
-          job: newContract.job,
-          description: newContract.description,
-          schedule: newContract.schedule,
-          hours: newContract.hours,
-          billingCycle: newContract.billingCycle,
-          billingAmt: newContract.billingAmt,
-          monthlyAmt: newContract.monthlyAmt,
-          active: newContract.active,
-        };
+    try {
+      const response = await fetch(`/api/contracts/${editingPMContract.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sType: newContract.schedule,
+          hours: newContract.hours ? parseFloat(newContract.hours) : 0,
+          bCycle: getBillingCycleValue(newContract.billingCycle),
+          bAmt: newContract.billingAmt ? parseFloat(newContract.billingAmt) : 0,
+          status: newContract.active ? 1 : 0,
+        }),
+      });
+      if (response.ok) {
+        // Refresh contracts from database
+        fetchPMContracts();
+        setShowAddContractDialog(false);
+        setEditingPMContract(null);
+        setNewContract({
+          job: "",
+          description: "",
+          schedule: "Monthly",
+          hours: "",
+          billingCycle: "Monthly",
+          billingAmt: "",
+          monthlyAmt: "",
+          active: true,
+        });
       }
-      return c;
-    }));
-    setShowAddContractDialog(false);
-    setEditingPMContract(null);
-    setNewContract({
-      job: "",
-      description: "",
-      schedule: "Monthly",
-      hours: "",
-      billingCycle: "Monthly",
-      billingAmt: "",
-      monthlyAmt: "",
-      active: true,
-    });
-    markDirty();
+    } catch (error) {
+      console.error("Error updating contract:", error);
+    }
   };
 
-  const handleDeletePMContract = () => {
+  const handleDeletePMContract = async () => {
     if (!selectedContract) return;
     if (!confirm("Delete this PM contract?")) return;
-    setPmContracts(pmContracts.filter(c => c.id !== selectedContract));
-    setSelectedContract(null);
-    markDirty();
+    try {
+      const response = await fetch(`/api/contracts/${selectedContract}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        fetchPMContracts();
+        setSelectedContract(null);
+      }
+    } catch (error) {
+      console.error("Error deleting contract:", error);
+    }
   };
 
   const addDateToRemarks = (setter: React.Dispatch<React.SetStateAction<string>>) => {

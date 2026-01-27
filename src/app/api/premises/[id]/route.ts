@@ -60,6 +60,10 @@ export async function PUT(
       type,
       isActive,
       balance,
+      // Remarks fields
+      remarks,
+      colRemarks,
+      salesRemarks,
     } = body;
 
     const premises = await prisma.premises.update({
@@ -74,6 +78,10 @@ export async function PUT(
         type: type || "Non-Contract",
         isActive: isActive ?? true,
         balance: balance || 0,
+        // Remarks
+        remarks: remarks !== undefined ? remarks : undefined,
+        colRemarks: colRemarks !== undefined ? colRemarks : undefined,
+        salesRemarks: salesRemarks !== undefined ? salesRemarks : undefined,
       },
       include: {
         customer: {
