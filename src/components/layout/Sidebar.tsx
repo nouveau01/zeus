@@ -368,7 +368,7 @@ export function Sidebar() {
                   onClick={() =>
                     setFlyoutSection(isOpen ? null : section.id)
                   }
-                  className={`mx-1 px-1 py-1 flex flex-col items-center justify-center rounded transition-colors text-[9px]
+                  className={`group mx-1 px-1 py-1 flex flex-col items-center justify-center rounded transition-colors text-[9px]
                     ${isOpen
                       ? "bg-[#316ac5] text-white"
                       : hasActiveChild
@@ -382,9 +382,14 @@ export function Sidebar() {
                     const Icon = iconMap[section.iconName];
                     return Icon ? <Icon className="w-4 h-4" /> : null;
                   })()}
-                  <span className="mt-0.5 leading-tight text-center whitespace-nowrap">
-                    {section.id}-{section.name}
-                  </span>
+                  <div className="mt-0.5 leading-tight text-center flex items-center">
+                    <span className="whitespace-nowrap">{section.id}-{section.name}</span>
+                    <ChevronRight
+                      className={`w-2 h-2 ml-0.5 flex-shrink-0 transition-opacity
+                        ${isOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+                      `}
+                    />
+                  </div>
                 </button>
               );
             })}
