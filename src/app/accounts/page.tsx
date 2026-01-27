@@ -1,28 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FileText,
   Pencil,
-  ClipboardList,
   X,
-  FolderOpen,
+  Copy,
   ChevronDown,
   ChevronUp,
-  Scissors,
-  Check,
-  DollarSign,
-  BarChart3,
-  FileEdit,
-  Printer,
-  Paperclip,
   Sigma,
-  Lock,
-  Plus,
-  Home,
-  HelpCircle,
+  RefreshCw,
+  Filter,
+  FilterX,
+  Printer,
+  Settings,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 
 interface Account {
   id: string;
@@ -31,9 +25,23 @@ interface Account {
   address: string;
   city: string | null;
   state: string | null;
+  zipCode: string | null;
   type: string | null;
   isActive: boolean;
   balance: number;
+  contact: string | null;
+  phone: string | null;
+  fax: string | null;
+  email: string | null;
+  route: number | null;
+  zone: number | null;
+  terr: number | null;
+  maint: number | null;
+  billing: number | null;
+  custom1: string | null;
+  custom2: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
   customerId: string;
   customer: {
     id: string;
@@ -50,29 +58,20 @@ const TABS = ["All", "2% IC", "D", "E", "H", "L"];
 type SortField = "id" | "tag" | "address" | "city" | "status" | "type" | "balance" | "units";
 type SortDirection = "asc" | "desc";
 
+// Toolbar icons matching Job Maintenance/Customers
 const toolbarIcons = [
-  { icon: FileText, color: "#4a7c59", title: "Add New Record", action: "new" },
+  { icon: FileText, color: "#4a7c59", title: "New", action: "new" },
   { icon: Pencil, color: "#d4a574", title: "Edit", action: "edit" },
-  { icon: ClipboardList, color: "#6b8cae", title: "View" },
   { icon: X, color: "#c45c5c", title: "Delete", action: "delete" },
-  { icon: FolderOpen, color: "#d4c574", title: "Open" },
-  { icon: ChevronDown, color: "#7c6b8e", title: "Expand" },
-  { icon: Scissors, color: "#5c8c8c", title: "Cut" },
-  { icon: Check, color: "#5cb85c", title: "Approve" },
-  { icon: Check, color: "#5c5cb8", title: "Confirm" },
-  { icon: DollarSign, color: "#5cb85c", title: "Billing" },
-  { icon: BarChart3, color: "#e67e22", title: "Reports" },
-  { icon: FileEdit, color: "#3498db", title: "Edit Document" },
-  { icon: Printer, color: "#9b59b6", title: "Print" },
-  { icon: Paperclip, color: "#7f8c8d", title: "Attach" },
-  { icon: Paperclip, color: "#27ae60", title: "Link" },
-  { icon: Sigma, color: "#2c3e50", title: "Sum" },
-  { icon: Lock, color: "#f39c12", title: "Lock" },
-  { icon: Plus, color: "#27ae60", title: "Add" },
-  { icon: Home, color: "#e74c3c", title: "Home" },
-  { icon: HelpCircle, color: "#3498db", title: "Help" },
-  { icon: X, color: "#95a5a6", title: "Close" },
-];
+  { icon: Copy, color: "#6b8cae", title: "Replicate Record", action: "replicate" },
+  { type: "separator" },
+  { icon: Filter, color: "#7c6b8e", title: "Set Filter and Sort", action: "filter" },
+  { icon: FilterX, color: "#c45c5c", title: "Remove Filter and Sort", action: "clearFilter" },
+  { type: "separator" },
+  { icon: RefreshCw, color: "#e67e22", title: "Refresh Display", action: "refresh" },
+  { type: "separator" },
+  { icon: Sigma, color: "#2c3e50", title: "Totals", action: "totals" },
+] as const;
 
 const STORAGE_KEY = "zeus-accounts-state";
 
@@ -85,7 +84,7 @@ interface PageState {
 }
 
 export default function AccountsPage() {
-  const { openTab } = useTabs();
+  const { openTab, closeTab, activeTabId } = useTabs();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
@@ -94,6 +93,92 @@ export default function AccountsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showTotals, setShowTotals] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  // Menu state
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Filter dialog state
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
+
+  // Column resize state
+  const [columnWidths, setColumnWidths] = useState<number[]>([80, 150, 200, 100, 80, 100, 100, 60, 50]);
+  const [resizing, setResizing] = useState<{ index: number; startX: number; startWidth: number } | null>(null);
+
+  // Filter fields for Accounts
+  const filterFields: FilterField[] = [
+    { key: "accountId", label: "Account ID", hasLookup: false },
+    { key: "address", label: "Address", hasLookup: false },
+    { key: "balance", label: "Balance", hasLookup: false },
+    { key: "billingType", label: "Billing Type*", hasLookup: true },
+    { key: "city", label: "City", hasLookup: false },
+    { key: "contact", label: "Contact", hasLookup: false },
+    { key: "custom1", label: "Custom1", hasLookup: false },
+    { key: "custom2", label: "Custom2", hasLookup: false },
+    { key: "customer", label: "Customer*", hasLookup: true },
+    { key: "email", label: "Email Address", hasLookup: false },
+    { key: "fax", label: "Fax", hasLookup: false },
+    { key: "name", label: "Name/Tag", hasLookup: false },
+    { key: "numUnits", label: "# Units", hasLookup: false },
+    { key: "phone", label: "Phone", hasLookup: false },
+    { key: "route", label: "Route", hasLookup: false },
+    { key: "state", label: "State*", hasLookup: true },
+    { key: "accountStatus", label: "Status*", hasLookup: true },
+    { key: "type", label: "Type*", hasLookup: true },
+    { key: "zip", label: "Zip", hasLookup: false },
+    { key: "zone", label: "Zone", hasLookup: false },
+  ];
+
+  // Active filters
+  const [activeFilters, setActiveFilters] = useState<Record<string, FilterValue>>({});
+
+  // Clear all filters
+  const clearFilters = () => {
+    setActiveFilters({});
+  };
+
+  // Column resize handlers
+  const handleResizeStart = (index: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing({ index, startX: e.clientX, startWidth: columnWidths[index] });
+  };
+
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - resizing.startX;
+      const newWidth = Math.max(50, resizing.startWidth + diff);
+      setColumnWidths(prev => {
+        const updated = [...prev];
+        updated[resizing.index] = newWidth;
+        return updated;
+      });
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizing]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleDoubleClick = (account: Account) => {
     openTab(account.name || account.premisesId || "Account", `/accounts/${account.id}`);
@@ -168,7 +253,86 @@ export default function AccountsPage() {
     }
   };
 
-  const sortedAccounts = [...accounts].sort((a, b) => {
+  // Map billing int to text
+  const getBillingTypeText = (billing: number | null): string => {
+    switch (billing) {
+      case 0: return "Consolidated";
+      case 1: return "Detailed";
+      case 2: return "Detailed Group";
+      case 3: return "Detailed Sub";
+      default: return "";
+    }
+  };
+
+  // Helper to get account field value by filter key
+  const getAccountFieldValue = (account: Account, fieldKey: string): string => {
+    switch (fieldKey) {
+      case "accountId": return account.premisesId || "";
+      case "address": return account.address || "";
+      case "balance": return String(account.balance || 0);
+      case "billingType": return getBillingTypeText(account.billing);
+      case "city": return account.city || "";
+      case "contact": return account.contact || "";
+      case "custom1": return account.custom1 || "";
+      case "custom2": return account.custom2 || "";
+      case "customer": return account.customer?.name || "";
+      case "email": return account.email || "";
+      case "fax": return account.fax || "";
+      case "name": return account.name || "";
+      case "numUnits": return String(account._count?.units || 0);
+      case "phone": return account.phone || "";
+      case "route": return String(account.route || "");
+      case "state": return account.state || "";
+      case "accountStatus": return account.isActive ? "Active" : "Inactive";
+      case "type": return account.type || "";
+      case "zip": return account.zipCode || "";
+      case "zone": return String(account.zone || "");
+      default: return "";
+    }
+  };
+
+  // Filter accounts based on activeFilters
+  const filteredAccounts = accounts.filter((account) => {
+    for (const [fieldKey, filter] of Object.entries(activeFilters)) {
+      if (!filter.value.trim()) continue;
+
+      const accountValue = getAccountFieldValue(account, fieldKey).toLowerCase();
+      const filterValue = filter.value.toLowerCase();
+
+      switch (filter.operator) {
+        case "=":
+          if (accountValue !== filterValue) return false;
+          break;
+        case "contains":
+          if (!accountValue.includes(filterValue)) return false;
+          break;
+        case "startsWith":
+          if (!accountValue.startsWith(filterValue)) return false;
+          break;
+        case "endsWith":
+          if (!accountValue.endsWith(filterValue)) return false;
+          break;
+        case ">":
+          if (accountValue <= filterValue) return false;
+          break;
+        case ">=":
+          if (accountValue < filterValue) return false;
+          break;
+        case "<":
+          if (accountValue >= filterValue) return false;
+          break;
+        case "<=":
+          if (accountValue > filterValue) return false;
+          break;
+        case "<>":
+          if (accountValue === filterValue) return false;
+          break;
+      }
+    }
+    return true;
+  });
+
+  const sortedAccounts = [...filteredAccounts].sort((a, b) => {
     let aVal: string | number | boolean;
     let bVal: string | number | boolean;
 
@@ -214,10 +378,10 @@ export default function AccountsPage() {
     return 0;
   });
 
-  // Calculate totals
+  // Calculate totals from filtered accounts
   const totals = {
-    units: sortedAccounts.reduce((sum, a) => sum + (a._count?.units || 0), 0),
-    balance: sortedAccounts.reduce((sum, a) => sum + Number(a.balance), 0),
+    units: filteredAccounts.reduce((sum, a) => sum + (a._count?.units || 0), 0),
+    balance: filteredAccounts.reduce((sum, a) => sum + Number(a.balance), 0),
   };
 
   const formatCurrency = (amount: number) => {
@@ -227,12 +391,118 @@ export default function AccountsPage() {
     }).format(amount);
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronDown className="w-3 h-3 text-gray-400" />;
-    return sortDirection === "asc"
-      ? <ChevronUp className="w-3 h-3 text-blue-600" />
-      : <ChevronDown className="w-3 h-3 text-blue-600" />;
+  // Menu actions
+  const handleRefreshDisplay = () => {
+    fetchAccounts();
+    setOpenMenu(null);
   };
+
+  const handleSetFilterSort = () => {
+    setShowFilterDialog(true);
+    setOpenMenu(null);
+  };
+
+  const handleNoFilterSort = () => {
+    setActiveTab("All");
+    setSortField("id");
+    setSortDirection("asc");
+    clearFilters();
+    setOpenMenu(null);
+  };
+
+  const handlePrint = () => {
+    window.print();
+    setOpenMenu(null);
+  };
+
+  const handleSettings = () => {
+    alert("Settings - Coming soon");
+    setOpenMenu(null);
+  };
+
+  const handleExit = () => {
+    if (activeTabId) {
+      closeTab(activeTabId);
+    }
+    setOpenMenu(null);
+  };
+
+  // Toolbar click handler
+  const handleToolbarClick = async (action: string) => {
+    switch (action) {
+      case "new":
+        // Accounts must be created from within a customer
+        alert("To add a new account, open a Customer and use the Add button in the Account Listing section.");
+        break;
+      case "edit":
+        if (selectedRow) {
+          const account = accounts.find(a => a.id === selectedRow);
+          if (account) openTab(account.name || account.address, `/accounts/${account.id}`);
+        } else {
+          alert("Please select an account to edit");
+        }
+        break;
+      case "delete":
+        if (selectedRow) {
+          const account = accounts.find(a => a.id === selectedRow);
+          if (account && confirm(`Delete account "${account.name || account.address}"?`)) {
+            try {
+              const res = await fetch(`/api/premises/${selectedRow}`, { method: "DELETE" });
+              if (res.ok) { setSelectedRow(null); fetchAccounts(); }
+            } catch (e) { console.error(e); }
+          }
+        } else {
+          alert("Please select an account to delete");
+        }
+        break;
+      case "replicate":
+        if (selectedRow) {
+          alert("Replicate - Coming soon");
+        } else {
+          alert("Please select an account to replicate");
+        }
+        break;
+      case "filter":
+        setShowFilterDialog(true);
+        break;
+      case "clearFilter":
+        handleNoFilterSort();
+        break;
+      case "refresh":
+        fetchAccounts();
+        break;
+      case "totals":
+        setShowTotals(!showTotals);
+        break;
+    }
+  };
+
+  // Edit menu actions
+  const handleNewRecord = () => handleToolbarClick("new");
+  const handleEditRecord = () => handleToolbarClick("edit");
+  const handleDeleteRecord = () => handleToolbarClick("delete");
+  const handleReplicateRecord = () => handleToolbarClick("replicate");
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return null;
+    return sortDirection === "asc" ? (
+      <ChevronUp className="w-3 h-3" />
+    ) : (
+      <ChevronDown className="w-3 h-3" />
+    );
+  };
+
+  const columns = [
+    { field: "id" as SortField, label: "ID" },
+    { field: "tag" as SortField, label: "Tag" },
+    { field: "address" as SortField, label: "Address" },
+    { field: "city" as SortField, label: "City" },
+    { field: "status" as SortField, label: "Status" },
+    { field: "type" as SortField, label: "Type" },
+    { field: "balance" as SortField, label: "Balance" },
+    { field: "units" as SortField, label: "# Units" },
+    { field: null, label: "Maint" },
+  ];
 
   // Don't render until hydrated to avoid flicker
   if (!isHydrated) {
@@ -246,64 +516,157 @@ export default function AccountsPage() {
   return (
     <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
-        <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
-        <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Edit</span>
-        <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Pim</span>
-        <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Tools</span>
-        <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Help</span>
+      <div ref={menuRef} className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] relative">
+        {/* File Menu */}
+        <div className="relative">
+          <span
+            className={`px-3 py-1 cursor-pointer rounded ${openMenu === "file" ? "bg-[#e5e5e5]" : "hover:bg-[#e5e5e5]"}`}
+            onClick={() => setOpenMenu(openMenu === "file" ? null : "file")}
+          >
+            File
+          </span>
+          {openMenu === "file" && (
+            <div className="absolute top-full left-0 mt-0 bg-white border border-[#c0c0c0] shadow-md z-50 min-w-[180px]">
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={handleRefreshDisplay}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh Display
+              </button>
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={handleSetFilterSort}
+              >
+                <Filter className="w-4 h-4" />
+                Set Filter & Sort
+              </button>
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={handleNoFilterSort}
+              >
+                <FilterX className="w-4 h-4" />
+                No Filter & Sort
+              </button>
+              <div className="border-t border-[#d0d0d0] my-1" />
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={handlePrint}
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </button>
+              <div className="border-t border-[#d0d0d0] my-1" />
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={handleSettings}
+              >
+                <Settings className="w-4 h-4" />
+                Settings
+              </button>
+              <div className="border-t border-[#d0d0d0] my-1" />
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={handleExit}
+              >
+                <X className="w-4 h-4" />
+                Exit
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Edit Menu */}
+        <div className="relative">
+          <span
+            className={`px-3 py-1 cursor-pointer rounded ${openMenu === "edit" ? "bg-[#e5e5e5]" : "hover:bg-[#e5e5e5]"}`}
+            onClick={() => setOpenMenu(openMenu === "edit" ? null : "edit")}
+          >
+            Edit
+          </span>
+          {openMenu === "edit" && (
+            <div className="absolute top-full left-0 mt-0 bg-white border border-[#c0c0c0] shadow-md z-50 min-w-[180px]">
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={() => { handleNewRecord(); setOpenMenu(null); }}
+              >
+                <FileText className="w-4 h-4 text-[#4a7c59]" />
+                Add New Record
+              </button>
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={() => { handleEditRecord(); setOpenMenu(null); }}
+              >
+                <Pencil className="w-4 h-4 text-[#d4a574]" />
+                Edit Existing Record
+              </button>
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={() => { handleDeleteRecord(); setOpenMenu(null); }}
+              >
+                <X className="w-4 h-4 text-[#c45c5c]" />
+                Delete Existing Record
+              </button>
+              <button
+                className="w-full px-4 py-1.5 text-left hover:bg-[#e5e5e5] flex items-center gap-2 text-[12px]"
+                onClick={() => { handleReplicateRecord(); setOpenMenu(null); }}
+              >
+                <Copy className="w-4 h-4 text-[#6b8cae]" />
+                Replicate Record
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Toolbar */}
       <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         {toolbarIcons.map((item, i) => {
-          const IconComponent = item.icon;
-          return (
-            <button
-              key={i}
-              className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
-              title={item.title}
-              onClick={async () => {
-                if (item.action === "new") {
-                  // Accounts must be created from within a customer
-                  alert("To add a new account, open a Customer and use the Add button in the Account Listing section.");
-                } else if (item.action === "edit" && selectedRow) {
-                  const account = accounts.find(a => a.id === selectedRow);
-                  if (account) openTab(account.name || account.address, `/accounts/${account.id}`);
-                } else if (item.action === "delete" && selectedRow) {
-                  const account = accounts.find(a => a.id === selectedRow);
-                  if (account && confirm(`Delete account "${account.name || account.address}"?`)) {
-                    try {
-                      const res = await fetch(`/api/premises/${selectedRow}`, { method: "DELETE" });
-                      if (res.ok) { setSelectedRow(null); fetchAccounts(); }
-                    } catch (e) { console.error(e); }
-                  }
-                }
-              }}
-            >
-              <IconComponent className="w-4 h-4" style={{ color: item.color }} />
-            </button>
-          );
+          if ("type" in item && item.type === "separator") {
+            return <div key={i} className="w-px h-5 bg-[#c0c0c0] mx-1" />;
+          }
+
+          if ("icon" in item) {
+            const IconComponent = item.icon;
+            const isActive = item.action === "totals" && showTotals;
+            return (
+              <button
+                key={i}
+                className={`w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border ${
+                  isActive
+                    ? "border-[#0078d4] bg-[#cce4f7]"
+                    : "border-transparent hover:border-[#c0c0c0]"
+                }`}
+                title={item.title}
+                onClick={() => handleToolbarClick(item.action)}
+              >
+                <IconComponent className="w-4 h-4" style={{ color: item.color }} />
+              </button>
+            );
+          }
+          return null;
         })}
       </div>
 
-      {/* F&S Catalogue Row */}
-      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
-        <span className="mr-2 text-[12px]">F&S Catalogue</span>
-        <select className="border border-[#c0c0c0] bg-white px-2 py-0.5 text-[12px] rounded">
-          <option>None</option>
-        </select>
+      {/* Filter Row */}
+      <div className="bg-white flex flex-wrap items-center gap-3 px-2 py-2 border-b border-[#d0d0d0]">
+        <div className="flex items-center gap-1">
+          <span className="text-[11px]">F&S Catalogue</span>
+          <select className="px-1 py-0.5 border border-[#a0a0a0] text-[11px] bg-white min-w-[60px]">
+            <option value="None">None</option>
+          </select>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white flex items-end px-2 pt-1">
+      {/* Type Tabs */}
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-1.5 text-[12px] border-t border-l border-r rounded-t -mb-px ${
               activeTab === tab
-                ? "bg-white border-[#c0c0c0] border-b-white z-10 font-medium"
+                ? "bg-white border-[#a0a0a0] border-b-white z-10 font-medium"
                 : "bg-[#e8e8e8] border-[#c0c0c0] text-[#606060] hover:bg-[#f0f0f0]"
             }`}
           >
@@ -315,171 +678,117 @@ export default function AccountsPage() {
       {/* Grid Container */}
       <div className="flex-1 bg-white border border-[#a0a0a0] mx-2 mb-2 flex flex-col overflow-hidden">
         {/* Column Headers */}
-        <table className="w-full border-collapse table-fixed">
-          <thead>
-            <tr className="bg-[#f0f0f0] text-[12px] text-left">
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "10%" }}
-                onClick={() => handleSort("id")}
+        <div className="bg-[#f0f0f0] border-b border-[#c0c0c0] flex-shrink-0">
+          <div className="flex text-[12px]">
+            {columns.map((col, index) => (
+              <div
+                key={col.label}
+                className="relative flex-shrink-0 border-r border-[#c0c0c0] last:border-r-0"
+                style={{ width: columnWidths[index] }}
               >
-                <div className="flex items-center gap-1">
-                  ID
-                  <SortIcon field="id" />
+                <div
+                  className={`px-2 py-1.5 font-medium text-[#333] select-none text-center truncate ${
+                    col.field ? "cursor-pointer hover:bg-[#e0e0e0]" : ""
+                  }`}
+                  onClick={() => col.field && handleSort(col.field)}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="truncate">{col.label}</span>
+                    {col.field && <SortIcon field={col.field} />}
+                  </div>
                 </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "18%" }}
-                onClick={() => handleSort("tag")}
-              >
-                <div className="flex items-center gap-1">
-                  Tag
-                  <SortIcon field="tag" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "22%" }}
-                onClick={() => handleSort("address")}
-              >
-                <div className="flex items-center gap-1">
-                  Address
-                  <SortIcon field="address" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "12%" }}
-                onClick={() => handleSort("city")}
-              >
-                <div className="flex items-center gap-1">
-                  City
-                  <SortIcon field="city" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "8%" }}
-                onClick={() => handleSort("status")}
-              >
-                <div className="flex items-center gap-1">
-                  Status
-                  <SortIcon field="status" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "10%" }}
-                onClick={() => handleSort("type")}
-              >
-                <div className="flex items-center gap-1">
-                  Type
-                  <SortIcon field="type" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-right"
-                style={{ width: "10%" }}
-                onClick={() => handleSort("balance")}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Balance
-                  <SortIcon field="balance" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "6%" }}
-                onClick={() => handleSort("units")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  # Units
-                  <SortIcon field="units" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] select-none border border-[#c0c0c0] text-center"
-                style={{ width: "4%" }}
-              >
-                Maint
-              </th>
-            </tr>
-          </thead>
-        </table>
+                {/* Resize handle */}
+                <div
+                  className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-[#0078d4] z-10"
+                  onMouseDown={(e) => handleResizeStart(index, e)}
+                  style={{ cursor: "col-resize" }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Data Rows */}
         <div className="flex-1 overflow-auto">
-          <table className="w-full border-collapse table-fixed">
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="p-4 text-center text-[#808080] border border-[#d0d0d0]">Loading...</td>
-                </tr>
-              ) : sortedAccounts.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-4 text-center text-[#808080] border border-[#d0d0d0]">No accounts found</td>
-                </tr>
-              ) : (
-                sortedAccounts.map((account) => (
-                  <tr
-                    key={account.id}
-                    onClick={() => setSelectedRow(account.id)}
-                    onDoubleClick={() => handleDoubleClick(account)}
-                    className={`text-[12px] cursor-pointer ${
-                      selectedRow === account.id
-                        ? "bg-[#0078d4] text-white"
-                        : "bg-white hover:bg-[#f0f8ff]"
-                    }`}
-                  >
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "10%" }}>{account.premisesId || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "18%" }}>{account.name || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "22%" }}>{account.address}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "12%" }}>{account.city || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "8%" }}>{account.isActive ? "Active" : "Inactive"}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "10%" }}>{account.type || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] text-right" style={{ width: "10%" }}>{formatCurrency(Number(account.balance))}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] text-center" style={{ width: "6%" }}>{account._count?.units || 0}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] text-center" style={{ width: "4%" }}>
-                      <input type="checkbox" checked={account.type !== "Non-Contract"} readOnly className="w-3 h-3" />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Status Bar with Totals */}
-      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
-        {/* Totals Display */}
-        <div className="flex items-center gap-4 text-[11px]">
-          {showTotals && (
-            <>
-              <span className="text-[#333]">
-                <strong>Rows:</strong> {sortedAccounts.length}
-              </span>
-              <span className="text-[#333]">
-                <strong># Units:</strong> {totals.units}
-              </span>
-              <span className="text-[#333]">
-                <strong>Balance:</strong> {formatCurrency(totals.balance)}
-              </span>
-            </>
+          {loading ? (
+            <div className="p-4 text-center text-[#808080]">Loading...</div>
+          ) : sortedAccounts.length === 0 ? (
+            <div className="p-4 text-center text-[#808080]">No accounts found</div>
+          ) : (
+            sortedAccounts.map((account) => (
+              <div
+                key={account.id}
+                onClick={() => setSelectedRow(account.id)}
+                onDoubleClick={() => handleDoubleClick(account)}
+                className={`flex text-[12px] cursor-pointer border-b border-[#d0d0d0] ${
+                  selectedRow === account.id
+                    ? "bg-[#0078d4] text-white"
+                    : "bg-white hover:bg-[#f0f8ff]"
+                }`}
+              >
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>{account.premisesId || ""}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{account.name || ""}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}>{account.address}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}>{account.city || ""}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}>{account.isActive ? "Active" : "Inactive"}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[5] }}>{account.type || ""}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[6] }}>{formatCurrency(Number(account.balance))}</div>
+                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-center" style={{ width: columnWidths[7] }}>{account._count?.units || 0}</div>
+                <div className="px-2 py-1 truncate flex-shrink-0 text-center" style={{ width: columnWidths[8] }}>
+                  <input type="checkbox" checked={account.maint === 1} readOnly className="w-3 h-3" />
+                </div>
+              </div>
+            ))
           )}
         </div>
-
-        {/* Toggle Button */}
-        <button
-          onClick={() => setShowTotals(!showTotals)}
-          className={`px-4 py-1 border border-[#c0c0c0] rounded text-[11px] hover:bg-[#e8e8e8] ${
-            showTotals ? "bg-[#d0e8ff]" : "bg-[#f0f0f0]"
-          }`}
-        >
-          {showTotals ? "Totals On" : "Totals Off"}
-        </button>
       </div>
+
+      {/* Status Bar */}
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-4 text-[11px]">
+          {Object.keys(activeFilters).length > 0 && (
+            <span className="text-[#0066cc] flex items-center gap-1">
+              <Filter className="w-3 h-3" />
+              <strong>Filtered</strong>
+              <button
+                onClick={clearFilters}
+                className="ml-1 text-[#c00] hover:underline"
+                title="Clear filters"
+              >
+                (clear)
+              </button>
+            </span>
+          )}
+          {showTotals && (
+            <div className="flex gap-3 text-[10px]">
+              <span><strong>Rows:</strong> {sortedAccounts.length}</span>
+              <span><strong># Units:</strong> {totals.units}</span>
+              <span><strong>Balance:</strong> {formatCurrency(totals.balance)}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-4 text-[11px]">
+          <span>{sortedAccounts.length} accounts</span>
+          <button
+            onClick={() => setShowTotals(!showTotals)}
+            className={`px-2 py-0.5 text-[10px] border rounded ${
+              showTotals ? "bg-[#0078d4] text-white border-[#0078d4]" : "bg-white border-[#a0a0a0] hover:bg-[#f0f0f0]"
+            }`}
+          >
+            Totals {showTotals ? "On" : "Off"}
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Dialog */}
+      <FilterDialog
+        isOpen={showFilterDialog}
+        onClose={() => setShowFilterDialog(false)}
+        onApply={(filters) => setActiveFilters(filters)}
+        title="Accounts"
+        fields={filterFields}
+        initialFilters={activeFilters}
+      />
     </div>
   );
 }

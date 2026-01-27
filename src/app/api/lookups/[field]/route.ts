@@ -233,6 +233,41 @@ export async function GET(
         break;
       }
 
+      case "accountStatus": {
+        // Account status options (same as customerStatus)
+        values = [
+          { id: "Active", label: "Active" },
+          { id: "Inactive", label: "Inactive" },
+        ];
+        break;
+      }
+
+      case "accountType":
+      case "premisesType": {
+        // Get distinct account/premises types
+        const premisesTypes = await prisma.premises.findMany({
+          select: { type: true },
+          distinct: ["type"],
+          where: { type: { not: null } },
+          orderBy: { type: "asc" },
+        });
+        values = premisesTypes
+          .filter((p) => p.type)
+          .map((p) => ({
+            id: p.type!,
+            label: p.type!,
+          }));
+        // Add common defaults if not present
+        const defaultTypes = ["Non-Contract", "Full Service", "Oil & Grease", "Inspection"];
+        for (const dt of defaultTypes) {
+          if (!values.find((v) => v.id === dt)) {
+            values.push({ id: dt, label: dt });
+          }
+        }
+        values.sort((a, b) => a.label.localeCompare(b.label));
+        break;
+      }
+
       default:
         return NextResponse.json(
           { error: `Unknown lookup field: ${field}` },
