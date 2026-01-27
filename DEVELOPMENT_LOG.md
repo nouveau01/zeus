@@ -781,12 +781,23 @@ Tab bar redesign with Chrome-style tabs and collapsible sidebar with icon flyout
 |--------|-------------|
 | `34609f4` | Redesign tabs and sidebar with Chrome-style UI |
 | `279f104` | Fix TopNav logo gap when sidebar collapsed |
+| `f4e9e82` | Update development log with tab and sidebar redesign |
+| `8e58aa8` | Make Expand button more prominent with blue styling |
 
 ---
 
 ### Merge to Main
 
 Branch `feature/tab-structure-redesign` merged to `main` and pushed.
+
+---
+
+### Additional UI Polish
+
+**Expand Button Styling:**
+- Made Expand button more prominent with blue background (#316ac5)
+- White text, rounded corners, shadow
+- Stands out clearly at top of collapsed sidebar
 
 ---
 
