@@ -35,6 +35,9 @@ interface Customer {
   email: string | null;
   billing: number | null;
   status: number | null;
+  custom1: string | null;
+  custom2: string | null;
+  portalAccess: boolean;
   createdAt: string | null;
   updatedAt: string | null;
   _count: {
@@ -243,6 +246,17 @@ export default function CustomersPage() {
     }
   };
 
+  // Map billing int to text
+  const getBillingTypeText = (billing: number | null): string => {
+    switch (billing) {
+      case 0: return "Consolidated";
+      case 1: return "Detailed";
+      case 2: return "Detailed Group";
+      case 3: return "Detailed Sub";
+      default: return "";
+    }
+  };
+
   // Helper to get customer field value by filter key
   const getCustomerFieldValue = (customer: Customer, fieldKey: string): string => {
     switch (fieldKey) {
@@ -250,18 +264,18 @@ export default function CustomersPage() {
       case "numUnits": return String(customer._count?.jobs || 0);
       case "address": return customer.address || "";
       case "balance": return String(customer.balance || 0);
-      case "billingType": return String(customer.billing || "");
+      case "billingType": return getBillingTypeText(customer.billing);
       case "city": return customer.city || "";
       case "contact": return customer.contact || "";
-      case "custom1": return (customer as unknown as Record<string, string>).custom1 || "";
-      case "custom2": return (customer as unknown as Record<string, string>).custom2 || "";
+      case "custom1": return customer.custom1 || "";
+      case "custom2": return customer.custom2 || "";
       case "dateCreated": return customer.createdAt || "";
       case "email": return customer.email || "";
       case "fax": return customer.fax || "";
       case "lastModified": return customer.updatedAt || "";
       case "name": return customer.name || "";
       case "phone": return customer.phone || "";
-      case "portalUser": return (customer as unknown as Record<string, string>).portalUser || "";
+      case "portalUser": return customer.portalAccess ? "Yes" : "No";
       case "state": return customer.state || "";
       case "status": return customer.isActive ? "Active" : "Inactive";
       case "customerStatus": return customer.isActive ? "Active" : "Inactive";

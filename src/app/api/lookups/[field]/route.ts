@@ -225,21 +225,11 @@ export async function GET(
       }
 
       case "portalUser": {
-        // Get all portal users
-        const users = await prisma.user.findMany({
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-          orderBy: { name: "asc" },
-          take: 500,
-        });
-        values = users.map((u) => ({
-          id: u.name || u.email || u.id,
-          label: u.name || u.email || "Unknown",
-          description: u.email || undefined,
-        }));
+        // Portal access is a boolean flag - Yes/No options
+        values = [
+          { id: "Yes", label: "Yes", description: "Has portal access" },
+          { id: "No", label: "No", description: "No portal access" },
+        ];
         break;
       }
 
