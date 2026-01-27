@@ -105,28 +105,54 @@ export default function AccountsPage() {
   const [columnWidths, setColumnWidths] = useState<number[]>([80, 150, 200, 100, 80, 100, 100, 60, 50]);
   const [resizing, setResizing] = useState<{ index: number; startX: number; startWidth: number } | null>(null);
 
-  // Filter fields for Accounts
+  // Filter fields for Accounts (matching Total Service)
   const filterFields: FilterField[] = [
-    { key: "accountId", label: "Account ID", hasLookup: false },
+    { key: "numUnits", label: "# Units", hasLookup: false },
+    { key: "acctRep", label: "Acct Rep", hasLookup: false },
     { key: "address", label: "Address", hasLookup: false },
     { key: "balance", label: "Balance", hasLookup: false },
-    { key: "billingType", label: "Billing Type*", hasLookup: true },
     { key: "city", label: "City", hasLookup: false },
-    { key: "contact", label: "Contact", hasLookup: false },
-    { key: "custom1", label: "Custom1", hasLookup: false },
-    { key: "custom2", label: "Custom2", hasLookup: false },
-    { key: "customer", label: "Customer*", hasLookup: true },
-    { key: "email", label: "Email Address", hasLookup: false },
-    { key: "fax", label: "Fax", hasLookup: false },
-    { key: "name", label: "Name/Tag", hasLookup: false },
-    { key: "numUnits", label: "# Units", hasLookup: false },
-    { key: "phone", label: "Phone", hasLookup: false },
-    { key: "route", label: "Route", hasLookup: false },
+    { key: "collector", label: "COLLECTOR", hasLookup: false },
+    { key: "creditHold", label: "Credit Hold", hasLookup: false },
+    { key: "custom12", label: "Custom 12", hasLookup: false },
+    { key: "custom13", label: "Custom 13", hasLookup: false },
+    { key: "custom14", label: "Custom 14", hasLookup: false },
+    { key: "customContact", label: "CustomContact*", hasLookup: true },
+    { key: "customerType", label: "Customer Type", hasLookup: false },
+    { key: "dateCreated", label: "Date Created", hasLookup: false },
+    { key: "dateModified", label: "Date Modified", hasLookup: false },
+    { key: "dispatchAlert", label: "Dispatch Alert", hasLookup: false },
+    { key: "dws", label: "DWS", hasLookup: false },
+    { key: "email", label: "Email", hasLookup: false },
+    { key: "emailInvoice", label: "Email Invoice", hasLookup: false },
+    { key: "emailTicket", label: "Email Ticket", hasLookup: false },
+    { key: "grouping", label: "GROUPING", hasLookup: false },
+    { key: "grouping2", label: "Grouping 2", hasLookup: false },
+    { key: "accountId", label: "ID*", hasLookup: true },
+    { key: "interest", label: "Interest", hasLookup: false },
+    { key: "onMaintenance", label: "On Maintenance", hasLookup: false },
+    { key: "owner", label: "Owner*", hasLookup: true },
+    { key: "preTest", label: "Pre Test", hasLookup: false },
+    { key: "priceLevel", label: "Price Level", hasLookup: false },
+    { key: "printInvoice", label: "Print Invoice", hasLookup: false },
+    { key: "printTicket", label: "Print Ticket", hasLookup: false },
+    { key: "proposalRcvd", label: "Proposal Rcvd", hasLookup: false },
+    { key: "residentMech", label: "Resident Mech", hasLookup: false },
+    { key: "routeField", label: "ROUTE", hasLookup: false },
+    { key: "route", label: "Route*", hasLookup: true },
+    { key: "salesTaxRegion", label: "Sales Tax Region*", hasLookup: true },
     { key: "state", label: "State*", hasLookup: true },
     { key: "accountStatus", label: "Status*", hasLookup: true },
+    { key: "supervisor", label: "Supervisor", hasLookup: false },
+    { key: "tag", label: "Tag*", hasLookup: true },
+    { key: "territory", label: "Territory*", hasLookup: true },
+    { key: "typeCategories", label: "Type Categories", hasLookup: false },
     { key: "type", label: "Type*", hasLookup: true },
+    { key: "useTax", label: "Use Tax*", hasLookup: true },
+    { key: "violationUpdate", label: "ViolationUpdate", hasLookup: false },
+    { key: "writeOffs", label: "Write-Offs", hasLookup: false },
     { key: "zip", label: "Zip", hasLookup: false },
-    { key: "zone", label: "Zone", hasLookup: false },
+    { key: "zone", label: "Zone*", hasLookup: true },
   ];
 
   // Active filters
@@ -266,25 +292,54 @@ export default function AccountsPage() {
 
   // Helper to get account field value by filter key
   const getAccountFieldValue = (account: Account, fieldKey: string): string => {
+    // Type assertion for fields not in interface yet
+    const acct = account as unknown as Record<string, unknown>;
+
     switch (fieldKey) {
-      case "accountId": return account.premisesId || "";
+      case "numUnits": return String(account._count?.units || 0);
+      case "acctRep": return String(acct.acctRep || "");
       case "address": return account.address || "";
       case "balance": return String(account.balance || 0);
-      case "billingType": return getBillingTypeText(account.billing);
       case "city": return account.city || "";
-      case "contact": return account.contact || "";
-      case "custom1": return account.custom1 || "";
-      case "custom2": return account.custom2 || "";
-      case "customer": return account.customer?.name || "";
+      case "collector": return String(acct.collector || "");
+      case "creditHold": return String(acct.creditHold || "");
+      case "custom12": return String(acct.custom12 || "");
+      case "custom13": return String(acct.custom13 || "");
+      case "custom14": return String(acct.custom14 || "");
+      case "customContact": return account.contact || "";
+      case "customerType": return account.customer?.name ? "Customer" : "";
+      case "dateCreated": return account.createdAt || "";
+      case "dateModified": return account.updatedAt || "";
+      case "dispatchAlert": return String(acct.dispatchAlert || "");
+      case "dws": return String(acct.dws || "");
       case "email": return account.email || "";
-      case "fax": return account.fax || "";
-      case "name": return account.name || "";
-      case "numUnits": return String(account._count?.units || 0);
-      case "phone": return account.phone || "";
+      case "emailInvoice": return String(acct.emailInvoice || "");
+      case "emailTicket": return String(acct.emailTicket || "");
+      case "grouping": return String(acct.grouping || "");
+      case "grouping2": return String(acct.grouping2 || "");
+      case "accountId": return account.premisesId || "";
+      case "interest": return String(acct.interest || "");
+      case "onMaintenance": return account.maint === 1 ? "Yes" : "No";
+      case "owner": return account.customer?.name || "";
+      case "preTest": return String(acct.preTest || "");
+      case "priceLevel": return String(acct.priceL || "");
+      case "printInvoice": return String(acct.printInvoice || "");
+      case "printTicket": return String(acct.printTicket || "");
+      case "proposalRcvd": return String(acct.proposalRcvd || "");
+      case "residentMech": return String(acct.residentMech || "");
+      case "routeField": return String(account.route || "");
       case "route": return String(account.route || "");
+      case "salesTaxRegion": return String(acct.sTax || "");
       case "state": return account.state || "";
       case "accountStatus": return account.isActive ? "Active" : "Inactive";
+      case "supervisor": return String(acct.supervisor || "");
+      case "tag": return account.name || "";
+      case "territory": return String(account.terr || "");
+      case "typeCategories": return String(acct.typeCategories || "");
       case "type": return account.type || "";
+      case "useTax": return String(acct.uTax || "");
+      case "violationUpdate": return String(acct.violationUpdate || "");
+      case "writeOffs": return String(acct.writeOff || "");
       case "zip": return account.zipCode || "";
       case "zone": return String(account.zone || "");
       default: return "";

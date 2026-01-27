@@ -243,7 +243,8 @@ export async function GET(
       }
 
       case "accountType":
-      case "premisesType": {
+      case "premisesType":
+      case "type": {
         // Get distinct account/premises types
         const premisesTypes = await prisma.premises.findMany({
           select: { type: true },
@@ -265,6 +266,175 @@ export async function GET(
           }
         }
         values.sort((a, b) => a.label.localeCompare(b.label));
+        break;
+      }
+
+      case "customContact": {
+        // Get all contacts
+        const contacts = await prisma.contact.findMany({
+          select: {
+            id: true,
+            name: true,
+            title: true,
+          },
+          orderBy: { name: "asc" },
+          take: 500,
+        });
+        values = contacts.map((c) => ({
+          id: c.name || c.id,
+          label: c.name || "Unknown",
+          description: c.title || undefined,
+        }));
+        break;
+      }
+
+      case "accountId": {
+        // Get all account/premises IDs
+        const premises = await prisma.premises.findMany({
+          select: {
+            id: true,
+            locId: true,
+            name: true,
+            address: true,
+          },
+          orderBy: { locId: "asc" },
+          take: 500,
+        });
+        values = premises.map((p) => ({
+          id: p.locId || p.id,
+          label: p.locId || p.id,
+          description: p.name || p.address || undefined,
+        }));
+        break;
+      }
+
+      case "owner": {
+        // Same as customer lookup
+        const owners = await prisma.customer.findMany({
+          select: {
+            id: true,
+            name: true,
+            accountNumber: true,
+          },
+          orderBy: { name: "asc" },
+          take: 500,
+        });
+        values = owners.map((c) => ({
+          id: c.name,
+          label: c.name,
+          description: c.accountNumber || undefined,
+        }));
+        break;
+      }
+
+      case "route": {
+        // Get distinct routes
+        const routes = await prisma.premises.findMany({
+          select: { route: true },
+          distinct: ["route"],
+          where: { route: { not: null } },
+          orderBy: { route: "asc" },
+        });
+        values = routes
+          .filter((r) => r.route !== null)
+          .map((r) => ({
+            id: String(r.route),
+            label: String(r.route),
+          }));
+        break;
+      }
+
+      case "salesTaxRegion": {
+        // Get distinct sales tax regions
+        const taxRegions = await prisma.premises.findMany({
+          select: { sTax: true },
+          distinct: ["sTax"],
+          where: { sTax: { not: null } },
+          orderBy: { sTax: "asc" },
+        });
+        values = taxRegions
+          .filter((t) => t.sTax)
+          .map((t) => ({
+            id: t.sTax!,
+            label: t.sTax!,
+          }));
+        break;
+      }
+
+      case "tag": {
+        // Get all account tags/names
+        const tags = await prisma.premises.findMany({
+          select: {
+            id: true,
+            tag: true,
+            name: true,
+            locId: true,
+          },
+          where: {
+            OR: [
+              { tag: { not: null } },
+              { name: { not: null } },
+            ],
+          },
+          orderBy: { name: "asc" },
+          take: 500,
+        });
+        values = tags.map((t) => ({
+          id: t.tag || t.name || t.id,
+          label: t.tag || t.name || "Unknown",
+          description: t.locId || undefined,
+        }));
+        break;
+      }
+
+      case "territory": {
+        // Get distinct territories
+        const territories = await prisma.premises.findMany({
+          select: { terr: true },
+          distinct: ["terr"],
+          where: { terr: { not: null } },
+          orderBy: { terr: "asc" },
+        });
+        values = territories
+          .filter((t) => t.terr !== null)
+          .map((t) => ({
+            id: String(t.terr),
+            label: String(t.terr),
+          }));
+        break;
+      }
+
+      case "useTax": {
+        // Get distinct use tax values
+        const useTaxes = await prisma.premises.findMany({
+          select: { uTax: true },
+          distinct: ["uTax"],
+          where: { uTax: { not: null } },
+          orderBy: { uTax: "asc" },
+        });
+        values = useTaxes
+          .filter((t) => t.uTax)
+          .map((t) => ({
+            id: t.uTax!,
+            label: t.uTax!,
+          }));
+        break;
+      }
+
+      case "zone": {
+        // Get distinct zones
+        const zones = await prisma.premises.findMany({
+          select: { zone: true },
+          distinct: ["zone"],
+          where: { zone: { not: null } },
+          orderBy: { zone: "asc" },
+        });
+        values = zones
+          .filter((z) => z.zone !== null)
+          .map((z) => ({
+            id: String(z.zone),
+            label: String(z.zone),
+          }));
         break;
       }
 
