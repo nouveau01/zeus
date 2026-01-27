@@ -382,10 +382,10 @@ export function Sidebar() {
                     const Icon = iconMap[section.iconName];
                     return Icon ? <Icon className="w-4 h-4" /> : null;
                   })()}
-                  <div className="mt-0.5 leading-tight text-center flex items-center">
-                    <span className="whitespace-nowrap">{section.id}-{section.name}</span>
-                    <ChevronRight className="w-2 h-2 ml-0.5 flex-shrink-0" />
-                  </div>
+                  <span className="mt-0.5 leading-tight text-center whitespace-nowrap">
+                    {section.id}-{section.name}
+                  </span>
+                  <ChevronRight className="w-4 h-4 mt-0.5 text-[#316ac5]" />
                 </button>
               );
             })}
