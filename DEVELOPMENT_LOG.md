@@ -783,6 +783,8 @@ Tab bar redesign with Chrome-style tabs and collapsible sidebar with icon flyout
 | `279f104` | Fix TopNav logo gap when sidebar collapsed |
 | `f4e9e82` | Update development log with tab and sidebar redesign |
 | `8e58aa8` | Make Expand button more prominent with blue styling |
+| `5327026` | Update development log with expand button styling |
+| `b1bb139` | Add hover arrow indicator to collapsed sidebar icons |
 
 ---
 
@@ -798,6 +800,11 @@ Branch `feature/tab-structure-redesign` merged to `main` and pushed.
 - Made Expand button more prominent with blue background (#316ac5)
 - White text, rounded corners, shadow
 - Stands out clearly at top of collapsed sidebar
+
+**Hover Arrow Indicator:**
+- Added small arrow (ChevronRight) that appears on hover for collapsed sidebar icons
+- Indicates the item can be clicked to expand flyout menu
+- Uses group/group-hover for smooth transition
 
 ---
 
