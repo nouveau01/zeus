@@ -418,7 +418,7 @@ F/U ** Emergency lines
       </div>
 
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-1 py-0.5 border-b border-[#808080]">
+      <div className="bg-white flex items-center px-1 py-0.5 border-b border-[#808080]">
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">File</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Records</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Tools</span>
@@ -428,7 +428,7 @@ F/U ** Emergency lines
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#808080] gap-0.5 flex-wrap">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-0.5 flex-wrap">
         <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
@@ -478,7 +478,7 @@ F/U ** Emergency lines
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#808080] gap-3 flex-wrap">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-3 flex-wrap">
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Scheme</label>
           <select value={scheme} onChange={(e) => setScheme(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white min-w-[70px]">
@@ -525,7 +525,7 @@ F/U ** Emergency lines
       </div>
 
       {/* Date Range Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#808080] gap-2 flex-wrap">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-2 flex-wrap">
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Start</label>
           <input type="text" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
@@ -605,25 +605,25 @@ F/U ** Emergency lines
         </div>
 
         {/* Detail Panel */}
-        <div className="bg-[#f5f5f5] border border-[#808080] m-1 flex flex-col" style={{ minHeight: "250px" }}>
+        <div className="bg-white border border-[#808080] m-1 flex flex-col" style={{ minHeight: "250px" }}>
           {/* Detail Tabs */}
           <div className="flex border-b border-[#808080]">
-            <button onClick={() => setActiveTab("ticketInfo")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "ticketInfo" ? "bg-[#f5f5f5] font-medium" : "bg-[#d4d0c8]"}`}>
+            <button onClick={() => setActiveTab("ticketInfo")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "ticketInfo" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
               1 Ticket Info
             </button>
-            <button onClick={() => setActiveTab("scopeSched")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "scopeSched" ? "bg-[#f5f5f5] font-medium" : "bg-[#d4d0c8]"}`}>
+            <button onClick={() => setActiveTab("scopeSched")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "scopeSched" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
               2 Scope & Sched
             </button>
-            <button onClick={() => setActiveTab("customerInfo")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "customerInfo" ? "bg-[#f5f5f5] font-medium" : "bg-[#d4d0c8]"}`}>
+            <button onClick={() => setActiveTab("customerInfo")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "customerInfo" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
               3 Customer Info
             </button>
-            <button onClick={() => setActiveTab("customFields")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "customFields" ? "bg-[#f5f5f5] font-medium" : "bg-[#d4d0c8]"}`}>
+            <button onClick={() => setActiveTab("customFields")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "customFields" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
               4 Custom Fields
             </button>
-            <button onClick={() => setActiveTab("callHistory")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "callHistory" ? "bg-[#f5f5f5] font-medium" : "bg-[#d4d0c8]"}`}>
+            <button onClick={() => setActiveTab("callHistory")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "callHistory" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
               5 Call History
             </button>
-            <button onClick={() => setActiveTab("ledger")} className={`px-3 py-1 text-[11px] ${activeTab === "ledger" ? "bg-[#f5f5f5] font-medium text-[#e74c3c]" : "bg-[#d4d0c8] text-[#e74c3c]"}`}>
+            <button onClick={() => setActiveTab("ledger")} className={`px-3 py-1 text-[11px] ${activeTab === "ledger" ? "bg-white font-medium text-[#e74c3c]" : "bg-[#d4d0c8] text-[#e74c3c]"}`}>
               6 Ledger
             </button>
           </div>

@@ -282,7 +282,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-gray-500">Loading...</span>
       </div>
     );
@@ -290,16 +290,16 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
 
   if (!customer) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-gray-500">Customer not found</span>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Tools</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
@@ -308,7 +308,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         {toolbarItems.map((item, i) => {
           if (item.separator) {
             return <div key={i} className="w-px h-5 bg-[#c0c0c0] mx-1" />;
@@ -328,14 +328,14 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       </div>
 
       {/* Tabs */}
-      <div className="bg-[#ece9d8] flex items-end px-2 pt-1 border-b border-[#919b9c]">
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#919b9c]">
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-1.5 text-[12px] border-t border-l border-r -mb-px ${
               activeTab === tab
-                ? "bg-[#f5f5f5] border-[#919b9c] border-b-[#f5f5f5] z-10 font-medium"
+                ? "bg-white border-[#919b9c] border-b-[#f5f5f5] z-10 font-medium"
                 : "bg-[#d4d0c8] border-[#919b9c] text-[#000] hover:bg-[#e8e8e0]"
             }`}
           >
@@ -345,11 +345,11 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#f5f5f5] p-2">
+      <div className="flex-1 flex flex-col overflow-hidden bg-white p-2">
         {activeTab === "1 General" && (
           <div className="flex-1 flex flex-col gap-2">
             {/* Form Fields */}
-            <div className="bg-[#ffffcc] border border-[#c0c0c0] p-3 flex gap-8">
+            <div className="bg-white border border-[#c0c0c0] p-3 flex gap-8">
               {/* Left Column */}
               <div className="flex-1 space-y-2">
                 <div className="flex items-center">
@@ -572,7 +572,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         {activeTab === "2 Control" && (
           <div className="flex-1 flex flex-col gap-2">
             {/* Control Form Fields */}
-            <div className="bg-[#ffffcc] border border-[#c0c0c0] p-3 flex gap-8">
+            <div className="bg-white border border-[#c0c0c0] p-3 flex gap-8">
               {/* Left Column */}
               <div className="flex-1 space-y-2">
                 <div className="flex items-center">
@@ -781,10 +781,10 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             </div>
 
             {/* Contacts Grid */}
-            <div className="bg-[#ffffcc] border border-[#c0c0c0] flex-1 min-h-[120px] overflow-auto">
+            <div className="bg-white border border-[#c0c0c0] flex-1 min-h-[120px] overflow-auto">
               <table className="w-full border-collapse text-[12px]">
                 <thead>
-                  <tr className="bg-[#ffffcc]">
+                  <tr className="bg-white">
                     <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "15%" }}>Contact</th>
                     <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Title</th>
                     <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "15%" }}>Phone</th>
@@ -931,7 +931,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         {activeTab === "4 Portal" && (
           <div className="flex-1 flex flex-col gap-2">
             {/* Portal Form */}
-            <div className="bg-[#ffffcc] border border-[#c0c0c0] p-3">
+            <div className="bg-white border border-[#c0c0c0] p-3">
               <div className="flex items-center">
                 <label className="w-24 text-[12px] text-right pr-2">Portal Access</label>
                 <select
@@ -1328,7 +1328,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
         <span className="font-medium">{isDirty ? "EDIT*" : "EDIT"}</span>
         <div className="flex items-center gap-8">
           <span>{formatDate(customer.createdAt)}</span>

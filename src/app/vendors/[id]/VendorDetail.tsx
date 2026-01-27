@@ -411,16 +411,16 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-[12px]">Loading...</span>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Tools</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
@@ -429,7 +429,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="New">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
@@ -505,7 +505,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               onClick={() => setActiveTab(tab)}
               className={`px-6 py-1.5 text-[12px] border-t border-l border-r -mb-px ${
                 activeTab === tab
-                  ? "bg-[#f5f5f5] border-[#808080] border-b-[#f5f5f5] z-10"
+                  ? "bg-white border-[#808080] border-b-[#f5f5f5] z-10"
                   : "bg-[#d4d0c8] border-[#808080] text-[#000000] hover:bg-[#e8e8e8]"
               }`}
               style={{
@@ -522,7 +522,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-auto bg-[#f5f5f5] border-t border-[#808080]">
+      <div className="flex-1 overflow-auto bg-white border-t border-[#808080]">
         {activeTab === "1 General" && (
           <div className="p-4 flex gap-8">
             {/* Left Column */}
@@ -1134,7 +1134,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#808080] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#808080] px-2 py-1 flex items-center text-[11px]">
         <span className="px-2 border-r border-[#808080] font-medium">{editMode ? "EDIT" : "VIEW"}</span>
         <span className="px-2 border-r border-[#808080]">{hasChanges ? "Modified" : ""}</span>
         <span className="flex-1" />

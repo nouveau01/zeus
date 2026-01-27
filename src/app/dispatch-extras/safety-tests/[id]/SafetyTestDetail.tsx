@@ -216,7 +216,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
       </div>
 
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-1 py-0.5 border-b border-[#808080]">
+      <div className="bg-white flex items-center px-1 py-0.5 border-b border-[#808080]">
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">File</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Edit</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Tools</span>
@@ -224,7 +224,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#808080] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-0.5">
         <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
@@ -647,7 +647,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#808080] px-3 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#808080] px-3 py-1 flex items-center text-[11px]">
         <span>Test ID: {testData.id}</span>
         <span className="mx-2">|</span>
         <span>Account: {testData.accountId}</span>

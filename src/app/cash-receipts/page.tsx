@@ -240,9 +240,9 @@ export default function CashReceiptsPage() {
   const displayBankAccounts = bankAccounts.length > 0 ? bankAccounts : mockBankAccounts;
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Edit</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Pim</span>
@@ -251,7 +251,7 @@ export default function CashReceiptsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button
           onClick={handleNewDeposit}
           className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
@@ -322,7 +322,7 @@ export default function CashReceiptsPage() {
       </div>
 
       {/* Filter Row */}
-      <div className="bg-[#f5f5f5] flex items-center px-3 py-2 border-b border-[#d0d0d0] gap-4">
+      <div className="bg-white flex items-center px-3 py-2 border-b border-[#d0d0d0] gap-4">
         {/* F&S Catalogue */}
         <div className="flex items-center gap-2">
           <label className="text-[12px]">F&S Catalogue</label>
@@ -373,7 +373,7 @@ export default function CashReceiptsPage() {
       </div>
 
       {/* Bank Account Tabs */}
-      <div className="bg-[#f5f5f5] flex items-end px-2 pt-1 border-b border-[#a0a0a0]">
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#a0a0a0]">
         {/* All Tab */}
         <button
           onClick={() => setSelectedTab("all")}
@@ -422,7 +422,7 @@ export default function CashReceiptsPage() {
                 onDoubleClick={() => openTab(`Editing Deposit #${receipt.refNumber}`, `/cash-receipts/${receipt.id}`)}
                 className={`cursor-pointer ${
                   selectedRow === receipt.id || (index === 0 && !selectedRow)
-                    ? "bg-[#ffffcc]"
+                    ? "bg-white"
                     : "hover:bg-[#f0f8ff]"
                 }`}
               >
@@ -438,7 +438,7 @@ export default function CashReceiptsPage() {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
         <span className="px-2 border-r border-[#c0c0c0]">
           {selectedReceipt ? formatDate(selectedReceipt.date) : formatDate(displayReceipts[0]?.date || new Date().toISOString())}
         </span>

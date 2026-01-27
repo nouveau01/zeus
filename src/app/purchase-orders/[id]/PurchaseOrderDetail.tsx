@@ -407,16 +407,16 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-[12px]">Loading...</span>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Tools</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
@@ -425,7 +425,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button
           className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
           title="New"
@@ -501,7 +501,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-2">
         {/* Header Section */}
-        <div className="bg-[#ffffcc] border border-[#808080] p-3 mb-2">
+        <div className="bg-white border border-[#808080] p-3 mb-2">
           <div className="flex gap-4">
             {/* Left - Vendor Info */}
             <div className="flex flex-col gap-1">
@@ -1002,7 +1002,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#808080] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#808080] px-2 py-1 flex items-center text-[11px]">
         <span className="px-2 border-r border-[#808080] font-medium">{editMode ? "EDIT" : "VIEW"}</span>
         <span className="px-2 border-r border-[#808080]">{hasChanges ? "Modified" : ""}</span>
         <span className="flex-1" />

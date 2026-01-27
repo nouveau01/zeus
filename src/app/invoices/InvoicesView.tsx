@@ -165,11 +165,11 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
 
   return (
     <div
-      className="h-full flex flex-col bg-[#f5f5f5]"
+      className="h-full flex flex-col bg-white"
       style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}
     >
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Edit</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Pim</span>
@@ -178,7 +178,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center gap-1 px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center gap-1 px-2 py-1 border-b border-[#d0d0d0]">
         {/* New */}
         <button
           className="p-1 hover:bg-[#e0e0e0] rounded"
@@ -289,7 +289,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
       </div>
 
       {/* Filter Row */}
-      <div className="bg-[#f5f5f5] flex items-center gap-4 px-2 py-2 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center gap-4 px-2 py-2 border-b border-[#d0d0d0]">
         <div className="flex items-center gap-2">
           <span className="text-[11px]">F&S Catalogue</span>
           <select
@@ -335,7 +335,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
       </div>
 
       {/* Type Tabs */}
-      <div className="bg-[#f5f5f5] flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
         {TYPE_TABS.map((tab) => (
           <button
             key={tab}
@@ -431,7 +431,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
         <span>{selectedInvoice ? `${selectedInvoice.premises?.address || ""}` : ""}</span>
         <div className="flex gap-4">
           <span>Totals Off</span>

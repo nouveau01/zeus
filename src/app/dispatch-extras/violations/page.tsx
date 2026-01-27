@@ -165,7 +165,7 @@ export default function ViolationsPage() {
       </div>
 
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-1 py-0.5 border-b border-[#808080]">
+      <div className="bg-white flex items-center px-1 py-0.5 border-b border-[#808080]">
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">File</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Edit</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Elm</span>
@@ -174,7 +174,7 @@ export default function ViolationsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#808080] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-0.5">
         <button
           onClick={handleNewViolation}
           className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]"
@@ -227,7 +227,7 @@ export default function ViolationsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#808080] gap-3">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-3">
         <div className="flex items-center gap-1">
           <label className="text-[11px]">F&S Catalogue:</label>
           <select
@@ -336,7 +336,7 @@ export default function ViolationsPage() {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#808080] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#808080] px-2 py-1 flex items-center text-[11px]">
         <span>{selectedViolation?.tag || ""}</span>
         <span className="flex-1" />
         <button

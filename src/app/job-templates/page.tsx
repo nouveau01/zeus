@@ -201,7 +201,7 @@ export default function JobTemplatesPage() {
   return (
     <div className="h-full flex flex-col bg-[#f0f0f0]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Edit</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Pim</span>
@@ -210,7 +210,7 @@ export default function JobTemplatesPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-1">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-1">
         <button
           onClick={handleNewTemplate}
           className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
@@ -259,7 +259,7 @@ export default function JobTemplatesPage() {
       </div>
 
       {/* Type Tabs */}
-      <div className="bg-[#f5f5f5] flex items-end px-2 pt-1 border-b border-[#808080]">
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#808080]">
         {TYPE_TABS.map((tab) => (
           <button
             key={tab}
@@ -325,9 +325,9 @@ export default function JobTemplatesPage() {
         </div>
 
         {/* Detail Panel */}
-        <div className="flex-1 bg-[#f5f5f5] p-4 overflow-auto">
+        <div className="flex-1 bg-white p-4 overflow-auto">
           {(selectedTemplate || isEditing) ? (
-            <div className="bg-[#ffffcc] border border-[#c0c0c0] p-4">
+            <div className="bg-white border border-[#c0c0c0] p-4">
               <h3 className="font-bold text-[12px] mb-4">
                 {selectedTemplate ? (isEditing ? "Edit Template" : "Template Details") : "New Template"}
               </h3>
@@ -464,7 +464,7 @@ export default function JobTemplatesPage() {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
         <span>{selectedTemplate?.name || ""}</span>
         <div className="flex gap-4">
           <span>Totals Off</span>

@@ -245,7 +245,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
   const statuses = ["Dismissed", "Work on Hold", "CONTRACT CANCELLED", "Open", "Pending"];
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Title Bar */}
       <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
         <span className="font-bold text-[12px]">
@@ -257,7 +257,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
       </div>
 
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-1 py-0.5 border-b border-[#808080]">
+      <div className="bg-white flex items-center px-1 py-0.5 border-b border-[#808080]">
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">File</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Tools</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Elm</span>
@@ -266,7 +266,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#808080] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-0.5">
         <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <span className="text-[12px] font-bold">1</span>
         </button>
@@ -718,7 +718,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#808080] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#808080] px-2 py-1 flex items-center text-[11px]">
         <button
           className="px-4 py-1 border border-[#808080] bg-[#f0f0f0] hover:bg-[#e0e0e0] text-[12px]"
         >

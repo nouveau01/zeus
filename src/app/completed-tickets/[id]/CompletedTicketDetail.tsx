@@ -264,7 +264,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
       </div>
 
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer">Tools</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer">PIM</span>
@@ -273,7 +273,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="New">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
@@ -338,7 +338,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
       </div>
 
       {/* Tab Headers */}
-      <div className="bg-[#f5f5f5] flex items-end px-2 pt-1 border-b border-[#a0a0a0]">
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#a0a0a0]">
         {TABS.map((tab, i) => (
           <button
             key={tab}
@@ -371,12 +371,12 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#a0a0a0] px-2 py-1 flex items-center justify-between text-[11px]">
+      <div className="bg-white border-t border-[#a0a0a0] px-2 py-1 flex items-center justify-between text-[11px]">
         <span className="text-[#333]">{formatStatusBar()}</span>
       </div>
 
       {/* Bottom Info Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center gap-4 text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center gap-4 text-[11px]">
         <button className="px-3 py-0.5 border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]">
           EDIT
         </button>

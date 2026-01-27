@@ -369,7 +369,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-gray-500">Loading...</span>
       </div>
     );
@@ -377,7 +377,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
   if (!invoice) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-red-500">Invoice not found</span>
       </div>
     );
@@ -398,7 +398,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   // Account/General Tab Content
   const renderAccountGeneralTab = () => (
     <>
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex gap-6">
+      <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex gap-6">
         {/* Left Section - Account Info */}
         <div className="flex flex-col gap-2 min-w-[220px]">
           <button
@@ -605,7 +605,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
       {/* Line Items Grid */}
       <div className="flex-1 flex flex-col mx-2 mb-2 overflow-hidden">
         {/* Line Items Buttons */}
-        <div className="flex items-center gap-2 py-1 bg-[#f5f5f5] mb-1">
+        <div className="flex items-center gap-2 py-1 bg-white mb-1">
           <button
             onClick={() => {
               setEditingItem(null);
@@ -692,7 +692,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   // Taxes/Job Remarks Tab Content
   const renderTaxesJobRemarksTab = () => (
     <>
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex gap-6">
+      <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex gap-6">
         {/* Left Column - Tax Fields */}
         <div className="flex flex-col gap-2 min-w-[180px]">
           <div className="flex items-center gap-2">
@@ -818,9 +818,9 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Tools</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
@@ -829,7 +829,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center gap-1 px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center gap-1 px-2 py-1 border-b border-[#d0d0d0]">
         <button className="p-1 hover:bg-[#e0e0e0] rounded" title="New">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -862,7 +862,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
       </div>
 
       {/* Tabs */}
-      <div className="bg-[#f5f5f5] flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -918,7 +918,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
         <span>{invoice.emailSent ? "Email sent" : "No E-mail sent"}</span>
         <span>EDIT</span>
       </div>

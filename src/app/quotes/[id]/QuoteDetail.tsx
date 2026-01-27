@@ -440,7 +440,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
               </button>
             </div>
             <table className="w-full text-[11px]">
-              <thead className="bg-[#f5f5f5]">
+              <thead className="bg-white">
                 <tr>
                   <th className="text-left px-3 py-1.5 border-b border-[#e0e0e0] font-normal w-8">#</th>
                   <th className="text-left px-3 py-1.5 border-b border-[#e0e0e0] font-normal">Description</th>
@@ -465,7 +465,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-[#f5f5f5]">
+              <tfoot className="bg-white">
                 <tr>
                   <td colSpan={4} className="px-3 py-1.5 text-right font-medium">Subtotal:</td>
                   <td className="px-3 py-1.5 text-right font-medium">{formatCurrency(quote.subtotal)}</td>

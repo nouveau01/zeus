@@ -501,7 +501,7 @@ export default function BidResultsPage() {
                           ? "bg-[#316ac5] text-white"
                           : index % 2 === 0
                           ? "bg-white hover:bg-[#e8f4fc]"
-                          : "bg-[#f5f5f5] hover:bg-[#e8f4fc]"
+                          : "bg-white hover:bg-[#e8f4fc]"
                       }`}
                     >
                       <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
@@ -657,7 +657,7 @@ export default function BidResultsPage() {
                 <div className="font-bold mb-2">Competitor Bids</div>
                 <table className="w-full text-[10px]">
                   <thead>
-                    <tr className="bg-[#f5f5f5]">
+                    <tr className="bg-white">
                       <th className="text-left px-1 py-0.5 border border-[#e0e0e0]">Company</th>
                       <th className="text-right px-1 py-0.5 border border-[#e0e0e0]">Amount</th>
                       <th className="text-center px-1 py-0.5 border border-[#e0e0e0] w-10">Won</th>

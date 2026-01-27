@@ -129,7 +129,7 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-gray-500">Loading...</span>
       </div>
     );
@@ -137,13 +137,13 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
 
   if (!job) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-red-500">Job not found</span>
       </div>
     );
   }
 
-  const inputClass = "px-2 py-1 border border-[#a0a0a0] text-[12px] bg-[#f5f5f5]";
+  const inputClass = "px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white";
   const labelClass = "text-[12px] text-right";
 
   // Tab 1: Summary & Hours Worked
@@ -659,9 +659,9 @@ WB COMP`}
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Tools</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
@@ -670,7 +670,7 @@ WB COMP`}
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
@@ -715,7 +715,7 @@ WB COMP`}
       </div>
 
       {/* Header Section */}
-      <div className="bg-[#ffffcc] border-b border-[#d0d0d0] px-4 py-3 flex gap-8">
+      <div className="bg-white border-b border-[#d0d0d0] px-4 py-3 flex gap-8">
         {/* Left Column */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -817,7 +817,7 @@ WB COMP`}
       </div>
 
       {/* Tabs */}
-      <div className="bg-[#f5f5f5] flex items-end px-2 pt-2 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-end px-2 pt-2 border-b border-[#d0d0d0]">
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -839,7 +839,7 @@ WB COMP`}
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center">
         <span className="text-[11px]"></span>
       </div>
     </div>

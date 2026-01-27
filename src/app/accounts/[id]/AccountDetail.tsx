@@ -728,7 +728,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   if (loading && !isNew) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-gray-500">Loading...</span>
       </div>
     );
@@ -736,7 +736,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   if (!account && !isNew) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-red-500">Account not found</span>
       </div>
     );
@@ -746,7 +746,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   const renderGeneralTab = () => (
     <>
       {/* Form Section */}
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex gap-6">
+      <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex gap-6">
         {/* Left Column - Address Info */}
         <div className="flex flex-col gap-2 min-w-[280px]">
           <div className="flex items-center gap-2">
@@ -925,7 +925,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       </div>
 
       {/* Stats Row */}
-      <div className="flex items-center gap-6 px-4 py-2 bg-[#f5f5f5]">
+      <div className="flex items-center gap-6 px-4 py-2 bg-white">
         <div className="flex items-center gap-2">
           <label className="text-[12px]"># Units</label>
           <input
@@ -966,7 +966,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
       {/* Unit Listing Section */}
       <div className="flex-1 flex flex-col mx-2 mb-2 overflow-hidden">
-        <div className="flex items-center gap-2 py-1 bg-[#f5f5f5]">
+        <div className="flex items-center gap-2 py-1 bg-white">
           <span className="text-[12px] font-medium">Unit Listing</span>
           <button
             onClick={() => setShowAddUnitDialog(true)}
@@ -1045,7 +1045,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   // Billing Tab Content
   const renderBillingTab = () => (
     <>
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex gap-6">
+      <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex gap-6">
         {/* Left Column - Billing Address */}
         <div className="flex flex-col gap-2 min-w-[300px]">
           <div className="flex items-center gap-2">
@@ -1166,7 +1166,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   // Control Tab Content
   const renderControlTab = () => (
     <>
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex gap-6">
+      <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex gap-6">
         {/* Left Column */}
         <div className="flex flex-col gap-2 min-w-[280px]">
           <div className="flex items-center gap-2">
@@ -1327,7 +1327,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   // Custom Tab Content
   const renderCustomTab = () => (
     <>
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex gap-6">
+      <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex gap-6">
         {/* Left Column */}
         <div className="flex flex-col gap-2 min-w-[280px]">
           <div className="flex items-center gap-2">
@@ -1412,7 +1412,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     <>
       <div className="flex-1 flex flex-col mx-2 mt-2 mb-2 overflow-hidden">
         {/* Buttons */}
-        <div className="flex items-center gap-2 py-1 bg-[#f5f5f5]">
+        <div className="flex items-center gap-2 py-1 bg-white">
           <button
             onClick={() => {
               setEditingPMContract(null);
@@ -1498,7 +1498,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     <>
       <div className="flex-1 flex flex-col mx-2 mt-2 mb-2 overflow-hidden">
         {/* Buttons */}
-        <div className="flex items-center gap-2 py-1 bg-[#f5f5f5]">
+        <div className="flex items-center gap-2 py-1 bg-white">
           <button
             onClick={() => {
               setEditingContact(null);
@@ -1591,7 +1591,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   // Remarks Tab Content
   const renderRemarksTab = () => (
     <>
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex gap-6">
+      <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex gap-6">
         {/* Left Column - Account & Customer Remarks */}
         <div className="flex flex-col gap-4 flex-1">
           {/* Account Remarks */}
@@ -1658,7 +1658,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   // Sales Remarks Tab Content
   const renderSalesRemarksTab = () => (
     <>
-      <div className="bg-[#ffffcc] border border-[#d0d0d0] m-2 p-3 flex flex-col gap-2">
+      <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <span className="text-[12px] font-medium">Sales Remarks</span>
           <button
@@ -1703,7 +1703,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Title Bar */}
       <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
         <span className="font-bold text-[13px]">
@@ -1715,7 +1715,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       </div>
 
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Tools</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
@@ -1724,7 +1724,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="New">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
@@ -1774,7 +1774,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       </div>
 
       {/* Tabs */}
-      <div className="bg-[#f5f5f5] flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -1796,7 +1796,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
         <span>EDIT</span>
         <div className="flex gap-8">
           <span>{account?.createdAt ? new Date(account.createdAt).toLocaleDateString() : ""}</span>

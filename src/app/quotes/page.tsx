@@ -526,7 +526,7 @@ export default function QuotesPage() {
                   className={`${
                     selectedQuote?.id === quote.id
                       ? "bg-[#0078d4] text-white"
-                      : index % 2 === 0 ? "bg-white" : "bg-[#f5f5f5]"
+                      : index % 2 === 0 ? "bg-white" : "bg-white"
                   } hover:bg-[#e8f4fc] cursor-pointer`}
                   onDoubleClick={() => openTab(`Quote ${quote.quoteNumber}`, `/quotes/${quote.id}`)}
                 >

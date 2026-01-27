@@ -123,9 +123,9 @@ export default function ApplyPaymentsPage() {
   const displayAccounts = accounts.length > 0 ? accounts : mockAccounts;
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Apply</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
@@ -133,7 +133,7 @@ export default function ApplyPaymentsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
@@ -168,7 +168,7 @@ export default function ApplyPaymentsPage() {
       </div>
 
       {/* Header Section */}
-      <div className="bg-[#ffffcc] border-b border-[#d0d0d0] px-4 py-3 flex gap-6">
+      <div className="bg-white border-b border-[#d0d0d0] px-4 py-3 flex gap-6">
         {/* Left - Account Selection */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -313,7 +313,7 @@ export default function ApplyPaymentsPage() {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
         <span>{invoices.length} items</span>
       </div>
     </div>

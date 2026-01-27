@@ -168,7 +168,7 @@ export default function SafetyTestsPage() {
       </div>
 
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-1 py-0.5 border-b border-[#808080]">
+      <div className="bg-white flex items-center px-1 py-0.5 border-b border-[#808080]">
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">File</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Edit</span>
         <span className="px-2 py-0.5 hover:bg-[#e5e5e5] cursor-pointer text-[12px]">Pim</span>
@@ -177,7 +177,7 @@ export default function SafetyTestsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#808080] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-0.5">
         <button
           onClick={handleNewTest}
           className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]"
@@ -233,7 +233,7 @@ export default function SafetyTestsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-2 border-b border-[#808080] gap-4">
+      <div className="bg-white flex items-center px-2 py-2 border-b border-[#808080] gap-4">
         <div className="flex items-center gap-2">
           <label className="text-[11px]">F&S Catalogue</label>
           <select
@@ -266,7 +266,7 @@ export default function SafetyTestsPage() {
       </div>
 
       {/* Date Filter Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-2 border-b border-[#808080] gap-3">
+      <div className="bg-white flex items-center px-2 py-2 border-b border-[#808080] gap-3">
         <div className="flex items-center gap-2">
           <label className="text-[11px]">Start</label>
           <input
@@ -374,7 +374,7 @@ export default function SafetyTestsPage() {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#808080] px-3 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#808080] px-3 py-1 flex items-center text-[11px]">
         <span>{selectedTest?.customerName || ""}</span>
         <span className="flex-1" />
         <button

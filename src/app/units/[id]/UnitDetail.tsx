@@ -563,7 +563,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   const testStatuses = ["No Proposal", "Job Awarded", "Proposal Sent", "Completed", "Cancelled"];
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Title Bar */}
       <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
         <span className="font-bold text-[13px]">Editing Unit '{unit.unitNumber}'</span>
@@ -573,7 +573,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
       </div>
 
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Tools</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">PIM</span>
@@ -582,7 +582,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
@@ -635,14 +635,14 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
       </div>
 
       {/* Tabs - Two rows */}
-      <div className="bg-[#f5f5f5] px-2 pt-2">
+      <div className="bg-white px-2 pt-2">
         {/* Secondary Tab Row (Unit Custom) */}
         <div className="flex">
           <button
             onClick={() => setActiveTab("unitCustom")}
             className={`px-4 py-1 border border-b-0 text-[12px] ${
               activeTab === "unitCustom"
-                ? "bg-[#f5f5f5] border-[#808080] font-medium -mb-px z-10"
+                ? "bg-white border-[#808080] font-medium -mb-px z-10"
                 : "bg-[#d4d0c8] border-[#808080] text-[#606060]"
             }`}
           >
@@ -655,7 +655,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             onClick={() => setActiveTab("general")}
             className={`px-4 py-1 border border-b-0 text-[12px] ${
               activeTab === "general"
-                ? "bg-[#f5f5f5] border-[#808080] font-medium -mb-px z-10"
+                ? "bg-white border-[#808080] font-medium -mb-px z-10"
                 : "bg-[#d4d0c8] border-[#808080] text-[#606060]"
             }`}
           >
@@ -665,7 +665,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             onClick={() => setActiveTab("templateCustom")}
             className={`px-4 py-1 border border-b-0 text-[12px] ${
               activeTab === "templateCustom"
-                ? "bg-[#f5f5f5] border-[#808080] font-medium -mb-px z-10"
+                ? "bg-white border-[#808080] font-medium -mb-px z-10"
                 : "bg-[#d4d0c8] border-[#808080] text-[#606060]"
             }`}
           >
@@ -675,7 +675,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             onClick={() => setActiveTab("tests")}
             className={`px-4 py-1 border border-b-0 text-[12px] ${
               activeTab === "tests"
-                ? "bg-[#f5f5f5] border-[#808080] font-medium -mb-px z-10"
+                ? "bg-white border-[#808080] font-medium -mb-px z-10"
                 : "bg-[#d4d0c8] border-[#808080] text-[#606060]"
             }`}
           >
@@ -685,7 +685,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             onClick={() => setActiveTab("remarks")}
             className={`px-4 py-1 border border-b-0 text-[12px] ${
               activeTab === "remarks"
-                ? "bg-[#f5f5f5] border-[#808080] font-medium -mb-px z-10"
+                ? "bg-white border-[#808080] font-medium -mb-px z-10"
                 : "bg-[#d4d0c8] border-[#808080] text-[#606060]"
             }`}
           >
@@ -695,7 +695,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-auto bg-[#f5f5f5] p-4">
+      <div className="flex-1 overflow-auto bg-white p-4">
         {/* General Tab */}
         {activeTab === "general" && (
           <div className="flex gap-8">
@@ -1198,7 +1198,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
         <button
           onClick={handleEdit}
           className={`px-4 py-1 border border-[#808080] ${isEditing ? "bg-[#e0e0e0]" : "bg-[#f0f0f0] hover:bg-[#e0e0e0]"} text-[12px]`}

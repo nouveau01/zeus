@@ -493,7 +493,7 @@ export default function AwardJobPage() {
                       return (
                         <tr
                           key={bid.id}
-                          className={`${index % 2 === 0 ? "bg-white" : "bg-[#f5f5f5]"} ${
+                          className={`${index % 2 === 0 ? "bg-white" : "bg-white"} ${
                             bid.isAwarded ? "bg-[#d4edda]" : ""
                           } ${isOurs ? "font-semibold" : ""}`}
                         >

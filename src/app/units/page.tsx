@@ -255,9 +255,9 @@ export default function UnitsPage() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Edit</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Pim</span>
@@ -266,7 +266,7 @@ export default function UnitsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button
           onClick={handleNewUnit}
           className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
@@ -326,7 +326,7 @@ export default function UnitsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-[#f5f5f5] px-4 py-2 border-b border-[#d0d0d0]">
+      <div className="bg-white px-4 py-2 border-b border-[#d0d0d0]">
         {/* F&S Catalogue and Radio Buttons */}
         <div className="flex items-center gap-6 mb-2">
           <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ export default function UnitsPage() {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
         <span className="px-2">{selectedUnit?.unitNumber || ""}</span>
         <span className="flex-1" />
         <button

@@ -27,7 +27,7 @@
 
 body {
   font-family: 'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--sf-gray-1);
+  background-color: #ffffff;
   color: var(--sf-gray-6);
   margin: 0;
   padding: 0;

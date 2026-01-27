@@ -241,9 +241,9 @@ export default function CollectionsPage() {
   const summary91Up = selectedAccount?.days91Up || 0;
 
   return (
-    <div className="h-full flex flex-col bg-[#f5f5f5]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+    <div className="h-full flex flex-col bg-white" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Edit</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Pim</span>
@@ -252,7 +252,7 @@ export default function CollectionsPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]">
           <X className="w-4 h-4" style={{ color: "#e74c3c" }} />
         </button>
@@ -295,7 +295,7 @@ export default function CollectionsPage() {
       </div>
 
       {/* Search/Filter Section */}
-      <div className="bg-[#f5f5f5] px-4 py-2 border-b border-[#d0d0d0] flex items-center gap-4">
+      <div className="bg-white px-4 py-2 border-b border-[#d0d0d0] flex items-center gap-4">
         {/* Radio Buttons */}
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1 text-[12px] cursor-pointer">
@@ -435,7 +435,7 @@ export default function CollectionsPage() {
           {/* Left - Open Items Table */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="px-2 py-1 bg-[#f5f5f5] border-b border-[#d0d0d0] text-[12px]">
+            <div className="px-2 py-1 bg-white border-b border-[#d0d0d0] text-[12px]">
               Open Items For Account {selectedAccount?.accountId} ({selectedAccount?.tag})
             </div>
 
@@ -476,7 +476,7 @@ export default function CollectionsPage() {
           </div>
 
           {/* Right - Action Panel */}
-          <div className="w-[160px] flex flex-col gap-3 p-3 border-l border-[#d0d0d0] bg-[#f5f5f5]">
+          <div className="w-[160px] flex flex-col gap-3 p-3 border-l border-[#d0d0d0] bg-white">
             {/* Days Past Due */}
             <div className="flex items-center gap-2">
               <label className="text-[11px]">Days Past Due</label>
@@ -538,7 +538,7 @@ export default function CollectionsPage() {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
         <span className="px-2 border-r border-[#c0c0c0]">SH</span>
         <span className="px-2 border-r border-[#c0c0c0]">{filteredOpenItems.length} items</span>
         <span className="flex-1" />

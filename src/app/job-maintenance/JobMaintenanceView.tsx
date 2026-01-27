@@ -256,7 +256,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
   // Don't render until hydrated to avoid flicker
   if (!isHydrated) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#f5f5f5]">
+      <div className="h-full flex items-center justify-center bg-white">
         <span className="text-gray-500">Loading...</span>
       </div>
     );
@@ -264,11 +264,11 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
 
   return (
     <div
-      className="h-full flex flex-col bg-[#f5f5f5]"
+      className="h-full flex flex-col bg-white"
       style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}
     >
       {/* Menu Bar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0]">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0]">
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">File</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Edit</span>
         <span className="px-3 py-1 hover:bg-[#e5e5e5] cursor-pointer rounded">Pim</span>
@@ -277,7 +277,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
       </div>
 
       {/* Toolbar */}
-      <div className="bg-[#f5f5f5] flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
+      <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
         {toolbarIcons.map((item, i) => {
           const IconComponent = item.icon;
           return (
@@ -310,7 +310,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
       </div>
 
       {/* Filter Row */}
-      <div className="bg-[#f5f5f5] flex flex-wrap items-center gap-3 px-2 py-2 border-b border-[#d0d0d0]">
+      <div className="bg-white flex flex-wrap items-center gap-3 px-2 py-2 border-b border-[#d0d0d0]">
         <div className="flex items-center gap-1">
           <span className="text-[11px]">F&S Catalogue</span>
           <select
@@ -324,7 +324,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
       </div>
 
       {/* Tabs */}
-      <div className="bg-[#f5f5f5] flex items-end px-2 pt-1">
+      <div className="bg-white flex items-end px-2 pt-1">
         {TYPE_TABS.map((tab) => (
           <button
             key={tab}
@@ -482,7 +482,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
       </div>
 
       {/* Status Bar with Totals */}
-      <div className="bg-[#f5f5f5] border-t border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
         {/* Totals Display */}
         <div className="flex items-center gap-4 text-[11px]">
           {showTotals && (
