@@ -174,6 +174,52 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
     openTab(`Ticket #${ticket.ticketNumber}`, `/completed-tickets/${ticket.id}`);
   };
 
+  const handleNewTicket = () => {
+    // Tickets should be created from dispatch or job context
+    alert("To create a new ticket, use the Dispatch module or create from a Job.");
+  };
+
+  const handleEditTicket = () => {
+    if (!selectedId) {
+      alert("Please select a ticket to edit");
+      return;
+    }
+    const ticket = tickets.find(t => t.id === selectedId);
+    if (ticket) {
+      openTab(`Ticket #${ticket.ticketNumber}`, `/completed-tickets/${ticket.id}`);
+    }
+  };
+
+  const handleDeleteTicket = async () => {
+    if (!selectedId) {
+      alert("Please select a ticket to delete");
+      return;
+    }
+    const ticket = tickets.find(t => t.id === selectedId);
+    if (!confirm(`Delete ticket #${ticket?.ticketNumber}?`)) return;
+
+    try {
+      const response = await fetch(`/api/tickets/${selectedId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        fetchTickets();
+        setSelectedId(null);
+      }
+    } catch (error) {
+      console.error("Error deleting ticket:", error);
+    }
+  };
+
+  const getToolbarAction = (title: string) => {
+    switch (title) {
+      case "New": return handleNewTicket;
+      case "Edit": return handleEditTicket;
+      case "Delete": return handleDeleteTicket;
+      default: return undefined;
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-US", {
@@ -257,7 +303,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
               key={i}
               className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
               title={item.title}
-              onClick={item.title === "Refresh" ? fetchTickets : undefined}
+              onClick={getToolbarAction(item.title)}
             >
               <IconComponent className="w-4 h-4" style={{ color: item.color }} />
             </button>

@@ -116,6 +116,53 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
     openTab(`Job ${job.externalId || job.id}`, `/job-maintenance/${job.id}`);
   };
 
+  const handleNewJob = () => {
+    // TODO: New job requires selecting an account first
+    // For now, direct users to create jobs from the Account detail page
+    alert("To create a new job, go to the Account detail page and click the Jobs link.\nJobs must be associated with an account.");
+  };
+
+  const handleEditJob = () => {
+    if (!selectedId) {
+      alert("Please select a job to edit");
+      return;
+    }
+    const job = jobs.find(j => j.id === selectedId);
+    if (job) {
+      openTab(`Job ${job.externalId || job.id}`, `/job-maintenance/${job.id}`);
+    }
+  };
+
+  const handleDeleteJob = async () => {
+    if (!selectedId) {
+      alert("Please select a job to delete");
+      return;
+    }
+    const job = jobs.find(j => j.id === selectedId);
+    if (!confirm(`Delete job ${job?.externalId || job?.id}?`)) return;
+
+    try {
+      const response = await fetch(`/api/jobs/${selectedId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        fetchJobs();
+        setSelectedId(null);
+      }
+    } catch (error) {
+      console.error("Error deleting job:", error);
+    }
+  };
+
+  const getToolbarAction = (title: string) => {
+    switch (title) {
+      case "New": return handleNewJob;
+      case "Edit": return handleEditJob;
+      case "Delete": return handleDeleteJob;
+      default: return undefined;
+    }
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -152,7 +199,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
               key={i}
               className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
               title={item.title}
-              onClick={item.title === "Refresh" ? fetchJobs : undefined}
+              onClick={getToolbarAction(item.title)}
             >
               <IconComponent className="w-4 h-4" style={{ color: item.color }} />
             </button>
