@@ -209,7 +209,63 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
     }
   };
 
-  const sortedJobs = [...jobs].sort((a, b) => {
+  // Helper to get job field value by filter key
+  const getJobFieldValue = (job: JobResult, fieldKey: string): string => {
+    switch (fieldKey) {
+      case "jobNumber": return job.externalId || "";
+      case "accountId": return job.premises?.premisesId || "";
+      case "accountTag": return job.premises?.name || job.premises?.address || "";
+      case "account": return job.premises?.premisesId || "";
+      case "description": return job.jobDescription || job.jobName || "";
+      case "status": return job.status || "";
+      case "template": return job.template || "";
+      case "type": return job.type || "";
+      default: return "";
+    }
+  };
+
+  // Filter jobs based on activeFilters
+  const filteredJobs = jobs.filter((job) => {
+    for (const [fieldKey, filter] of Object.entries(activeFilters)) {
+      if (!filter.value.trim()) continue;
+
+      const jobValue = getJobFieldValue(job, fieldKey).toLowerCase();
+      const filterValue = filter.value.toLowerCase();
+
+      switch (filter.operator) {
+        case "=":
+          if (jobValue !== filterValue) return false;
+          break;
+        case "contains":
+          if (!jobValue.includes(filterValue)) return false;
+          break;
+        case "startsWith":
+          if (!jobValue.startsWith(filterValue)) return false;
+          break;
+        case "endsWith":
+          if (!jobValue.endsWith(filterValue)) return false;
+          break;
+        case ">":
+          if (jobValue <= filterValue) return false;
+          break;
+        case ">=":
+          if (jobValue < filterValue) return false;
+          break;
+        case "<":
+          if (jobValue >= filterValue) return false;
+          break;
+        case "<=":
+          if (jobValue > filterValue) return false;
+          break;
+        case "<>":
+          if (jobValue === filterValue) return false;
+          break;
+      }
+    }
+    return true;
+  });
+
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
     let aVal: any, bVal: any;
     switch (sortField) {
       case "jobNumber":
@@ -258,16 +314,16 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
     return `${value.toFixed(2)}%`;
   };
 
-  // Calculate totals
+  // Calculate totals from filtered jobs
   const totals = {
-    revenueBilled: jobs.reduce((sum, j) => sum + j.revenueBilled, 0),
-    materials: jobs.reduce((sum, j) => sum + j.materials, 0),
-    labor: jobs.reduce((sum, j) => sum + j.labor, 0),
-    committed: jobs.reduce((sum, j) => sum + j.committed, 0),
-    totalCost: jobs.reduce((sum, j) => sum + j.totalCost, 0),
-    profit: jobs.reduce((sum, j) => sum + j.profit, 0),
-    budget: jobs.reduce((sum, j) => sum + j.budget, 0),
-    toBeBilled: jobs.reduce((sum, j) => sum + j.toBeBilled, 0),
+    revenueBilled: filteredJobs.reduce((sum, j) => sum + j.revenueBilled, 0),
+    materials: filteredJobs.reduce((sum, j) => sum + j.materials, 0),
+    labor: filteredJobs.reduce((sum, j) => sum + j.labor, 0),
+    committed: filteredJobs.reduce((sum, j) => sum + j.committed, 0),
+    totalCost: filteredJobs.reduce((sum, j) => sum + j.totalCost, 0),
+    profit: filteredJobs.reduce((sum, j) => sum + j.profit, 0),
+    budget: filteredJobs.reduce((sum, j) => sum + j.budget, 0),
+    toBeBilled: filteredJobs.reduce((sum, j) => sum + j.toBeBilled, 0),
   };
 
   // Menu actions
