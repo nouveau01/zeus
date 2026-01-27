@@ -796,6 +796,21 @@ export default function AccountsPage() {
             ))
           )}
         </div>
+
+        {/* Totals Row - only shows when toggled on */}
+        {showTotals && (
+          <div className="flex text-[12px] font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4] flex-shrink-0">
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>TOTALS</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{sortedAccounts.length} accts</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[5] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[6] }}>{formatCurrency(totals.balance)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-center" style={{ width: columnWidths[7] }}>{totals.units}</div>
+            <div className="px-2 py-1 truncate flex-shrink-0 text-center" style={{ width: columnWidths[8] }}></div>
+          </div>
+        )}
       </div>
 
       {/* Status Bar */}
@@ -813,13 +828,6 @@ export default function AccountsPage() {
                 (clear)
               </button>
             </span>
-          )}
-          {showTotals && (
-            <div className="flex gap-3 text-[10px]">
-              <span><strong>Rows:</strong> {sortedAccounts.length}</span>
-              <span><strong># Units:</strong> {totals.units}</span>
-              <span><strong>Balance:</strong> {formatCurrency(totals.balance)}</span>
-            </div>
           )}
         </div>
         <div className="flex items-center gap-4 text-[11px]">

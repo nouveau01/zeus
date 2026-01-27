@@ -701,6 +701,28 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
             ))
           )}
         </div>
+
+        {/* Totals Row - only shows when toggled on */}
+        {showTotals && (
+          <div className="flex text-[12px] font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4] flex-shrink-0">
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>TOTALS</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{sortedJobs.length} jobs</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[5] }}>{formatCurrency(totals.revenueBilled)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[6] }}>{formatCurrency(totals.materials)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[7] }}>{formatCurrency(totals.labor)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[8] }}>{formatCurrency(totals.committed)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[9] }}>{formatCurrency(totals.totalCost)}</div>
+            <div className={`px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right ${totals.profit < 0 ? "text-red-600" : ""}`} style={{ width: columnWidths[10] }}>{formatCurrency(totals.profit)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[11] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[12] }}>{formatCurrency(totals.budget)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[13] }}>{formatCurrency(totals.toBeBilled)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[14] }}></div>
+            <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[15] }}></div>
+          </div>
+        )}
       </div>
 
       {/* Status Bar */}
@@ -718,13 +740,6 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
                 (clear)
               </button>
             </span>
-          )}
-          {showTotals && (
-            <div className="flex gap-3 text-[10px]">
-              <span>Revenue: {formatCurrency(totals.revenueBilled)}</span>
-              <span>Cost: {formatCurrency(totals.totalCost)}</span>
-              <span className={totals.profit < 0 ? "text-red-600" : ""}>Profit: {formatCurrency(totals.profit)}</span>
-            </div>
           )}
         </div>
         <div className="flex items-center gap-4 text-[11px]">

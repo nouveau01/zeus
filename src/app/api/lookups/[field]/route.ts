@@ -309,12 +309,12 @@ export async function GET(
       }
 
       case "owner": {
-        // Same as customer lookup
+        // Owner lookup - shows Customer Name + Type (VERIFIED 2026-01-27)
         const owners = await prisma.customer.findMany({
           select: {
             id: true,
             name: true,
-            accountNumber: true,
+            type: true,
           },
           orderBy: { name: "asc" },
           take: 500,
@@ -322,7 +322,7 @@ export async function GET(
         values = owners.map((c) => ({
           id: c.name,
           label: c.name,
-          description: c.accountNumber || undefined,
+          description: c.type || undefined,
         }));
         break;
       }

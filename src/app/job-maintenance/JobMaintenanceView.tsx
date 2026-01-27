@@ -848,11 +848,25 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
             ))
           )}
         </div>
+
+        {/* Totals Row - only shows when toggled on */}
+        {showTotals && (
+          <div className="flex text-[12px] font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4] flex-shrink-0">
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>TOTALS</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{totalJobs} jobs</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[5] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[6] }}></div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[7] }}></div>
+            <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[8] }}></div>
+          </div>
+        )}
       </div>
 
-      {/* Status Bar with Totals */}
+      {/* Status Bar */}
       <div className="bg-white border-t border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
-        {/* Filter indicator and Totals Display */}
         <div className="flex items-center gap-4 text-[11px]">
           {Object.keys(activeFilters).length > 0 && (
             <span className="text-[#0066cc] flex items-center gap-1">
@@ -867,22 +881,18 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
               </button>
             </span>
           )}
-          {showTotals && (
-            <span className="text-[#333]">
-              <strong>Rows:</strong> {totalJobs}
-            </span>
-          )}
         </div>
-
-        {/* Toggle Button */}
-        <button
-          onClick={() => setShowTotals(!showTotals)}
-          className={`px-4 py-1 border border-[#c0c0c0] rounded text-[11px] hover:bg-[#e8e8e8] ${
-            showTotals ? "bg-[#d0e8ff]" : "bg-[#f0f0f0]"
-          }`}
-        >
-          {showTotals ? "Totals On" : "Totals Off"}
-        </button>
+        <div className="flex items-center gap-4 text-[11px]">
+          <span>{totalJobs} jobs</span>
+          <button
+            onClick={() => setShowTotals(!showTotals)}
+            className={`px-2 py-0.5 text-[10px] border rounded ${
+              showTotals ? "bg-[#0078d4] text-white border-[#0078d4]" : "bg-white border-[#a0a0a0] hover:bg-[#f0f0f0]"
+            }`}
+          >
+            Totals {showTotals ? "On" : "Off"}
+          </button>
+        </div>
       </div>
 
       {/* Filter & Sort Dialog - Using shared component */}

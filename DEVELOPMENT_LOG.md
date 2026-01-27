@@ -12,6 +12,9 @@ This log tracks all development changes, sessions, and modifications made to the
 - [ ] Get Total Service SQL schema for key tables (Rol, CustomContact, Loc, Owner)
 - [ ] Create proper mapping: Total Service tables → Prisma models
 - [ ] Verify F3 lookups against Total Service (most are guessed)
+- [x] **Routes tab under Dispatch Extras module** - DONE
+- [x] Add Route model to Prisma schema - DONE
+- [x] Add Employee model to Prisma schema (for mechanic name resolution) - DONE
 
 ## FilterDialog - Modules
 - [x] FilterDialog component created
@@ -50,6 +53,8 @@ This log tracks all development changes, sessions, and modifications made to the
 | Customer Billing Type F3 screenshot | Consolidated, Detailed, Detailed Group, Detailed Sub | 2026-01-27 |
 | Customer State F3 screenshot | State codes | 2026-01-27 |
 | Customer Status F3 screenshot | Active, Inactive | 2026-01-27 |
+| Account Owner* F3 lookup | Shows Customer Name + Type columns (from screenshot) | 2026-01-27 |
+| Account ID* F3 lookup | Shows Premises.locId values (1-5BOND, 10-12CHESTNUT**, etc.) | 2026-01-27 |
 
 ### ⚠️ GUESSED (implemented but need to verify against Total Service)
 | Item | What we guessed | Needs |
@@ -58,8 +63,6 @@ This log tracks all development changes, sessions, and modifications made to the
 | Customer Status mapping | isActive boolean → Active/Inactive | Verify actual TS values |
 | Account Status mapping | isActive boolean → Active/Inactive | Verify actual TS values |
 | Portal User mapping | portalAccess boolean → Yes/No | May not match TS |
-| Account ID lookup | Using Premises.locId | Verify source table |
-| Account Owner lookup | Using Customer.name | Verify joins to Rol table |
 | Account Route lookup | Distinct Premises.route values | Verify source |
 | Account Tag lookup | Premises.tag/name | Verify source |
 | Account Territory lookup | Distinct Premises.terr | Verify source |
@@ -495,8 +498,8 @@ FilterDialog implementation across modules, toolbar/menu standardization, and da
   | Field | Status | Notes |
   |-------|--------|-------|
   | CustomContact* | ❌ NOT WORKING | Needs Rol table join |
-  | ID* | ⚠️ GUESSED | Using Premises.locId |
-  | Owner* | ⚠️ GUESSED | Using Customer.name |
+  | ID* | ✅ VERIFIED | Premises.locId values |
+  | Owner* | ✅ VERIFIED | Customer Name + Type columns |
   | Route* | ⚠️ GUESSED | Distinct from Premises |
   | Sales Tax Region* | ⚠️ GUESSED | Distinct from Premises.sTax |
   | State* | ✅ VERIFIED | US state codes |
@@ -551,6 +554,73 @@ FilterDialog implementation across modules, toolbar/menu standardization, and da
 
 ---
 
+### Continuation: Routes Module & Totals Display Fix
+
+#### Routes Module (Dispatch Extras)
+- **Location:** `/src/app/dispatch-extras/routes/page.tsx`
+- **API:** `/src/app/api/routes/route.ts`
+- Displays maintenance routes with mechanic assignments
+- Columns: Name, Mech, Loc, Elev, Hour, Amount, Remarks
+- Matches Customers page styling exactly (white bg, bordered grid, column resize)
+
+#### New Prisma Models Added
+
+**Route Model:**
+```prisma
+model Route {
+  id       Int      @id @default(autoincrement())
+  name     String
+  mech     Int?     // FK to Employee
+  loc      Int      @default(0)
+  elev     Int      @default(0)
+  hour     Decimal  @default(0) @db.Decimal(12, 2)
+  amount   Decimal  @default(0) @db.Decimal(12, 2)
+  remarks  String?  @db.Text
+  symbol   String?
+  en       Int      @default(1)
+  tfmId    String?
+  tfmSource String?
+  @@map("routes")
+}
+```
+
+**Employee Model:**
+```prisma
+model Employee {
+  id      Int     @id @default(autoincrement())
+  fFirst  String? @map("f_first")
+  last    String?
+  name    String
+  rol     Int?
+  title   String?
+  sales   Int     @default(0)
+  field   Int     @default(0)
+  status  Int     @default(1)
+  // ... more fields
+  @@map("employees")
+}
+```
+
+#### Totals Display Fix (All Modules)
+**Issue:** Totals were showing in status bar even when "Totals Off". Should only show as a row in the grid when toggled on.
+
+**Fixed Modules:**
+- Routes
+- Customers
+- Accounts
+- Job Maintenance
+- Job Results
+- Units
+- Vendors
+
+**Changes:**
+1. Totals now appear as a row at bottom of grid (inside the bordered container)
+2. Totals row has blue top border: `border-t-2 border-[#0078d4]`
+3. Status bar only shows record count + "Totals On/Off" button
+4. Consistent styling: `bg-[#f5f5f5] font-semibold`
+
+---
+
 ### Files Created/Modified
 
 | File | Changes |
@@ -588,6 +658,53 @@ FilterDialog implementation across modules, toolbar/menu standardization, and da
 3. User to confirm mappings before implementation
 4. Add FilterDialog to remaining modules (Vendors, Units, Invoices)
 5. Implement Save filter functionality
+
+---
+
+### Routes Page Created (Dispatch Extras)
+
+**Files Created:**
+- `/src/app/dispatch-extras/routes/page.tsx` - List view with filtering
+- `/src/app/api/routes/route.ts` - API to aggregate route data
+
+**Route Model Added to Prisma Schema:**
+```prisma
+model Route {
+  id, name, mech, loc, elev, hour, amount, remarks, symbol, en, tfmId, tfmSource
+}
+```
+
+**Columns (matching Total Service screenshot):**
+| Column | Source | Status |
+|--------|--------|--------|
+| Name | Route.name | ✅ Working |
+| Mech | Route.mech (ID) | ✅ Shows "Mech #ID" (need Rol table for names) |
+| Loc | Route.loc (account count) | ✅ Working |
+| Elev | Route.elev (unit count) | ✅ Working |
+| Hour | Route.hour | ✅ Working |
+| Amount | Route.amount | ✅ Working |
+| Remarks | Route.remarks | ✅ Working |
+
+**Features:**
+- Standard toolbar (New, Edit, Delete, Filter, Print, Totals)
+- F&S Catalogue dropdown
+- Resizable columns
+- Sorting on all columns
+- Filter dialog
+- Status bar with totals
+- Totals row toggle
+
+**Sample Data Seeded:** 16 routes from Total Service screenshot
+
+**Mechanic Name Resolution: ✅ COMPLETE**
+- Added Employee model to Prisma schema
+- Seeded 11 employees matching Route.mech IDs
+- API now joins Route → Employee to show names (VALDELAMAR K, PETITO F, etc.)
+
+**Missing/TODO:**
+- [ ] Route detail page when double-clicking
+- [ ] Full data migration from Total Service
+- [ ] Add remaining employees from Emp table
 
 ---
 

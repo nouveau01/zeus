@@ -447,20 +447,40 @@ export default function UnitsPage() {
                 <td className="px-2 py-1 border border-[#e0e0e0]">{unit.stateNumber}</td>
               </tr>
             ))}
+            {/* Totals Row - only shows when toggled on */}
+            {showTotals && (
+              <tr className="font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4]">
+                <td className="px-2 py-1 border border-[#d0d0d0]">TOTALS</td>
+                <td className="px-2 py-1 border border-[#d0d0d0]">{totals.count} units</td>
+                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
+                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
+                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
+                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
+                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
+                <td className="px-2 py-1 border border-[#d0d0d0]">{totals.activeCount} active</td>
+                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Status Bar */}
-      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
-        <span className="px-2">{selectedUnit?.unitNumber || ""}</span>
-        <span className="flex-1" />
-        <button
-          onClick={() => setShowTotals(!showTotals)}
-          className="px-2 border-l border-[#c0c0c0] hover:bg-[#e0e0e0] cursor-pointer"
-        >
-          {showTotals ? `${totals.count} units (${totals.activeCount} active)` : "Totals Off"}
-        </button>
+      <div className="bg-white border-t border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-4 text-[11px]">
+          <span>{selectedUnit?.unitNumber || ""}</span>
+        </div>
+        <div className="flex items-center gap-4 text-[11px]">
+          <span>{filteredUnits.length} units</span>
+          <button
+            onClick={() => setShowTotals(!showTotals)}
+            className={`px-2 py-0.5 text-[10px] border rounded ${
+              showTotals ? "bg-[#0078d4] text-white border-[#0078d4]" : "bg-white border-[#a0a0a0] hover:bg-[#f0f0f0]"
+            }`}
+          >
+            Totals {showTotals ? "On" : "Off"}
+          </button>
+        </div>
       </div>
 
       {/* New Unit Dialog */}

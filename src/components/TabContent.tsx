@@ -32,6 +32,7 @@ import ViolationsPage from "@/app/dispatch-extras/violations/page";
 import ViolationDetail from "@/app/dispatch-extras/violations/[id]/ViolationDetail";
 import SafetyTestsPage from "@/app/dispatch-extras/safety-tests/page";
 import SafetyTestDetail from "@/app/dispatch-extras/safety-tests/[id]/SafetyTestDetail";
+import RoutesPage from "@/app/dispatch-extras/routes/page";
 import EstimatesPage from "@/app/estimates/page";
 import EstimateDetail from "@/app/estimates/[id]/EstimateDetail";
 import AwardJobPage from "@/app/award-job/page";
@@ -302,6 +303,11 @@ export function TabContent() {
         onClose={() => closeTab(activeTab.id)}
       />
     );
+  }
+
+  // Check for routes (maintenance routes) page
+  if (activeTab.route === "/dispatch-extras/routes") {
+    return <RoutesPage />;
   }
 
   // Check for estimates route

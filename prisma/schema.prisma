@@ -288,6 +288,94 @@ model Premises {
 }
 
 // ============================================
+// EMPLOYEE (SQL Server: Emp table)
+// 122 columns in Total Service - this is a simplified version
+// ============================================
+
+model Employee {
+  id            Int       @id @default(autoincrement())
+  // SQL Server: Emp.ID (int, identity)
+
+  // Basic Info
+  fFirst        String?   @map("f_first")                 // Emp.FFirst - first name
+  last          String?                                   // Emp.Last - last name
+  name          String                                    // Emp.Name - full name (LAST, FIRST format)
+  rol           Int?                                      // Emp.Rol - FK to Rol table
+  title         String?                                   // Emp.Title - job title (FOREMAN MAINT, A MECHANIC MAINT, OFFICE, etc.)
+
+  // Flags
+  sales         Int       @default(0)                     // Emp.Sales - sales employee flag
+  field         Int       @default(0)                     // Emp.Field - field employee flag
+  status        Int       @default(1)                     // Emp.Status - active status (0=inactive, 1=active)
+  inUse         Int       @default(0) @map("in_use")      // Emp.InUse
+
+  // Contact
+  pager         String?                                   // Emp.Pager - email address
+
+  // Dates
+  dHired        DateTime? @map("d_hired")                 // Emp.DHired - hire date
+  dFired        DateTime? @map("d_fired")                 // Emp.DFired - termination date
+  dBirth        DateTime? @map("d_birth")                 // Emp.DBirth - birth date
+  dReview       DateTime? @map("d_review")                // Emp.DReview - review date
+  dLast         DateTime? @map("d_last")                  // Emp.DLast - last activity date
+
+  // Location/Status
+  state         String?                                   // Emp.State - NY, NJ, etc.
+  level         Int?                                      // Emp.Level - employee level
+  catSign       String?   @map("cat_sign")                // Emp.CatSign - signature/display name
+
+  // Flags for status
+  fStatus       Int?      @default(0) @map("f_status")    // Emp.FStatus
+  fAllow        Int?      @default(1) @map("f_allow")     // Emp.FAllow
+
+  // Payroll (simplified - many more fields in actual table)
+  payPeriod     Int?      @default(0) @map("pay_period")  // Emp.PayPeriod
+  salary        Decimal?  @db.Decimal(12, 2)              // Emp.Salary
+  prTaxI        Int?      @default(100) @map("pr_tax_i")  // Emp.PRTaxI
+
+  // Reference
+  ref           Int?                                      // Emp.Ref - reference number
+
+  // TFM Integration
+  tfmId         Int?      @map("tfm_id")                  // Emp.TFMID
+  tfmSource     String?   @map("tfm_source")              // Emp.TFMSource
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("employees")
+  // SQL Server: @@map("Emp")
+}
+
+// ============================================
+// ROUTES (SQL Server: Route table)
+// Maintenance routes with assigned mechanics
+// ============================================
+
+model Route {
+  id            Int       @id @default(autoincrement())
+  // SQL Server: Route.ID (int, identity)
+
+  name          String                                    // Route.Name - route identifier (00, 202, 309 - LOC 4, etc.)
+  mech          Int?                                      // Route.Mech - FK to mechanic/employee (Rol table)
+  loc           Int       @default(0)                     // Route.Loc - location/account count (may be calculated)
+  elev          Int       @default(0)                     // Route.Elev - elevator/unit count (may be calculated)
+  hour          Decimal   @default(0) @db.Decimal(12, 2)  // Route.Hour - hours
+  amount        Decimal   @default(0) @db.Decimal(12, 2)  // Route.Amount - revenue amount
+  remarks       String?   @db.Text                        // Route.Remarks - notes/change history
+  symbol        Int?                                      // Route.Symbol
+  en            Int?      @default(1)                     // Route.EN - enabled flag?
+  tfmId         Int?      @map("tfm_id")                  // Route.TFMID
+  tfmSource     String?   @map("tfm_source")              // Route.TFMSource
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("routes")
+  // SQL Server: @@map("Route")
+}
+
+// ============================================
 // UNITS (SQL Server: Elev table)
 // ============================================
 // Legacy: Elev.ID is PK (int)
