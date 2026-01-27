@@ -84,7 +84,7 @@ export function TopNav() {
     <header className="bg-white border-b border-[#dddbda] h-[38px] flex-shrink-0">
       <div className="flex items-center h-full">
         {/* ZEUS Logo - fixed width matching sidebar */}
-        <div className="w-52 flex-shrink-0 flex items-center px-3 h-full bg-white">
+        <div className="w-44 flex-shrink-0 flex items-center px-3 h-full bg-white">
           <Link href="/" className="flex items-center group relative">
             <span
               className="font-bold text-3xl"

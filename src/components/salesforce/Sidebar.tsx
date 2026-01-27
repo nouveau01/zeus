@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronRight, ChevronDown, Minus, Folder } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronRight, ChevronDown, ChevronLeft, Folder } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 
 interface NavItem {
@@ -222,7 +222,17 @@ const navStructure: NavSection[] = [
 export function Sidebar() {
   const { tabs, activeTabId, openTab } = useTabs();
   const [expandedSections, setExpandedSections] = useState<string[]>(["1"]);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sidebar-collapsed") === "true";
+    }
+    return false;
+  });
+
+  // Persist collapsed state
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", String(isCollapsed));
+  }, [isCollapsed]);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) =>
@@ -257,9 +267,9 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-52 bg-[#d4d0c8] border-r border-[#808080] flex flex-col flex-shrink-0 overflow-y-auto text-[13px]">
+    <aside className="w-44 bg-[#d4d0c8] border-r border-[#808080] flex flex-col flex-shrink-0 text-[12px]">
       {/* Tree View - starts flush at top */}
-      <div className="flex-1 py-0.5 bg-white">
+      <div className="flex-1 py-0.5 bg-white overflow-y-auto">
         {navStructure.map((section) => {
           const isExpanded = expandedSections.includes(section.id);
           const hasActiveChild = section.children?.some((child) => child.href && isActive(child.href));
@@ -304,6 +314,15 @@ export function Sidebar() {
           );
         })}
       </div>
+      {/* Collapse Button */}
+      <button
+        onClick={() => setIsCollapsed(true)}
+        className="flex items-center justify-center gap-1 px-2 py-1.5 bg-[#d4d0c8] hover:bg-[#c0c0c0] border-t border-[#808080] text-[#000] text-[11px]"
+        title="Collapse sidebar"
+      >
+        <ChevronLeft className="w-3 h-3" />
+        <span>Collapse</span>
+      </button>
     </aside>
   );
 }
