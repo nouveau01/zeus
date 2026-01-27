@@ -788,6 +788,9 @@ Tab bar redesign with Chrome-style tabs and collapsible sidebar with icon flyout
 | `e322ea3` | Make arrow always visible on collapsed sidebar icons |
 | `7653e5b` | Make expand arrow bigger and blue for visibility |
 | `e828c68` | Fix arrow: black, to right of icon, icon centered |
+| `18d058a` | Update development log with arrow indicator changes |
+| `653840a` | Fix icon centering and text display in collapsed sidebar |
+| `82251af` | Position arrow next to icon, not overlapping text |
 
 ---
 
@@ -806,7 +809,8 @@ Branch `feature/tab-structure-redesign` merged to `main` and pushed.
 
 **Expand Arrow Indicator:**
 - Added arrow (ChevronRight) to right of each icon in collapsed sidebar
-- Always visible, black color, positioned next to icon
+- Always visible, black color, vertically centered with icon
+- Positioned next to icon without overlapping text labels
 - Clearly indicates items can be clicked to expand flyout menu
 
 ---
