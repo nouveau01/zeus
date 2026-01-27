@@ -344,10 +344,10 @@ export function Sidebar() {
           ref={sidebarRef}
           className="w-[72px] bg-[#d4d0c8] border-r border-[#808080] flex flex-col flex-shrink-0"
         >
-          {/* Expand button at top */}
+          {/* Expand button at top - prominent styling */}
           <button
             onClick={() => setIsCollapsed(false)}
-            className="flex items-center justify-center gap-1 py-1.5 bg-[#d4d0c8] hover:bg-[#c0c0c0] border-b border-[#808080] text-[#000] text-[11px]"
+            className="flex items-center justify-center gap-1 py-2 mx-1 mt-1 mb-1 bg-[#316ac5] hover:bg-[#2a5db0] text-white text-[11px] font-medium rounded shadow-sm"
             title="Expand sidebar"
           >
             <span>Expand</span>
