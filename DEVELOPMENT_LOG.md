@@ -4,6 +4,57 @@ This log tracks all development changes, sessions, and modifications made to the
 
 ---
 
+# RUNNING TODO LIST
+
+> This persists across sessions. Update as items are completed or added.
+
+## High Priority
+- [ ] Get Total Service SQL schema for key tables (Rol, CustomContact, Loc, Owner)
+- [ ] Create proper mapping: Total Service tables → Prisma models
+- [ ] Verify F3 lookups against Total Service (most are guessed)
+
+## FilterDialog - Modules
+- [x] FilterDialog component created
+- [x] Job Maintenance - filters working, verified
+- [x] Job Results - filters working, verified
+- [x] Customers - filters working, F3 lookups need verification
+- [x] Accounts - filters working, F3 lookups NOT verified
+- [ ] Vendors - needs filter field screenshot from Total Service
+- [ ] Units - needs filter field screenshot from Total Service
+- [ ] Invoices - needs filter field screenshot from Total Service
+
+## FilterDialog - Features
+- [ ] Save button functionality (save filters for reuse)
+- [ ] Saved Filters list (left panel showing saved filters)
+
+## Data Mapping Issues
+- [ ] Add Rol table to Prisma schema (or decide on alternative)
+- [ ] Verify billing type values (0=Consolidated, 1=Detailed, etc.)
+- [ ] Verify status values across tables (may differ per table)
+- [ ] Add missing Account fields to Premises model (Acct Rep, COLLECTOR, etc.)
+
+## Verified vs Guessed
+
+### ✅ VERIFIED (confirmed against Total Service)
+- Job Maintenance filter fields
+- Job Results filter fields
+- Customer filter fields
+- Account filter fields (46 fields)
+- State lookup (US state codes)
+- Job Type lookup (from job_types table)
+
+### ⚠️ GUESSED (need to verify)
+- Billing Type values (Consolidated, Detailed, Detailed Group, Detailed Sub)
+- Customer Status values (Active/Inactive)
+- Account Status values (Active/Inactive)
+- Portal User mapping (using portalAccess boolean)
+- All Account F3 lookups (CustomContact, ID, Owner, Route, Tag, Territory, Type, Use Tax, Zone)
+
+### ❌ NOT WORKING
+- CustomContact F3 lookup (needs Rol table join)
+
+---
+
 ## Session: January 21, 2026
 
 ### Overview
@@ -366,3 +417,148 @@ All CRUD operations verified via curl:
 ---
 
 ## End of Session: January 26, 2026
+
+---
+
+## Session: January 27, 2026
+
+### Overview
+FilterDialog implementation across modules, toolbar/menu standardization, and data mapping fixes.
+
+---
+
+### FilterDialog Component Created
+- **Location:** `/src/components/FilterDialog.tsx`
+- Reusable across all modules
+- F3 lookup support (fetches from `/api/lookups/[field]`)
+- Operators: =, contains, startsWith, endsWith, >, >=, <, <=, <>
+- Apply/Clear/Cancel buttons
+
+### Modules Updated with FilterDialog
+
+#### 1. Job Maintenance ✅ VERIFIED
+- Filter fields verified from Total Service screenshots
+- F3 lookups working (job_types table)
+- Resizable columns, File/Edit menus
+
+#### 2. Job Results ✅ VERIFIED
+- Same filter fields as Job Maintenance
+- Filter logic fixed (was missing, filters weren't working)
+
+#### 3. Customers ✅ PARTIALLY VERIFIED
+- Filter fields verified from Total Service screenshot
+- Fields: # Accounts, # Units, Address, Balance, Billing Type*, City, Contact, Custom1, Custom2, Date Created, Email Address, Fax, Last Modified, Name, Phone, Portal User*, State*, Status*, Type, Zip
+- **F3 Lookups - Status:**
+  | Field | Status |
+  |-------|--------|
+  | Billing Type* | ⚠️ GUESSED - need to verify values |
+  | Portal User* | ⚠️ GUESSED - mapped to portalAccess boolean |
+  | State* | ✅ VERIFIED - US state codes |
+  | Status* | ⚠️ GUESSED - Active/Inactive |
+- **Bugs Fixed:**
+  - `billing` field was string → now Int (0=Consolidated, 1=Detailed, etc.)
+  - Added custom1, custom2, portalAccess to interface
+
+#### 4. Accounts ✅ FILTER FIELDS VERIFIED, LOOKUPS NOT VERIFIED
+- 46 filter fields verified from Total Service screenshot
+- **F3 Lookups - Status:**
+  | Field | Status | Notes |
+  |-------|--------|-------|
+  | CustomContact* | ❌ NOT WORKING | Needs Rol table join |
+  | ID* | ⚠️ GUESSED | Using Premises.locId |
+  | Owner* | ⚠️ GUESSED | Using Customer.name |
+  | Route* | ⚠️ GUESSED | Distinct from Premises |
+  | Sales Tax Region* | ⚠️ GUESSED | Distinct from Premises.sTax |
+  | State* | ✅ VERIFIED | US state codes |
+  | Status* | ⚠️ GUESSED | Active/Inactive |
+  | Tag* | ⚠️ GUESSED | Premises.tag/name |
+  | Territory* | ⚠️ GUESSED | Distinct from Premises.terr |
+  | Type* | ⚠️ GUESSED | Distinct from Premises.type |
+  | Use Tax* | ⚠️ GUESSED | Distinct from Premises.uTax |
+  | Zone* | ⚠️ GUESSED | Distinct from Premises.zone |
+
+---
+
+### Modules Pending
+
+| Module | Status | Needs |
+|--------|--------|-------|
+| Vendors | NOT STARTED | Filter field screenshot from Total Service |
+| Units | NOT STARTED | Filter field screenshot from Total Service |
+| Invoices | NOT STARTED | Filter field screenshot from Total Service |
+
+---
+
+### Known Issues / Blockers
+
+#### 1. Rol Table Not in Prisma Schema
+- Total Service uses `Rol` table as master for names/contacts
+- Many F3 lookups (CustomContact, Owner, etc.) join to Rol
+- Our schema denormalizes Rol into Customer, Premises, Vendor
+- **Impact:** F3 lookups may show wrong/incomplete values
+- **Solution:** Need to either add Rol model or wait for data migration
+
+#### 2. Inconsistent Data in Legacy DB
+- Same field stored differently across tables
+- Example: State = "NY" vs "New York" vs "N.Y."
+- **Impact:** Lookups may not match Total Service exactly
+- **Solution:** Normalize during data migration
+
+#### 3. Missing Fields in Prisma Schema
+- Account filter has fields not in Premises model yet
+- Examples: Acct Rep, COLLECTOR, Credit Hold, DWS, Supervisor, etc.
+- **Impact:** These filters return empty
+- **Solution:** Add fields to schema when mapping is confirmed
+
+---
+
+### Pending Features
+
+1. [ ] Filter dialog: Save button functionality
+2. [ ] Filter dialog: Saved Filters list (left panel)
+3. [ ] Proper Rol table mapping
+4. [ ] Verify all F3 lookups against Total Service
+
+---
+
+### Files Created/Modified
+
+| File | Changes |
+|------|---------|
+| `src/components/FilterDialog.tsx` | NEW - Shared filter component |
+| `src/app/api/lookups/[field]/route.ts` | NEW - F3 lookup API |
+| `src/app/job-maintenance/JobMaintenanceView.tsx` | +Filters, resizable cols, menus |
+| `src/app/job-results/JobResultsView.tsx` | +Filters, matching layout |
+| `src/app/customers/page.tsx` | +Filters, resizable cols, menus |
+| `src/app/accounts/page.tsx` | +Filters, resizable cols, menus |
+| `docs/FILTER_IMPLEMENTATION_STATUS.md` | NEW - Detailed status doc |
+
+---
+
+### Commits This Session
+
+| Commit | Description |
+|--------|-------------|
+| `981fd71` | Add resizable columns and Edit dropdown menu |
+| `2b06997` | Update Job Results to match Job Maintenance layout |
+| `1034e5c` | Fix filter logic in Job Results |
+| `e5f555e` | Add FilterDialog to Customers module |
+| `0d7545c` | Fix TypeScript errors, restore description fields |
+| `b1724e2` | Fix Customer data mapping issues |
+| `571662c` | Add FilterDialog to Accounts module |
+| `7c1b29f` | Update Accounts filter fields to match Total Service |
+| `7668e94` | Add filter implementation status documentation |
+
+---
+
+### Next Steps
+
+1. Get Total Service schema for key tables (Rol, CustomContact, Loc, Owner)
+2. Create proper mapping document: TS Table.Field → Prisma Model.Field
+3. User to confirm mappings before implementation
+4. Add FilterDialog to remaining modules (Vendors, Units, Invoices)
+5. Implement Save filter functionality
+
+---
+
+## End of Session: January 27, 2026
