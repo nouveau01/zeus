@@ -180,6 +180,10 @@ export default function DispatchPage() {
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
+  // Sorting
+  const [sortColumn, setSortColumn] = useState<keyof Ticket | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
   // Detail tabs
   const [activeTab, setActiveTab] = useState<"ticketInfo" | "scopeSched" | "customerInfo" | "customFields" | "callHistory" | "ledger">("ticketInfo");
 
@@ -391,17 +395,51 @@ export default function DispatchPage() {
     }
   };
 
-  // Apply client-side filters when worker/zone changes
+  // Handle column sort
+  const handleSort = (column: keyof Ticket) => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New column, start with ascending
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Apply client-side filters and sorting when worker/zone/sort changes
   useEffect(() => {
-    let filtered = tickets;
+    let filtered = [...tickets];
+
+    // Apply filters
     if (workerFilter !== "All") {
       filtered = filtered.filter(t => t.worker === workerFilter);
     }
     if (zoneFilter !== "All") {
       // Would filter by zone if available
     }
+
+    // Apply sorting
+    if (sortColumn) {
+      filtered.sort((a, b) => {
+        const aVal = a[sortColumn] ?? "";
+        const bVal = b[sortColumn] ?? "";
+
+        // Handle numeric sorting for ticket numbers
+        if (sortColumn === "ticketNumber" || sortColumn === "woNumber") {
+          const aNum = parseInt(String(aVal)) || 0;
+          const bNum = parseInt(String(bVal)) || 0;
+          return sortDirection === "asc" ? aNum - bNum : bNum - aNum;
+        }
+
+        // String comparison for other fields
+        const comparison = String(aVal).localeCompare(String(bVal));
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+
     setFilteredTickets(filtered);
-  }, [workerFilter, zoneFilter, tickets]);
+  }, [workerFilter, zoneFilter, tickets, sortColumn, sortDirection]);
 
   // Store full ticket data from API for detail view
   const [fullTicketData, setFullTicketData] = useState<Map<string, any>>(new Map());
@@ -858,95 +896,94 @@ export default function DispatchPage() {
                     onMouseDown={(e) => handleColumnResizeStart(e, "selector")}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.ticketNumber, minWidth: columnWidths.ticketNumber }}>
-                  Ticket #
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.ticketNumber, minWidth: columnWidths.ticketNumber }} onClick={() => handleSort("ticketNumber")}>
+                  Ticket # {sortColumn === "ticketNumber" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "ticketNumber")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "ticketNumber"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.woNumber, minWidth: columnWidths.woNumber }}>
-                  W/O #
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.woNumber, minWidth: columnWidths.woNumber }} onClick={() => handleSort("woNumber")}>
+                  W/O # {sortColumn === "woNumber" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "woNumber")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "woNumber"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.type, minWidth: columnWidths.type }}>
-                  Type
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.type, minWidth: columnWidths.type }} onClick={() => handleSort("type")}>
+                  Type {sortColumn === "type" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "type")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "type"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.account, minWidth: columnWidths.account }}>
-                  Account
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.account, minWidth: columnWidths.account }} onClick={() => handleSort("accountTag")}>
+                  Account {sortColumn === "accountTag" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "account")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "account"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.address, minWidth: columnWidths.address }}>
-                  Address
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.address, minWidth: columnWidths.address }} onClick={() => handleSort("address")}>
+                  Address {sortColumn === "address" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "address")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "address"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.unit, minWidth: columnWidths.unit }}>
-                  Unit
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.unit, minWidth: columnWidths.unit }} onClick={() => handleSort("unit")}>
+                  Unit {sortColumn === "unit" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "unit")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "unit"); }}
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.description, minWidth: columnWidths.description }} onClick={() => handleSort("description")}>
+                  Description {sortColumn === "description" && (sortDirection === "asc" ? "▲" : "▼")}
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "description"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.description, minWidth: columnWidths.description }}>
-                  Description
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.status, minWidth: columnWidths.status }} onClick={() => handleSort("status")}>
+                  Status {sortColumn === "status" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "description")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "status"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.status, minWidth: columnWidths.status }}>
-                  Status
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.callDate, minWidth: columnWidths.callDate }} onClick={() => handleSort("callDate")}>
+                  Call Date {sortColumn === "callDate" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "status")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "callDate"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.callDate, minWidth: columnWidths.callDate }}>
-                  Call Date
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.scheduled, minWidth: columnWidths.scheduled }} onClick={() => handleSort("scheduled")}>
+                  Scheduled {sortColumn === "scheduled" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "callDate")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "scheduled"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.scheduled, minWidth: columnWidths.scheduled }}>
-                  Scheduled
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.worker, minWidth: columnWidths.worker }} onClick={() => handleSort("worker")}>
+                  Worker {sortColumn === "worker" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "scheduled")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "worker"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.worker, minWidth: columnWidths.worker }}>
-                  Worker
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.city, minWidth: columnWidths.city }} onClick={() => handleSort("city")}>
+                  City {sortColumn === "city" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "worker")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "city"); }}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.city, minWidth: columnWidths.city }}>
-                  City
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.state, minWidth: columnWidths.state }} onClick={() => handleSort("state")}>
+                  State {sortColumn === "state" && (sortDirection === "asc" ? "▲" : "▼")}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "city")}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.state, minWidth: columnWidths.state }}>
-                  State
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => handleColumnResizeStart(e, "state")}
+                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "state"); }}
                   />
                 </th>
               </tr>
