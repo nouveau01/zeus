@@ -617,6 +617,9 @@ model JobType {
 
   name          String   @unique                          // Type name
   description   String?                                   // Optional description
+  count         Int      @default(0)                      // Count of jobs using this type
+  color         String?                                   // Color for UI display
+  remarks       String?                                   // Additional notes
   isActive      Boolean  @default(true) @map("is_active")
   sortOrder     Int      @default(0) @map("sort_order")
 

@@ -406,29 +406,37 @@ async function main() {
   }
   console.log(`Created ${jobsData.length} jobs`);
 
-  // Create Job Types
+  // Create Job Types (matching Total Service screenshot)
   const jobTypesData = [
-    { name: "Annual", sortOrder: 1 },
-    { name: "Maintenance", sortOrder: 2 },
-    { name: "Modernization", sortOrder: 3 },
-    { name: "Repair", sortOrder: 4 },
-    { name: "NEW REPAIR", sortOrder: 5 },
-    { name: "Violations", sortOrder: 6 },
-    { name: "Capital Impro", sortOrder: 7 },
-    { name: "CONSULTANT", sortOrder: 8 },
-    { name: "BILLING ONL", sortOrder: 9 },
-    { name: "GL Incidents", sortOrder: 10 },
-    { name: "LAWSUITS", sortOrder: 11 },
-    { name: "NO CHARGE", sortOrder: 12 },
-    { name: "Touchless", sortOrder: 13 },
-    { name: "XCALL", sortOrder: 14 },
-    { name: "Other", sortOrder: 99 },
+    { name: "Annual", sortOrder: 1, count: 23, color: "Red", remarks: "" },
+    { name: "BILLING ONLY", sortOrder: 2, count: 1, color: null, remarks: "" },
+    { name: "Captial Improve", sortOrder: 3, count: 1, color: null, remarks: "" },
+    { name: "CONSULTANT RPT", sortOrder: 4, count: 1, color: null, remarks: "" },
+    { name: "GL Incidents", sortOrder: 5, count: 3, color: null, remarks: "" },
+    { name: "LAWSUITS", sortOrder: 6, count: 1, color: null, remarks: "" },
+    { name: "Maintenance", sortOrder: 7, count: 1, color: "Blue", remarks: "" },
+    { name: "Modernization", sortOrder: 8, count: 1, color: "Green", remarks: "" },
+    { name: "NEW REPAIR", sortOrder: 9, count: 2, color: "Orange", remarks: "" },
+    { name: "NO CHARGE", sortOrder: 10, count: 2, color: null, remarks: "" },
+    { name: "Other", sortOrder: 11, count: 9, color: null, remarks: "" },
+    { name: "Repair", sortOrder: 12, count: 1, color: null, remarks: "" },
+    { name: "Touchless", sortOrder: 13, count: 1, color: null, remarks: "" },
+    { name: "Violations", sortOrder: 14, count: 1, color: "Purple", remarks: "" },
+    { name: "XCALL", sortOrder: 15, count: 1, color: null, remarks: "" },
+    { name: "Capital Impro", sortOrder: 16, count: 1, color: null, remarks: "" },
+    { name: "CONSULTANT", sortOrder: 17, count: 1, color: null, remarks: "" },
   ];
 
   const jobTypeMap: Record<string, string> = {};
   for (const typeData of jobTypesData) {
     const jobType = await prisma.jobType.create({
-      data: typeData,
+      data: {
+        name: typeData.name,
+        sortOrder: typeData.sortOrder,
+        count: typeData.count,
+        color: typeData.color,
+        remarks: typeData.remarks,
+      },
     });
     jobTypeMap[typeData.name] = jobType.id;
   }

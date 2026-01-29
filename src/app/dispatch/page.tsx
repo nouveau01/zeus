@@ -208,151 +208,290 @@ export default function DispatchPage() {
     custom3: "",
   });
 
-  // Mock data
-  useEffect(() => {
-    const mockTickets: Ticket[] = [
-      { id: "1", ticketNumber: "3996351", woNumber: "3995364", type: "Maintenance", accountId: "125FIFTHAVE", accountTag: "125FIFTHAVE~ - 125 SOUTH FIFTH AVENUE", address: "125 SOUTH FIFTH AVENUE", unit: "P1", unitId: "1", description: "BLDG - NEED TO CONNECT PHONE LINES", status: "Open", callDate: "9/17/2025 12:26:00 PM", callTime: "12:26 PM", scheduled: "", worker: "", city: "MOUNT VERNON", state: "NY", customerId: "1", customerName: "COMMUNITY HOUSING MANAGEMENT CORP", jobId: "189762", jobNumber: "189762" },
-      { id: "2", ticketNumber: "4000108", woNumber: "4000188", type: "Maintenance", accountId: "MTAESCNYC", accountTag: "MTAESCNYC~ - MTA LIRR ESCALATORS", address: "333 WEST 34TH STREET", unit: "E1 ROCKNYC", description: "Fault: Power Loss Mode", status: "Open", callDate: "9/24/2025 1:42:00 PM", callTime: "1:42 PM", scheduled: "", worker: "", city: "NEW YORK", state: "NY", customerId: "2", customerName: "MTA", jobId: "", jobNumber: "" },
-      { id: "3", ticketNumber: "4001081", woNumber: "4001801", type: "Maintenance", accountId: "GRACELINETM", accountTag: "GRACELINETM~ - GRAND CENTRAL TERMINAL - ESC", address: "89 E 42nd St", unit: "ESC1", description: "GCT - escalators are currently down following a power outage and need to be...", status: "Open", callDate: "9/26/2025 9:42:00 PM", callTime: "9:42 PM", scheduled: "", worker: "", city: "NEW YORK", state: "NY", customerId: "3", customerName: "GRACE LINE", jobId: "", jobNumber: "" },
-      { id: "4", ticketNumber: "4004275", woNumber: "4004735", type: "Maintenance", accountId: "AMTRAKNYP", accountTag: "AMTRAKNYP~ - AM TRAKN - ALSTOM", address: "402 PAN AM ROAD", unit: "TIES-1", description: "H/P~~NEED ADVNOLS WALK WAY DOS", status: "Open", callDate: "10/17/2025 12:28:00 AM", callTime: "12:28 AM", scheduled: "", worker: "", city: "JAMAICA", state: "NY", customerId: "4", customerName: "AMTRAK", jobId: "", jobNumber: "" },
-      { id: "5", ticketNumber: "4013808", woNumber: "4004172", type: "Maintenance", accountId: "1995RCPS", accountTag: "1995RCPS~ - 1995 ROCKAWAY PKWAY", address: "1995 Rockaway Pkwy", unit: "P#", description: "LSD / DRIVE FAULTS (OPEN PROPOSAL)", status: "Open", callDate: "10/6/2025 1:09:00 PM", callTime: "1:09 PM", scheduled: "", worker: "", city: "BROOKLYN", state: "NY", customerId: "5", customerName: "1995 ROCKAWAY PKWY", jobId: "", jobNumber: "" },
-      { id: "6", ticketNumber: "4013811", woNumber: "4027343", type: "Maintenance", accountId: "3950GRACEHOLLIS", accountTag: "3950GRACEHOLLIS - 3195 GRACE HOLLISTER WHIT", address: "2603 NORTH 24TH STREET", unit: "", description: "LSD - REPAIR", status: "Open", callDate: "10/6/2025 3:59:00 PM", callTime: "3:59 PM", scheduled: "", worker: "", city: "QUINCY", state: "NY", customerId: "6", customerName: "GRACE HOLLISTER", jobId: "", jobNumber: "" },
-      { id: "7", ticketNumber: "4017561", woNumber: "4017582", type: "Maintenance", accountId: "TERMINALNYC7JFK", accountTag: "TERMINALNYC7JFK~ - TERMINAL 7 - JFK AIRPORT - JC#", address: "TERMINAL 7", unit: "ESC 13 - KON", description: "H~MON. ESC 13 DOS", status: "Open", callDate: "10/18/2025 5:41:00 PM", callTime: "5:41 PM", scheduled: "", worker: "", city: "JAMAICA", state: "NY", customerId: "7", customerName: "JFK TERMINAL 7", jobId: "", jobNumber: "" },
-      { id: "8", ticketNumber: "4024237", woNumber: "4022786", type: "Maintenance", accountId: "118FIFTHAVE", accountTag: "118FIFTHAVE~ - 114 FIFTH AVENUE", address: "", unit: "P2", description: "ENG Follow up on Ticket #4022778", status: "Open", callDate: "10/22/2025 12:41:00 PM", callTime: "12:41 PM", scheduled: "", worker: "", city: "NEW YORK", state: "NY", customerId: "8", customerName: "118 FIFTH AVE", jobId: "", jobNumber: "" },
-      { id: "9", ticketNumber: "4030088", woNumber: "4030098", type: "Maintenance", accountId: "80PARKPLAZA", accountTag: "80PARKPLAZA~ - 80 PARK PLAZA - OPEN", address: "80 PARK PLAZA", unit: "P7", description: "LSD - MKE A. AWAITING INFO TO GENERATE PROPOSAL", status: "Open", callDate: "10/31/2025 11:26:00 AI", callTime: "11:26 AM", scheduled: "", worker: "", city: "NEWARK", state: "NJ", customerId: "9", customerName: "80 PARK PLAZA", jobId: "", jobNumber: "" },
-      { id: "10", ticketNumber: "4030478", woNumber: "4030298", type: "Maintenance", accountId: "2545UNIVERSITY", accountTag: "2545UNIVERSITY~ - 2545 UNIVERSITY GREENWALL", address: "2545 UNIVERSITY GREENWALL", unit: "PE3", description: "LSD water damage - NEED PROPOSAL - wAITING FOR M/R REPORT JOB", status: "Open", callDate: "10/31/2025 11:06:00 AI", callTime: "11:06 AM", scheduled: "", worker: "", city: "BRONX", state: "NY", customerId: "10", customerName: "2545 UNIVERSITY", jobId: "", jobNumber: "" },
-      { id: "11", ticketNumber: "4030884", woNumber: "4030270", type: "Maintenance", accountId: "152MARKETST", accountTag: "152MARKETST~ - 152 MARKET STREET", address: "", unit: "P1", description: "LSD - PROPOSAL4ER638- OPEN / Wate damage on door operator door motor", status: "Open", callDate: "10/31/2025 8:54:00 PM", callTime: "8:54 PM", scheduled: "", worker: "", city: "PATERSON", state: "NJ", customerId: "11", customerName: "152 MARKET ST", jobId: "", jobNumber: "" },
-      { id: "12", ticketNumber: "4039384", woNumber: "4038733", type: "Maintenance", accountId: "ONEJERICHO", accountTag: "ONEJERICHO~ - ONE JERICHO PLAZA", address: "ONE JERICHO PLAZA", unit: "P3", description: "LSD / BAD PISTON SEAL", status: "Open", callDate: "11/5/2025 9:42:00 PM", callTime: "9:42 PM", scheduled: "", worker: "", city: "JERICHO", state: "NY", customerId: "12", customerName: "ONE JERICHO PLAZA", jobId: "", jobNumber: "" },
-      { id: "13", ticketNumber: "4039241", woNumber: "4039421", type: "Maintenance", accountId: "TERMINALONE", accountTag: "TERMINALONE~ - TERMINAL ONE, BLDG 55", address: "17 JFK Airport", unit: "E6", description: "CAR 6 DOS", status: "Open", callDate: "11/6/2025 11:00:00 PM", callTime: "11:00 PM", scheduled: "", worker: "", city: "JAMAICA", state: "NY", customerId: "13", customerName: "TERMINAL ONE", jobId: "", jobNumber: "" },
-      { id: "14", ticketNumber: "4040605", woNumber: "4039949", type: "Maintenance", accountId: "720FIFTHAVE", accountTag: "720FIFTHAVE~ - 720 FIFTH AVE", address: "720 Fifth Ave", unit: "E6", description: "LSD Follow up on Ticket #4039949", status: "Open", callDate: "11/7/2025 4:41:00 AM", callTime: "4:41 AM", scheduled: "", worker: "", city: "NEW YORK", state: "NY", customerId: "14", customerName: "720 FIFTH AVE", jobId: "", jobNumber: "" },
-      { id: "15", ticketNumber: "4041031", woNumber: "4048362", type: "Maintenance", accountId: "5CITYPLACE", accountTag: "5CITYPLACE~ - 5 CITY PLACE", address: "5 CITY PLACE", unit: "H-3348-P", description: "PROPOSAL SENT AND IN THE WORKS LSD - PISTON LEAKING OIL", status: "Open", callDate: "11/7/2025 1:30:00 PM", callTime: "1:30 PM", scheduled: "", worker: "", city: "WHITE PLAINS", state: "NY", customerId: "15", customerName: "5 CITY PLACE", jobId: "", jobNumber: "" },
-      { id: "16", ticketNumber: "4041223", woNumber: "4039734", type: "Violation", accountId: "3000OCEANAVE", accountTag: "3000OCEANAVE~ - 3000 OCEAN AVENUE", address: "3000 OCEAN AVENUE", unit: "P#", description: "LSD Poisoon", status: "Open", callDate: "11/7/2025 2:52:00 PM", callTime: "2:52 PM", scheduled: "", worker: "", city: "BROOKLYN", state: "NY", customerId: "16", customerName: "3000 OCEAN AVE", jobId: "", jobNumber: "" },
-      { id: "17", ticketNumber: "4044381", woNumber: "4044308", type: "Maintenance", accountId: "TERMINALNYC7JFK", accountTag: "TERMINALNYC7JFK~ - TERMINAL 7 - JFK AIRPORT - JC#", address: "TERMINAL 7", unit: "ESC 13 - KON", description: "H/O FOR FRI AS PER CALLER ESC 131S DOS", status: "Open", callDate: "11/13/2025 9:05:00 PM", callTime: "9:05 PM", scheduled: "", worker: "", city: "JAMAICA", state: "NY", customerId: "7", customerName: "JFK TERMINAL 7", jobId: "", jobNumber: "" },
-      { id: "18", ticketNumber: "4045143", woNumber: "4046553", type: "Maintenance", accountId: "TERMINALNYC7JFK", accountTag: "TERMINALNYC7JFK~ - TERMINAL 7 - JFK AIRPORT - JC#", address: "TERMINAL 7", unit: "H#", description: "LSD Follow up on Ticket BA#4053", status: "Open", callDate: "11/15/2025 6:13:00 AM", callTime: "6:13 AM", scheduled: "", worker: "", city: "JAMAICA", state: "NY", customerId: "7", customerName: "JFK TERMINAL 7", jobId: "", jobNumber: "" },
-      { id: "19", ticketNumber: "4046107", woNumber: "4036010", type: "Maintenance", accountId: "72MAD", accountTag: "72MAD~ - 72 MADISON AVENUE", address: "72 Madison Ave", unit: "FRT", description: "MJR. LSD / WATER DAMAGE", status: "Open", callDate: "11/17/2025 8:12:00 PM", callTime: "8:12 PM", scheduled: "", worker: "", city: "NEW YORK", state: "NY", customerId: "17", customerName: "72 MADISON AVE", jobId: "", jobNumber: "" },
-      { id: "20", ticketNumber: "4046250", woNumber: "4046247", type: "Maintenance", accountId: "630FIFTHAVEDALE", accountTag: "630FIFTHAVEDALE~ - 630 RIVERDALE AVENUE - BRO", address: "630 RIVERDALE AVENUE", unit: "SPELLMAN", description: "PROPOSAL SENT 11/17/REPORT OF CABLE ISSUE", status: "Open", callDate: "11/18/2025 7:01:00 AM", callTime: "7:01 AM", scheduled: "", worker: "", city: "BRONX", state: "NY", customerId: "18", customerName: "630 RIVERDALE", jobId: "", jobNumber: "" },
-      { id: "21", ticketNumber: "4046759", woNumber: "4046019", type: "Maintenance", accountId: "44BEACONWAY", accountTag: "44BEACONWAY~ - 44 BEACON WAY", address: "44 BEACON WAY", unit: "P1", description: "The building needs to call phone company", status: "Open", callDate: "11/18/2025 2:54:00 PM", callTime: "2:54 PM", scheduled: "", worker: "", city: "JERSEY CITY", state: "NJ", customerId: "19", customerName: "44 BEACON WAY", jobId: "", jobNumber: "" },
-      { id: "22", ticketNumber: "4046584", woNumber: "4045995", type: "Other", accountId: "480VERMONT", accountTag: "480VERMONT~ - 480 VERMONT STREET", address: "480 Vermont St", unit: "W/C", description: "480 VERMONT STREET", status: "Open", callDate: "11/17/2025 11:35:35 PM", callTime: "11:35 PM", scheduled: "", worker: "", city: "BROOKLYN", state: "NY", customerId: "20", customerName: "480 VERMONT", jobId: "", jobNumber: "" },
-      { id: "23", ticketNumber: "4047797", woNumber: "4006910", type: "Maintenance", accountId: "65W11TH", accountTag: "65W11TH~ - 65 WEST 11TH STREET", address: "65 W 11th St", unit: "SW", description: "PROPOSAL - LSD Follow up on Ticket #4005810", status: "Open", callDate: "11/20/2025 5:15:00 AM", callTime: "5:15 AM", scheduled: "", worker: "", city: "NEW YORK", state: "NY", customerId: "21", customerName: "65 WEST 11TH", jobId: "", jobNumber: "" },
-      { id: "24", ticketNumber: "4048414", woNumber: "3229595/8", type: "Maintenance", accountId: "648EASTTREM", accountTag: "648EASTREM~ - 648 EAST TREMONT AVE", address: "648 EAST TREMONT AVE", unit: "2P988722", description: "FAU - REPLACE BULBS IN CAR", status: "Open", callDate: "11/20/2025 2:30:00 PM", callTime: "2:30 PM", scheduled: "", worker: "", city: "BRONX", state: "NY", customerId: "22", customerName: "648 EAST TREMONT", jobId: "", jobNumber: "" },
-      { id: "25", ticketNumber: "4048485", woNumber: "4025105", type: "Maintenance", accountId: "1851PALISADEAVE", accountTag: "1851PALISADEAVE~ - 15 ST. PAULS PLACE", address: "15 ST. PAULS PLACE", unit: "P#", description: "FAU ON BOARD", status: "Open", callDate: "11/20/2025 3:12:00 PM", callTime: "3:12 PM", scheduled: "", worker: "", city: "GREAT NECK", state: "NY", customerId: "23", customerName: "1851 PALISADE", jobId: "", jobNumber: "" },
-      { id: "26", ticketNumber: "4048950", woNumber: "4046397", type: "NEW REPAIR", accountId: "270PARKAVE", accountTag: "270PARKAVE~ - 270 PARK AVENUE", address: "270 Park Avenue", unit: "O2", description: "FAU BOARD", status: "Open", callDate: "11/20/2025 11:16:00 AI", callTime: "11:16 AM", scheduled: "", worker: "", city: "HUNTINGTON", state: "NY", customerId: "24", customerName: "270 PARK AVE", jobId: "", jobNumber: "" },
-      { id: "27", ticketNumber: "4051154", woNumber: "4027182", type: "Maintenance", accountId: "1143RAYMONDB", accountTag: "1143RAYMONDB~ - 11 43 RAYMOND PLAZA - ONE G", address: "11 43 RAYMOND PLAZA", unit: "PRE2", description: "LSD - open to investigate comp (heave noise and vibration", status: "Open", callDate: "11/24/2025 1:46:00 PM", callTime: "1:46 PM", scheduled: "", worker: "", city: "NEWARK", state: "NJ", customerId: "25", customerName: "1143 RAYMOND PLAZA", jobId: "", jobNumber: "" },
-      { id: "28", ticketNumber: "4052764", woNumber: "4030298", type: "Maintenance", accountId: "2545UNIVERSITY", accountTag: "2545UNIVERSITY~ - 2545 UNIVERSITY GREENWALL", address: "2545 UNIVERSITY GREENWALL", unit: "PE1", description: "LSD - MJR JOB 206890 FOR CAR 1 ONLY", status: "Open", callDate: "10/31/2025 2:37:00 PM", callTime: "2:37 PM", scheduled: "", worker: "", city: "BRONX", state: "NY", customerId: "10", customerName: "2545 UNIVERSITY", jobId: "", jobNumber: "" },
-      { id: "29", ticketNumber: "4054088", woNumber: "4052512", type: "Maintenance", accountId: "357STHCOMM", accountTag: "357STHCOMM~ - 357 9TH ST", address: "357 9TH STREET", unit: "RESIDENT L", description: "FAU SHEAVE, REGROOVE", status: "Open", callDate: "11/26/2025 2:29:00 PM", callTime: "2:29 PM", scheduled: "", worker: "", city: "BROOKLYN", state: "NY", customerId: "26", customerName: "357 9TH ST", jobId: "", jobNumber: "" },
-    ];
+  // Fetch open tickets from SQL Server
+  const [loading, setLoading] = useState(true);
 
-    setTickets(mockTickets);
-    setFilteredTickets(mockTickets);
-    if (mockTickets.length > 0) {
-      setSelectedTicket(mockTickets[0]);
-      loadTicketDetail(mockTickets[0]);
+  // Get status row background color
+  const getStatusRowColor = (status: string, isSelected: boolean) => {
+    if (isSelected) return "bg-[#316ac5] text-white";
+    switch (status) {
+      case "On Site":
+        return "bg-[#90EE90]"; // Light green
+      case "Open":
+        return "bg-[#FFFF99]"; // Light yellow
+      case "Assigned":
+        return "bg-[#ADD8E6]"; // Light blue
+      case "En Route":
+        return "bg-[#FFB6C1]"; // Light pink
+      case "Completed":
+        return "bg-[#D3D3D3]"; // Light gray
+      default:
+        return "hover:bg-[#f0f8ff]";
     }
-  }, []);
+  };
 
-  const loadTicketDetail = (ticket: Ticket) => {
-    // Mock detail data
+  // Fetch tickets when filters change
+  useEffect(() => {
+    fetchTickets();
+  }, [statusFilter, typeFilter, startDate, endDate]);
+
+  const fetchTickets = async () => {
+    setLoading(true);
+    try {
+      // Build query params
+      const params = new URLSearchParams();
+      if (statusFilter !== "All") {
+        params.append("status", statusFilter === "Completed" || statusFilter === "Closed" ? "Completed" : "Open");
+      }
+      if (typeFilter !== "All") {
+        params.append("type", typeFilter);
+      }
+      if (startDate) {
+        const [month, day, year] = startDate.split("/");
+        params.append("startDate", `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+      }
+      if (endDate) {
+        const [month, day, year] = endDate.split("/");
+        params.append("endDate", `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+      }
+
+      const response = await fetch(`/api/sqlserver/tickets?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+
+        // Store full API data for detail view
+        const fullDataMap = new Map<string, any>();
+        data.forEach((t: any) => {
+          fullDataMap.set(t.id, t);
+        });
+        setFullTicketData(fullDataMap);
+
+        // Map API response to expected Ticket interface
+        const mappedTickets: Ticket[] = data.map((t: any) => ({
+          id: t.id,
+          ticketNumber: String(t.ticketNumber),
+          woNumber: String(t.workOrderNumber || t.ticketNumber),
+          type: t.type as "Maintenance" | "Violation" | "Other" | "NEW REPAIR",
+          accountId: t.accountId || t.premises?.premisesId || "",
+          accountTag: `${t.premises?.tag || t.accountId || ""}~ - ${t.premises?.address || ""}`,
+          address: t.premises?.address || "",
+          unit: t.unitName || "",
+          unitId: t.unitId || "",
+          description: t.description || "",
+          status: t.status as "Open" | "Assigned" | "En Route" | "On Site" | "Completed" | "Closed",
+          callDate: t.date ? new Date(t.date).toLocaleDateString() : "",
+          callTime: t.date ? new Date(t.date).toLocaleTimeString() : "",
+          scheduled: t.dispatchDate ? new Date(t.dispatchDate).toLocaleString() : "",
+          worker: t.mechCrew || "",
+          city: t.premises?.city || "",
+          state: t.premises?.state || "",
+          customerId: t.premises?.customer?.id || "",
+          customerName: t.premises?.customer?.name || "",
+          jobId: t.jobId?.toString() || "",
+          jobNumber: t.jobId?.toString() || "",
+        }));
+        setTickets(mappedTickets);
+
+        // Apply client-side filters for worker and zone
+        let filtered = mappedTickets;
+        if (workerFilter !== "All") {
+          filtered = filtered.filter(t => t.worker === workerFilter);
+        }
+        // Zone filter would need zone data from premises
+
+        setFilteredTickets(filtered);
+        if (filtered.length > 0 && !selectedTicket) {
+          setSelectedTicket(filtered[0]);
+          loadTicketDetail(filtered[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching tickets:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Apply client-side filters when worker/zone changes
+  useEffect(() => {
+    let filtered = tickets;
+    if (workerFilter !== "All") {
+      filtered = filtered.filter(t => t.worker === workerFilter);
+    }
+    if (zoneFilter !== "All") {
+      // Would filter by zone if available
+    }
+    setFilteredTickets(filtered);
+  }, [workerFilter, zoneFilter, tickets]);
+
+  // Store full ticket data from API for detail view
+  const [fullTicketData, setFullTicketData] = useState<Map<string, any>>(new Map());
+
+  const loadTicketDetail = async (ticket: Ticket) => {
+    // Get the full ticket data from our stored API response
+    const apiTicket = fullTicketData.get(ticket.id);
+
+    // Build detail from API data or ticket data
     const detail: TicketDetail = {
       ticketNumber: ticket.ticketNumber,
       woNumber: ticket.woNumber,
-      date: "9/17/2025",
-      time: "12:28 PM",
-      caller: "Who",
-      phoneNumber: "",
-      takenBy: "NGONZALEZ",
-      source: "GENERAL",
+      date: apiTicket?.date ? new Date(apiTicket.date).toLocaleDateString() : ticket.callDate,
+      time: apiTicket?.time || ticket.callTime,
+      caller: apiTicket?.caller || apiTicket?.who || "",
+      phoneNumber: apiTicket?.phone || "",
+      takenBy: apiTicket?.takenBy || apiTicket?.createdBy || "",
+      source: apiTicket?.source || "GENERAL",
       accountId: ticket.accountId,
       accountTag: ticket.accountTag.split("~")[0],
-      accountAddress: ticket.address,
-      accountCity: ticket.city,
-      accountState: ticket.state,
-      accountZip: "10550",
-      accountCountry: "United States",
-      accountPhone: "(914) 552-5434",
-      accountMobile: "(914) 592-2938",
-      accountContact: "CINDY MAURO",
-      accountEmail: "cindy@chrnc1.com",
-      category: "None",
-      level: "1-Service Call",
+      accountAddress: apiTicket?.premises?.address || ticket.address,
+      accountCity: apiTicket?.premises?.city || ticket.city,
+      accountState: apiTicket?.premises?.state || ticket.state,
+      accountZip: apiTicket?.premises?.zip || "",
+      accountCountry: apiTicket?.premises?.country || "United States",
+      accountPhone: apiTicket?.premises?.phone || "",
+      accountMobile: apiTicket?.premises?.mobile || "",
+      accountContact: apiTicket?.premises?.contact || "",
+      accountEmail: apiTicket?.premises?.email || "",
+      category: apiTicket?.category || "None",
+      level: apiTicket?.level ? `${apiTicket.level}-Service Call` : "1-Service Call",
       unitId: ticket.unitId,
       unitNumber: ticket.unit,
-      nature: "Existing Job",
+      nature: apiTicket?.jobId ? "Existing Job" : "New Job",
       jobId: ticket.jobId,
       jobNumber: ticket.jobNumber,
       testMech: "Mechanic",
-      calledIn: true,
-      highPriority: false,
+      calledIn: apiTicket?.calledIn || false,
+      highPriority: apiTicket?.highPriority || false,
       updateMechLocation: false,
-      onServiceExp: "05/31/2029",
-      scopeOfWork: `BLDG - NEED TO CONNECT PHONE LINES
-WANT - NEED EMERG LIGHT BULBS`,
-      maintenanceNotes: `MAINTENANCE
-Follow-up on Ticket #3995365
-Scheduled for at    Phone: (914) 552-5434
-Rescheduled to Sep 16, 2025 at 07:37 AM
-F/U ** Emergency lines
-[1] - Repair inoperative Emergency lighting - Emergency light - FOR MAINTENANCE
-[2] - Repair Insufficient Communication - Must call nouveau - FOR MAINTENANCE`,
+      onServiceExp: "",
+      scopeOfWork: apiTicket?.scopeOfWork || apiTicket?.description || ticket.description,
+      maintenanceNotes: apiTicket?.notes || "",
       followUpNotes: "",
       codes: "",
-      followUpNeeded: true,
-      notes: "Phone line disconnected/no dial tonel.",
-      schedDate: "",
-      schedTime: "",
-      schedMech: "",
-      enRouteTime: "",
-      onSiteTime: "",
-      completedTime: "08:51 PM",
-      witness: "",
-      customerName: ticket.customerName,
-      customerAddress: "5 WEST MAIN STREET, SUITE 214",
-      customerCity: "ELMSFORD",
-      customerState: ticket.state,
-      customerZip: "10523",
-      customerCountry: "United States",
-      customerPhone: "(914) 552-5434",
-      customerFax: "(914) 592-2938",
-      customerMobile: "(718) 000-0000",
-      customerContact: "CINDY MAURO",
-      customerEmail: "cindy@chrnc1.com",
-      customerSince: "3/22/2024",
+      followUpNeeded: apiTicket?.followUp || false,
+      notes: apiTicket?.notes || "",
+      schedDate: apiTicket?.scheduledDate ? new Date(apiTicket.scheduledDate).toLocaleDateString() : "",
+      schedTime: apiTicket?.scheduledTime || "",
+      schedMech: apiTicket?.scheduledMech || ticket.worker,
+      enRouteTime: apiTicket?.enRouteTime || "",
+      onSiteTime: apiTicket?.onSiteTime || "",
+      completedTime: apiTicket?.completedTime || "",
+      witness: apiTicket?.witness || "",
+      customerName: apiTicket?.premises?.customer?.name || ticket.customerName,
+      customerAddress: apiTicket?.premises?.customer?.address || "",
+      customerCity: apiTicket?.premises?.customer?.city || "",
+      customerState: apiTicket?.premises?.customer?.state || ticket.state,
+      customerZip: apiTicket?.premises?.customer?.zip || "",
+      customerCountry: apiTicket?.premises?.customer?.country || "United States",
+      customerPhone: apiTicket?.premises?.customer?.phone || "",
+      customerFax: apiTicket?.premises?.customer?.fax || "",
+      customerMobile: apiTicket?.premises?.customer?.mobile || "",
+      customerContact: apiTicket?.premises?.customer?.contact || "",
+      customerEmail: apiTicket?.premises?.customer?.email || "",
+      customerSince: "",
       customerType: "General",
       accountType: "S",
-      zone: "DIVISION #5",
-      route: "507",
-      territory: "RS",
-      locsUnits: "4",
-      acctBalance: "$15,170.65",
-      currBalance: "$18,603.97",
-      accountRemarks: "",
-      customerRemarks: "",
+      zone: apiTicket?.premises?.zone || "",
+      route: apiTicket?.premises?.route || "",
+      territory: apiTicket?.premises?.territory || "",
+      locsUnits: "",
+      acctBalance: "",
+      currBalance: "",
+      accountRemarks: apiTicket?.premises?.remarks || "",
+      customerRemarks: apiTicket?.premises?.customer?.remarks || "",
       billingRemarks: "",
     };
     setTicketDetail(detail);
 
-    // Mock other workers
-    setOtherWorkers([
-      { ticketNumber: "3995364", worker: "MORRISON S", scheduled: "C-9/16/2025 3:23:00 P" },
-      { ticketNumber: "3995365", worker: "ALMONTE E", scheduled: "C-9/17/2025 10:52:00..." },
-    ]);
+    // Clear other workers for now (would need separate API)
+    setOtherWorkers([]);
 
-    // Mock call history
-    setCallHistory([
-      { date: "11/26/2025", callId: "4052539", type: "Maintenance", category: "None", location: "125 SOUTH FIFTH AVENUE\nCITY ID:", description: "", resolution: "", worker: "", status: "Assigned", est: "0.00", unit: "P2" },
-      { date: "11/26/2025", callId: "4052537", type: "Maintenance", category: "None", location: "125 SOUTH FIFTH AVENUE\nCITY ID:", description: "", resolution: "", worker: "", status: "Assigned", est: "0.00", unit: "P1" },
-      { date: "11/11/2025", callId: "4027698", type: "Annual", category: "Annual Test", location: "", description: "Perform OUTSIDE NYC ANNUAL on unit P1 at 125 SOUTH FIFTH AVENUE. This test is performed every 12 months and was last run on 12/26/2024.", resolution: "", worker: "", status: "Testing", est: "1.00", unit: "P1" },
-      { date: "11/11/2025", callId: "4027900", type: "Annual", category: "Annual Test", location: "", description: "Perform OUTSIDE NYC ANNUAL on unit P2 at 125 SOUTH FIFTH AVENUE. This test is performed every 12 months and was last run on 12/26/2024.", resolution: "", worker: "", status: "Testing", est: "1.00", unit: "P2" },
-      { date: "1/13/2025", callId: "3774029", type: "Other", category: "None", location: "125 SOUTH FIFTH AVENUE\nCITY ID: P1", description: "", resolution: "", worker: "CANZONA C", status: "Assigned", est: "0.00", unit: "P1" },
-    ]);
+    // Fetch call history for this premises
+    if (apiTicket?.premises?.id) {
+      fetchCallHistory(apiTicket.premises.id);
+    } else {
+      setCallHistory([]);
+    }
 
-    // Mock ledger
-    setLedgerItems([
-      { date: "6/7/2025", ref: "IR59189", location: "125FIFTHAVE~", desc: "Preventative maintenance ro for the period of June, 2", amount: 5354.29, balance: 5354.29, days: 235 },
-      { date: "9/11/2025", ref: "B67172", location: "125FIFTHAVE~", desc: "AS PER PROPOSAL #16482 08.06.2025", amount: 7477.88, balance: 7477.88, days: 133 },
-      { date: "10/3/2025", ref: "B68438", location: "125FIFTHAVE~", desc: "INVOICE BILLING FOR THE PRICING ADJUSTMENTS T", amount: 1937.19, balance: 1937.19, days: 111 },
-      { date: "12/1/2025", ref: "B79489", location: "125FIFTHAVE~", desc: "SERVICE CALL 11 12 2025", amount: 254.88, balance: 254.88, days: 45 },
-      { date: "12/31/2025", ref: "D76518", location: "125FIFTHAVE~", desc: "SERVICE CALL 11.03, 11.04 (ELECTION DAY), & 11 07 2...", amount: 636.70, balance: 636.70, days: 22 },
-    ]);
+    // Fetch ledger for this customer
+    if (apiTicket?.premises?.customer?.id) {
+      fetchLedger(apiTicket.premises.customer.id);
+    } else {
+      setLedgerItems([]);
+    }
+  };
+
+  // Fetch call history for a premises
+  const fetchCallHistory = async (premisesId: string) => {
+    try {
+      // Fetch both open and completed tickets for this premises
+      const [openRes, completedRes] = await Promise.all([
+        fetch(`/api/sqlserver/tickets?premisesId=${premisesId}&limit=20`),
+        fetch(`/api/sqlserver/tickets?status=Completed&premisesId=${premisesId}&limit=20`),
+      ]);
+
+      const openData = openRes.ok ? await openRes.json() : [];
+      const completedData = completedRes.ok ? await completedRes.json() : [];
+
+      // Combine and sort by date
+      const allTickets = [...openData, ...completedData].sort((a: any, b: any) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      // Map to call history format
+      const history: CallHistoryItem[] = allTickets.slice(0, 20).map((t: any) => ({
+        date: t.date ? new Date(t.date).toLocaleDateString() : "",
+        callId: t.id,
+        type: t.type,
+        category: t.category || "None",
+        location: `${t.premises?.address || ""}\nCITY ID: ${t.unitName || ""}`,
+        description: t.description || "",
+        resolution: t.resolution || "",
+        worker: t.mechCrew || "",
+        status: t.status,
+        est: t.estimate?.toString() || "0.00",
+        unit: t.unitName || "",
+      }));
+
+      setCallHistory(history);
+    } catch (error) {
+      console.error("Error fetching call history:", error);
+      setCallHistory([]);
+    }
+  };
+
+  // Fetch ledger for a customer
+  const fetchLedger = async (customerId: string) => {
+    try {
+      const response = await fetch(`/api/sqlserver/invoices?customerId=${customerId}&limit=20`);
+      if (response.ok) {
+        const data = await response.json();
+
+        // Map to ledger format
+        let runningBalance = 0;
+        const ledger: LedgerItem[] = data.map((inv: any) => {
+          const amount = parseFloat(inv.total || inv.amount || 0);
+          runningBalance += amount;
+          const invDate = new Date(inv.date || inv.invoiceDate);
+          const daysDiff = Math.floor((Date.now() - invDate.getTime()) / (1000 * 60 * 60 * 24));
+
+          return {
+            date: invDate.toLocaleDateString(),
+            ref: inv.invoiceNumber || inv.id,
+            location: inv.premises?.tag || inv.location || "",
+            desc: inv.description || "",
+            amount: amount,
+            balance: amount, // Would need proper balance calculation
+            days: daysDiff,
+          };
+        });
+
+        setLedgerItems(ledger);
+      }
+    } catch (error) {
+      console.error("Error fetching ledger:", error);
+      setLedgerItems([]);
+    }
   };
 
   const handleTicketSelect = (ticket: Ticket) => {
@@ -578,28 +717,42 @@ F/U ** Emergency lines
               </tr>
             </thead>
             <tbody>
-              {filteredTickets.map((ticket) => (
-                <tr
-                  key={ticket.id}
-                  onClick={() => handleTicketSelect(ticket)}
-                  className={`cursor-pointer ${selectedTicket?.id === ticket.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"}`}
-                >
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{selectedTicket?.id === ticket.id && "▶"}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.ticketNumber}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.woNumber}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.type}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.accountTag}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.address}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.unit}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0] max-w-[200px] truncate">{ticket.description}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.status}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.callDate}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.scheduled}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.worker}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.city}</td>
-                  <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.state}</td>
+              {loading ? (
+                <tr>
+                  <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
+                    Loading tickets...
+                  </td>
                 </tr>
-              ))}
+              ) : filteredTickets.length === 0 ? (
+                <tr>
+                  <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
+                    No tickets found
+                  </td>
+                </tr>
+              ) : (
+                filteredTickets.map((ticket) => (
+                  <tr
+                    key={ticket.id}
+                    onClick={() => handleTicketSelect(ticket)}
+                    className={`cursor-pointer ${getStatusRowColor(ticket.status, selectedTicket?.id === ticket.id)}`}
+                  >
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{selectedTicket?.id === ticket.id && "▶"}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.ticketNumber}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.woNumber}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.type}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.accountTag}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.address}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.unit}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] max-w-[200px] truncate">{ticket.description}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.status}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.callDate}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.scheduled}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.worker}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.city}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.state}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
