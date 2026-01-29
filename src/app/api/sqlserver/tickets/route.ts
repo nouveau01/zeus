@@ -81,19 +81,18 @@ export async function GET(request: NextRequest) {
       ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Rol WHERE ID IN (${rolIds.join(",")})`)
       : [];
 
+    // Get JobType records for type names
+    const typeIds = [...new Set(tickets.map(t => t.Type).filter(Boolean))];
+    const jobTypes: any[] = typeIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM JobType WHERE ID IN (${typeIds.join(",")})`)
+      : [];
+
     // Create lookup maps
     const locMap = new Map(locs.map(l => [l.Loc, l]));
     const elevMap = new Map(elevs.map(e => [e.ID, e]));
     const ownerMap = new Map(owners.map(o => [o.ID, o]));
     const rolMap = new Map(rols.map(r => [r.ID, r]));
-
-    // Map type int to string
-    const typeNames: Record<number, string> = {
-      1: "Service",
-      2: "Repair",
-      3: "Maintenance",
-      4: "PM",
-    };
+    const jobTypeMap = new Map(jobTypes.map(jt => [jt.ID, jt.Type || jt.Name || `Type ${jt.ID}`]));
 
     // Map to response format
     const response = tickets.map(ticket => {
@@ -118,7 +117,7 @@ export async function GET(request: NextRequest) {
         time: ticket.CDate ? new Date(ticket.CDate).toLocaleTimeString() : null,
         dispatchDate: ticket.DDate,
         endDate: ticket.EDate,
-        type: typeNames[ticket.Type] || `Type ${ticket.Type}`,
+        type: jobTypeMap.get(ticket.Type) || `Type ${ticket.Type}`,
         typeId: ticket.Type,
         category: ticket.Cat || null,
         status: isCompleted ? "Completed" : "Open",

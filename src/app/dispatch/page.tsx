@@ -359,8 +359,8 @@ export default function DispatchPage() {
           description: t.description || "",
           status: t.status as "Open" | "Assigned" | "En Route" | "On Site" | "Completed" | "Closed",
           callDate: t.date ? new Date(t.date).toLocaleDateString() : "",
-          callTime: t.date ? new Date(t.date).toLocaleTimeString() : "",
-          scheduled: t.dispatchDate ? new Date(t.dispatchDate).toLocaleString() : "",
+          callTime: t.date ? new Date(t.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : "",
+          scheduled: t.dispatchDate ? `${new Date(t.dispatchDate).toLocaleDateString()}, ${new Date(t.dispatchDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : "",
           worker: t.mechCrew || "",
           city: t.premises?.city || "",
           state: t.premises?.state || "",
@@ -613,6 +613,79 @@ export default function DispatchPage() {
     // Would adjust date range based on mode
   };
 
+  // Toolbar handlers
+  const handleNewTicket = () => {
+    openTab("New Ticket", "/open-tickets/new");
+  };
+
+  const handleSave = () => {
+    alert("Save functionality - This is a read-only view of SQL Server data.");
+  };
+
+  const handleRefresh = () => {
+    fetchTickets();
+  };
+
+  const handleSearch = () => {
+    const searchTerm = prompt("Search tickets by number, account, or address:");
+    if (searchTerm) {
+      const filtered = tickets.filter(t =>
+        t.ticketNumber.includes(searchTerm) ||
+        t.accountTag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.address.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredTickets(filtered);
+    }
+  };
+
+  const handleDelete = () => {
+    if (selectedTicket) {
+      alert("Delete functionality - This is a read-only view of SQL Server data.");
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Navigation in list
+  const handleFirst = () => {
+    if (filteredTickets.length > 0) {
+      setSelectedTicket(filteredTickets[0]);
+      loadTicketDetail(filteredTickets[0]);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (selectedTicket && filteredTickets.length > 0) {
+      const currentIndex = filteredTickets.findIndex(t => t.id === selectedTicket.id);
+      if (currentIndex > 0) {
+        const prevTicket = filteredTickets[currentIndex - 1];
+        setSelectedTicket(prevTicket);
+        loadTicketDetail(prevTicket);
+      }
+    }
+  };
+
+  const handleNext = () => {
+    if (selectedTicket && filteredTickets.length > 0) {
+      const currentIndex = filteredTickets.findIndex(t => t.id === selectedTicket.id);
+      if (currentIndex < filteredTickets.length - 1) {
+        const nextTicket = filteredTickets[currentIndex + 1];
+        setSelectedTicket(nextTicket);
+        loadTicketDetail(nextTicket);
+      }
+    }
+  };
+
+  const handleLast = () => {
+    if (filteredTickets.length > 0) {
+      const lastTicket = filteredTickets[filteredTickets.length - 1];
+      setSelectedTicket(lastTicket);
+      loadTicketDetail(lastTicket);
+    }
+  };
+
   const workers = ["All", "MORRISON S", "ALMONTE E", "CANZONA C", "NGONZALEZ"];
   const types = ["All", "Maintenance", "Violation", "Other", "NEW REPAIR"];
   const statuses = ["All", "Open", "Assigned", "En Route", "On Site", "Completed", "Closed"];
@@ -647,50 +720,50 @@ export default function DispatchPage() {
 
       {/* Toolbar */}
       <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-0.5 flex-wrap">
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleNewTicket} title="New Ticket" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <FileText className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleSave} title="Save" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <Save className="w-4 h-4" style={{ color: "#4a90d9" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleRefresh} title="Refresh" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <RotateCcw className="w-4 h-4" style={{ color: "#f39c12" }} />
         </button>
         <div className="w-px h-5 bg-[#808080] mx-1" />
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleSearch} title="Search" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <Search className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button title="Mark Complete" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <span className="text-[12px] font-bold" style={{ color: "#e74c3c" }}>✓</span>
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button title="Approve" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <span className="text-[12px] font-bold" style={{ color: "#27ae60" }}>✓</span>
         </button>
         <div className="w-px h-5 bg-[#808080] mx-1" />
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleNewTicket} title="Add New" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <Plus className="w-4 h-4" style={{ color: "#4a7c59" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleDelete} title="Delete" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <Trash2 className="w-4 h-4" style={{ color: "#e74c3c" }} />
         </button>
         <div className="w-px h-5 bg-[#808080] mx-1" />
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button title="Filter" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <Filter className="w-4 h-4" style={{ color: "#9b59b6" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handlePrint} title="Print" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <Printer className="w-4 h-4" style={{ color: "#34495e" }} />
         </button>
         <div className="w-px h-5 bg-[#808080] mx-1" />
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleFirst} title="First" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <ChevronsLeft className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handlePrevious} title="Previous" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <ChevronLeft className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleNext} title="Next" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <ChevronRight className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
-        <button className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
+        <button onClick={handleLast} title="Last" className="w-[24px] h-[24px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#808080]">
           <ChevronsRight className="w-4 h-4" style={{ color: "#3498db" }} />
         </button>
       </div>
