@@ -18,10 +18,11 @@ export async function GET(request: NextRequest) {
     // Get jobs from SQL Server using raw query
     const jobs: any[] = await sqlserver.$queryRawUnsafe(query);
 
-    // Get related data (Loc, Owner, JobType, Rol) for each job
+    // Get related data (Loc, Owner, JobType, JobT/Template, Rol) for each job
     const locIds = [...new Set(jobs.map(j => j.Loc).filter(Boolean))];
     const ownerIds = [...new Set(jobs.map(j => j.Owner).filter(Boolean))];
     const typeIds = [...new Set(jobs.map(j => j.Type).filter(Boolean))];
+    const templateIds = [...new Set(jobs.map(j => j.Template).filter(Boolean))];
 
     // Fetch related records using raw SQL for SQL Server 2008 compatibility
     const locs: any[] = locIds.length > 0
@@ -34,6 +35,10 @@ export async function GET(request: NextRequest) {
 
     const jobTypes: any[] = typeIds.length > 0
       ? await sqlserver.$queryRawUnsafe(`SELECT * FROM JobType WHERE ID IN (${typeIds.join(",")})`)
+      : [];
+
+    const templates: any[] = templateIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM JobT WHERE ID IN (${templateIds.join(",")})`)
       : [];
 
     // Get Rol records for names (Owner.Rol and Loc.Rol point to Rol.ID)
@@ -52,6 +57,7 @@ export async function GET(request: NextRequest) {
     const locMap = new Map(locs.map(l => [l.Loc, l]));
     const ownerMap = new Map(owners.map(o => [o.ID, o]));
     const typeMap = new Map(jobTypes.map(t => [t.ID, t]));
+    const templateMap = new Map(templates.map(t => [t.ID, t]));
     const rolMap = new Map(rols.map(r => [r.ID, r]));
 
     // Map to response format
@@ -59,6 +65,7 @@ export async function GET(request: NextRequest) {
       const loc = job.Loc ? locMap.get(job.Loc) : null;
       const owner = job.Owner ? ownerMap.get(job.Owner) : null;
       const jobType = job.Type ? typeMap.get(job.Type) : null;
+      const template = job.Template ? templateMap.get(job.Template) : null;
 
       // Get names from Rol table
       const ownerRol = owner?.Rol ? rolMap.get(owner.Rol) : null;
@@ -72,6 +79,8 @@ export async function GET(request: NextRequest) {
         typeId: job.Type,
         status: job.Status === 1 ? "Open" : job.Status === 2 ? "Closed" : `Status ${job.Status}`,
         statusId: job.Status,
+        template: template?.fDesc || "",
+        templateId: job.Template,
         poNumber: job.PO || "",
         remarks: job.Remarks || "",
         date: job.fDate,

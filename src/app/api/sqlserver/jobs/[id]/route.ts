@@ -38,6 +38,10 @@ export async function GET(
       ? await sqlserver.$queryRawUnsafe(`SELECT * FROM JobType WHERE ID = ${job.Type}`)
       : [];
 
+    const templates: any[] = job.Template
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM JobT WHERE ID = ${job.Template}`)
+      : [];
+
     // Get Rol records for names
     const rolIds = [
       ...(owners.length > 0 && owners[0].Rol ? [owners[0].Rol] : []),
@@ -52,6 +56,7 @@ export async function GET(
     const loc = locs[0] || null;
     const owner = owners[0] || null;
     const jobType = jobTypes[0] || null;
+    const template = templates[0] || null;
 
     const ownerRol = owner?.Rol ? rolMap.get(owner.Rol) : null;
     const locRol = loc?.Rol ? rolMap.get(loc.Rol) : null;
@@ -67,8 +72,9 @@ export async function GET(
       typeId: job.Type,
       status: job.Status === 1 ? "Open" : job.Status === 2 ? "Closed" : `Status ${job.Status}`,
       statusId: job.Status,
-      contractType: null,
-      template: null,
+      contractType: job.CType || null,
+      template: template?.fDesc || null,
+      templateId: job.Template,
       poNumber: job.PO || "",
       remarks: job.Remarks || "",
       sRemarks: job.Remarks || "",
