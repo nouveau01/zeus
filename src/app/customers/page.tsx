@@ -222,9 +222,10 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
+      // Use SQL Server direct connection
       const url = activeTab === "All"
-        ? "/api/customers"
-        : `/api/customers?type=${encodeURIComponent(activeTab)}`;
+        ? "/api/sqlserver/customers"
+        : `/api/sqlserver/customers?type=${encodeURIComponent(activeTab)}`;
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();

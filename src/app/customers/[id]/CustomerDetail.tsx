@@ -211,7 +211,8 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   const fetchCustomer = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/customers/${customerId}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/customers/${customerId}`);
       if (response.ok) {
         const data = await response.json();
         setCustomer(data);
@@ -230,43 +231,9 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   };
 
   const handleSave = async () => {
-    if (!formData.name?.trim()) {
-      alert("Customer name is required");
-      return;
-    }
-
-    try {
-      if (isNew) {
-        // Create new customer
-        const response = await fetch("/api/customers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setIsDirty(false);
-          // Close the "new" tab and open the created customer's tab
-          if (onClose) onClose();
-          openTab(data.name, `/customers/${data.id}`);
-        }
-      } else {
-        // Update existing customer
-        const response = await fetch(`/api/customers/${customerId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setCustomer(data);
-          setFormData(data);
-          setIsDirty(false);
-        }
-      }
-    } catch (error) {
-      console.error("Error saving customer:", error);
-    }
+    // SQL Server connection is read-only
+    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
+    setIsDirty(false);
   };
 
   const formatCurrency = (amount: number) => {
