@@ -81,8 +81,8 @@ export async function GET(request: NextRequest) {
       ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Rol WHERE ID IN (${rolIds.join(",")})`)
       : [];
 
-    // Get JobType records for type names
-    const typeIds = [...new Set(tickets.map(t => t.Type).filter(Boolean))];
+    // Get JobType records for type names (don't filter out 0 since it's a valid type ID)
+    const typeIds = [...new Set(tickets.map(t => t.Type).filter(t => t !== null && t !== undefined))];
     const jobTypes: any[] = typeIds.length > 0
       ? await sqlserver.$queryRawUnsafe(`SELECT * FROM JobType WHERE ID IN (${typeIds.join(",")})`)
       : [];
