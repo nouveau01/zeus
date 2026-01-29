@@ -936,6 +936,7 @@ export default function DispatchPage() {
                   <div
                     className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
                     onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "unit"); }}
+                  />
                 </th>
                 <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.description, minWidth: columnWidths.description }} onClick={() => handleSort("description")}>
                   Description {sortColumn === "description" && (sortDirection === "asc" ? "▲" : "▼")}
