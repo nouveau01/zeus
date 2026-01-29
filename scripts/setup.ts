@@ -22,7 +22,7 @@ async function main() {
 
   // 2. Create admin user if doesn't exist
   console.log("2. Setting up admin user...");
-  const adminEmail = process.env.ADMIN_EMAIL || "zach.schwartz@nouveauelevator.com";
+  const adminEmail = process.env.ADMIN_EMAIL || "zschwartz@nouveauelevator.com";
   const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
   const adminName = process.env.ADMIN_NAME || "Zach Schwartz";
 
