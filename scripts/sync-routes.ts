@@ -13,6 +13,7 @@ const prisma = new PrismaClient();
 // SQL Server connection config
 const sqlConfig: sql.config = {
   server: process.env.MSSQL_SERVER || '',
+  port: 1433,
   database: process.env.MSSQL_DATABASE || '',
   user: process.env.MSSQL_USER || '',
   password: process.env.MSSQL_PASSWORD || '',
