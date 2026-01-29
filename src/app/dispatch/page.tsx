@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
+import { AdminTools } from "@/components/AdminTools";
+import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import {
   FileText,
   Save,
@@ -27,6 +29,20 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+
+// Default field configuration for Dispatch/Call Manager
+const DISPATCH_DEFAULT_FIELDS = createDefaultFields({
+  ticketNumber: { label: "Ticket #", width: 70 },
+  woNumber: { label: "WO #", width: 70 },
+  type: { label: "Type", width: 100 },
+  accountId: { label: "Account Tag", width: 120 },
+  address: { label: "Address", width: 180 },
+  unit: { label: "Unit", width: 60 },
+  status: { label: "Status", width: 80 },
+  scheduled: { label: "Scheduled", width: 120 },
+  worker: { label: "Worker", width: 120 },
+  city: { label: "City", width: 100 },
+});
 
 interface Ticket {
   id: string;
@@ -160,6 +176,10 @@ interface LedgerItem {
 export default function DispatchPage() {
   const { openTab } = useTabs();
   const [viewMode, setViewMode] = useState<"grid" | "schedule">("grid");
+
+  // Page configuration for admin customization
+  const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("dispatch", DISPATCH_DEFAULT_FIELDS);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Filters
   const [scheme, setScheme] = useState("None");
@@ -739,10 +759,19 @@ export default function DispatchPage() {
       {/* Title Bar */}
       <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
         <span className="font-bold text-[13px]">Call Manager - Editing Existing Call</span>
-        <div className="flex items-center gap-1">
-          <button className="hover:bg-[#ffffff30] px-1 rounded text-[11px]">_</button>
-          <button className="hover:bg-[#ffffff30] px-1 rounded text-[11px]">□</button>
-          <button className="hover:bg-[#ff0000] px-1 rounded text-[11px]">×</button>
+        <div className="flex items-center gap-2">
+          <AdminTools
+            pageId="dispatch"
+            fields={fields}
+            onFieldsChange={updateFields}
+            isEditMode={isEditMode}
+            onEditModeChange={setIsEditMode}
+          />
+          <div className="flex items-center gap-1">
+            <button className="hover:bg-[#ffffff30] px-1 rounded text-[11px]">_</button>
+            <button className="hover:bg-[#ffffff30] px-1 rounded text-[11px]">□</button>
+            <button className="hover:bg-[#ff0000] px-1 rounded text-[11px]">×</button>
+          </div>
         </div>
       </div>
 

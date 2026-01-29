@@ -17,6 +17,19 @@ import {
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
+import { AdminTools } from "@/components/AdminTools";
+import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
+
+// Default field configuration for Accounts
+const ACCOUNTS_DEFAULT_FIELDS = createDefaultFields({
+  premisesId: { label: "Account", width: 120 },
+  address: { label: "Address", width: 200 },
+  city: { label: "City", width: 100 },
+  type: { label: "Type", width: 80 },
+  status: { label: "Status", width: 60 },
+  units: { label: "Units", width: 50 },
+  balance: { label: "Balance", width: 100 },
+});
 
 interface Account {
   id: string;
@@ -85,6 +98,11 @@ interface PageState {
 
 export default function AccountsPage() {
   const { openTab, closeTab, activeTabId } = useTabs();
+
+  // Page configuration for admin customization
+  const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("accounts", ACCOUNTS_DEFAULT_FIELDS);
+  const [isEditMode, setIsEditMode] = useState(false);
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
@@ -702,6 +720,14 @@ export default function AccountsPage() {
           }
           return null;
         })}
+        <div className="flex-1" />
+        <AdminTools
+          pageId="accounts"
+          fields={fields}
+          onFieldsChange={updateFields}
+          isEditMode={isEditMode}
+          onEditModeChange={setIsEditMode}
+        />
       </div>
 
       {/* Filter Row */}

@@ -32,8 +32,9 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  password  String?                        // Hashed password for authentication
   name      String
-  role      String   @default("User")
+  role      String   @default("User")      // "Admin" or "User"
   avatar    String?
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
@@ -1913,4 +1914,53 @@ model GLARecurringItem {
 
   @@map("gla_recurring_items")
   // SQL Server: @@map("GLARecurI")
+}
+
+// ============================================
+// PAGE FIELD CONFIGURATION (Admin Customization)
+// ============================================
+// Stores per-page field display settings for metadata-driven UI
+// Allows admins to rename field labels, reorder fields, hide fields
+// without changing backend data connections
+
+model PageFieldConfig {
+  id            String   @id @default(cuid())
+
+  pageId        String   @map("page_id")              // Module/page identifier (e.g., "dispatch", "customers", "invoices")
+  fieldName     String   @map("field_name")           // Original backend field name (data key)
+  displayLabel  String   @map("display_label")        // Custom label shown in UI
+  sortOrder     Int      @default(0) @map("sort_order")  // Display order (lower = first)
+  visible       Boolean  @default(true)               // Whether to show this field
+  width         Int?                                  // Optional column width in pixels
+  section       String?                               // Optional section grouping
+  format        String?                               // Optional display format (e.g., "currency", "date", "phone")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Unique constraint: one config per field per page
+  @@unique([pageId, fieldName])
+  @@map("page_field_configs")
+}
+
+// ============================================
+// PAGE SECTION CONFIG (Admin Customization)
+// ============================================
+// Stores section-level configuration for pages
+
+model PageSectionConfig {
+  id            String   @id @default(cuid())
+
+  pageId        String   @map("page_id")              // Module/page identifier
+  sectionName   String   @map("section_name")         // Section identifier
+  displayLabel  String   @map("display_label")        // Section header text
+  sortOrder     Int      @default(0) @map("sort_order")
+  collapsed     Boolean  @default(false)              // Default collapsed state
+  visible       Boolean  @default(true)
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([pageId, sectionName])
+  @@map("page_section_configs")
 }

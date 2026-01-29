@@ -17,6 +17,19 @@ import {
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
+import { AdminTools } from "@/components/AdminTools";
+import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
+
+// Default field configuration for Job Maintenance
+const JOBS_DEFAULT_FIELDS = createDefaultFields({
+  externalId: { label: "Job #", width: 80 },
+  date: { label: "Date", width: 100 },
+  template: { label: "Template", width: 150 },
+  accountTag: { label: "Account Tag", width: 150 },
+  description: { label: "Description", width: 250 },
+  type: { label: "Type", width: 100 },
+  status: { label: "Status", width: 80 },
+});
 
 // Toolbar icons matching Total Service Job Maintenance
 const toolbarIcons = [
@@ -80,6 +93,11 @@ interface JobMaintenancePageProps {
 
 export default function JobMaintenanceView({ premisesId }: JobMaintenancePageProps) {
   const { openTab, closeTab, activeTabId } = useTabs();
+
+  // Page configuration for admin customization
+  const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("jobs", JOBS_DEFAULT_FIELDS);
+  const [isEditMode, setIsEditMode] = useState(false);
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
@@ -777,6 +795,14 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
 
           return null;
         })}
+        <div className="flex-1" />
+        <AdminTools
+          pageId="jobs"
+          fields={fields}
+          onFieldsChange={updateFields}
+          isEditMode={isEditMode}
+          onEditModeChange={setIsEditMode}
+        />
       </div>
 
       {/* Filter Row */}

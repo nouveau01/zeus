@@ -2,6 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { AdminTools } from "@/components/AdminTools";
+import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
+
+// Default field configuration for Invoices
+const INVOICES_DEFAULT_FIELDS = createDefaultFields({
+  invoiceNumber: { label: "Inv #", width: 60 },
+  postingDate: { label: "Posted", width: 100 },
+  date: { label: "Date", width: 100 },
+  type: { label: "Type", width: 100 },
+  account: { label: "Account", width: 150 },
+  job: { label: "Job", width: 100 },
+  total: { label: "Total", width: 100 },
+  status: { label: "Status", width: 80 },
+});
 
 interface Invoice {
   id: string;
@@ -36,6 +50,11 @@ interface InvoicesPageProps {
 
 export default function InvoicesView({ premisesId }: InvoicesPageProps) {
   const { openTab } = useTabs();
+
+  // Page configuration for admin customization
+  const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("invoices", INVOICES_DEFAULT_FIELDS);
+  const [isEditMode, setIsEditMode] = useState(false);
+
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -286,6 +305,14 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </button>
+        <div className="flex-1" />
+        <AdminTools
+          pageId="invoices"
+          fields={fields}
+          onFieldsChange={updateFields}
+          isEditMode={isEditMode}
+          onEditModeChange={setIsEditMode}
+        />
       </div>
 
       {/* Filter Row */}
