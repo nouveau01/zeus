@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
 import {
   FileText,
@@ -207,6 +207,85 @@ export default function DispatchPage() {
     signature2: "", lsd: false,
     custom3: "",
   });
+
+  // Column widths for resizable grid
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
+    selector: 20,
+    ticketNumber: 70,
+    woNumber: 70,
+    type: 80,
+    account: 180,
+    address: 180,
+    unit: 60,
+    description: 200,
+    status: 70,
+    callDate: 90,
+    scheduled: 120,
+    worker: 90,
+    city: 100,
+    state: 40,
+  });
+
+  // Splitter position (percentage of container height for grid)
+  const [gridHeightPercent, setGridHeightPercent] = useState(45);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isResizingColumn = useRef<string | null>(null);
+  const isResizingSplitter = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const startWidth = useRef(0);
+  const startHeight = useRef(0);
+
+  // Column resize handlers
+  const handleColumnResizeStart = useCallback((e: React.MouseEvent, columnKey: string) => {
+    e.preventDefault();
+    isResizingColumn.current = columnKey;
+    startX.current = e.clientX;
+    startWidth.current = columnWidths[columnKey];
+    document.addEventListener("mousemove", handleColumnResizeMove);
+    document.addEventListener("mouseup", handleColumnResizeEnd);
+  }, [columnWidths]);
+
+  const handleColumnResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizingColumn.current) return;
+    const diff = e.clientX - startX.current;
+    const newWidth = Math.max(30, startWidth.current + diff);
+    setColumnWidths(prev => ({
+      ...prev,
+      [isResizingColumn.current!]: newWidth,
+    }));
+  }, []);
+
+  const handleColumnResizeEnd = useCallback(() => {
+    isResizingColumn.current = null;
+    document.removeEventListener("mousemove", handleColumnResizeMove);
+    document.removeEventListener("mouseup", handleColumnResizeEnd);
+  }, [handleColumnResizeMove]);
+
+  // Splitter resize handlers
+  const handleSplitterMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingSplitter.current = true;
+    startY.current = e.clientY;
+    startHeight.current = gridHeightPercent;
+    document.addEventListener("mousemove", handleSplitterMouseMove);
+    document.addEventListener("mouseup", handleSplitterMouseUp);
+  }, [gridHeightPercent]);
+
+  const handleSplitterMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizingSplitter.current || !containerRef.current) return;
+    const containerHeight = containerRef.current.offsetHeight;
+    const diff = e.clientY - startY.current;
+    const diffPercent = (diff / containerHeight) * 100;
+    const newPercent = Math.min(80, Math.max(20, startHeight.current + diffPercent));
+    setGridHeightPercent(newPercent);
+  }, []);
+
+  const handleSplitterMouseUp = useCallback(() => {
+    isResizingSplitter.current = false;
+    document.removeEventListener("mousemove", handleSplitterMouseMove);
+    document.removeEventListener("mouseup", handleSplitterMouseUp);
+  }, [handleSplitterMouseMove]);
 
   // Fetch open tickets from SQL Server
   const [loading, setLoading] = useState(true);
@@ -694,26 +773,109 @@ export default function DispatchPage() {
       </div>
 
       {/* Main Content - Grid + Detail Panel */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
         {/* Ticket Grid */}
-        <div className="flex-1 overflow-auto bg-white border border-[#808080] m-1" style={{ minHeight: "200px", maxHeight: "45%" }}>
-          <table className="w-full border-collapse text-[11px]">
+        <div className="overflow-auto bg-white border border-[#808080] m-1" style={{ height: `${gridHeightPercent}%`, minHeight: "100px" }}>
+          <table className="border-collapse text-[11px]" style={{ minWidth: "max-content" }}>
             <thead className="bg-[#f0f0f0] sticky top-0">
               <tr>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]" style={{ width: "20px" }}></th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Ticket #</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">W/O #</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Type</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Account</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Address</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Unit</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Description</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Status</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Call Date</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Scheduled</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Worker</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">City</th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">State</th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.selector, minWidth: columnWidths.selector }}>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "selector")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.ticketNumber, minWidth: columnWidths.ticketNumber }}>
+                  Ticket #
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "ticketNumber")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.woNumber, minWidth: columnWidths.woNumber }}>
+                  W/O #
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "woNumber")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.type, minWidth: columnWidths.type }}>
+                  Type
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "type")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.account, minWidth: columnWidths.account }}>
+                  Account
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "account")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.address, minWidth: columnWidths.address }}>
+                  Address
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "address")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.unit, minWidth: columnWidths.unit }}>
+                  Unit
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "unit")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.description, minWidth: columnWidths.description }}>
+                  Description
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "description")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.status, minWidth: columnWidths.status }}>
+                  Status
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "status")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.callDate, minWidth: columnWidths.callDate }}>
+                  Call Date
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "callDate")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.scheduled, minWidth: columnWidths.scheduled }}>
+                  Scheduled
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "scheduled")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.worker, minWidth: columnWidths.worker }}>
+                  Worker
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "worker")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.city, minWidth: columnWidths.city }}>
+                  City
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "city")}
+                  />
+                </th>
+                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.state, minWidth: columnWidths.state }}>
+                  State
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    onMouseDown={(e) => handleColumnResizeStart(e, "state")}
+                  />
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -736,20 +898,20 @@ export default function DispatchPage() {
                     onClick={() => handleTicketSelect(ticket)}
                     className={`cursor-pointer ${getStatusRowColor(ticket.status, selectedTicket?.id === ticket.id)}`}
                   >
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{selectedTicket?.id === ticket.id && "▶"}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.ticketNumber}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.woNumber}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.type}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.accountTag}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.address}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.unit}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0] max-w-[200px] truncate">{ticket.description}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.status}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.callDate}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.scheduled}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.worker}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.city}</td>
-                    <td className="px-1 py-0.5 border border-[#e0e0e0]">{ticket.state}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.selector, maxWidth: columnWidths.selector }}>{selectedTicket?.id === ticket.id && "▶"}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.ticketNumber, maxWidth: columnWidths.ticketNumber }}>{ticket.ticketNumber}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.woNumber, maxWidth: columnWidths.woNumber }}>{ticket.woNumber}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.type, maxWidth: columnWidths.type }}>{ticket.type}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.account, maxWidth: columnWidths.account }}>{ticket.accountTag}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.address, maxWidth: columnWidths.address }}>{ticket.address}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.unit, maxWidth: columnWidths.unit }}>{ticket.unit}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.description, maxWidth: columnWidths.description }}>{ticket.description}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.status, maxWidth: columnWidths.status }}>{ticket.status}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.callDate, maxWidth: columnWidths.callDate }}>{ticket.callDate}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.scheduled, maxWidth: columnWidths.scheduled }}>{ticket.scheduled}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.worker, maxWidth: columnWidths.worker }}>{ticket.worker}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.city, maxWidth: columnWidths.city }}>{ticket.city}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.state, maxWidth: columnWidths.state }}>{ticket.state}</td>
                   </tr>
                 ))
               )}
@@ -757,8 +919,16 @@ export default function DispatchPage() {
           </table>
         </div>
 
+        {/* Resizable Splitter */}
+        <div
+          className="h-2 mx-1 bg-[#c0c0c0] cursor-row-resize hover:bg-[#316ac5] flex items-center justify-center"
+          onMouseDown={handleSplitterMouseDown}
+        >
+          <div className="w-8 h-1 bg-[#808080] rounded" />
+        </div>
+
         {/* Detail Panel */}
-        <div className="bg-white border border-[#808080] m-1 flex flex-col" style={{ minHeight: "250px" }}>
+        <div className="flex-1 bg-white border border-[#808080] m-1 flex flex-col overflow-hidden" style={{ minHeight: "100px" }}>
           {/* Detail Tabs */}
           <div className="flex border-b border-[#808080]">
             <button onClick={() => setActiveTab("ticketInfo")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "ticketInfo" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
