@@ -21,11 +21,12 @@ export async function GET(request: NextRequest) {
     let query = `SELECT TOP ${limit} * FROM ${table}`;
     const conditions: string[] = [];
 
+    // Filter by scheduled date (DDate) instead of call date (CDate)
     if (startDate) {
-      conditions.push(`CDate >= '${startDate}'`);
+      conditions.push(`DDate >= '${startDate}'`);
     }
     if (endDate) {
-      conditions.push(`CDate <= '${endDate} 23:59:59'`);
+      conditions.push(`DDate <= '${endDate} 23:59:59'`);
     }
     if (type && type !== "All") {
       // Type is stored as int, need to map
@@ -94,6 +95,20 @@ export async function GET(request: NextRequest) {
     const rolMap = new Map(rols.map(r => [r.ID, r]));
     const jobTypeMap = new Map(jobTypes.map(jt => [jt.ID, jt.Type || jt.Name || `Type ${jt.ID}`]));
 
+    // Helper to determine ticket status from fields
+    const getTicketStatus = (statusField: any, enRouteTime: any, onSiteTime: any): string => {
+      // Check time fields first - if OnSite time exists, they're on site
+      if (onSiteTime) return "On Site";
+      // If EnRoute time exists but not on site, they're en route
+      if (enRouteTime) return "En Route";
+      // Check status field - typically 0=Open, 1=Assigned, etc.
+      if (statusField === 1 || statusField === "1") return "Assigned";
+      if (statusField === 2 || statusField === "2") return "En Route";
+      if (statusField === 3 || statusField === "3") return "On Site";
+      // Default to Open
+      return "Open";
+    };
+
     // Map to response format
     const response = tickets.map(ticket => {
       const locId = isCompleted ? ticket.Loc : ticket.LID;
@@ -120,7 +135,7 @@ export async function GET(request: NextRequest) {
         type: jobTypeMap.get(ticket.Type) || `Type ${ticket.Type}`,
         typeId: ticket.Type,
         category: ticket.Cat || null,
-        status: isCompleted ? "Completed" : "Open",
+        status: isCompleted ? "Completed" : getTicketStatus(ticket.Status, ticket.EnRoute, ticket.OnSite),
         level: ticket.Level,
         estimate: ticket.Est,
         description: ticket.fDesc || "",
