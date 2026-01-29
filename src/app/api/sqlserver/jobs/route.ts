@@ -8,38 +8,33 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const limit = parseInt(searchParams.get("limit") || "100");
 
-    // Build where clause
-    const where: any = {};
-
-    // Status filter (1 = Open, 2 = Closed, etc. - adjust based on your data)
+    // Use raw SQL for SQL Server 2008 compatibility (no OFFSET support)
+    let query = `SELECT TOP ${limit} * FROM Job`;
     if (status && status !== "all") {
-      where.Status = parseInt(status);
+      query += ` WHERE Status = ${parseInt(status)}`;
     }
+    query += ` ORDER BY ID DESC`;
 
-    // Get jobs from SQL Server
-    const jobs = await sqlserver.job.findMany({
-      where,
-      take: limit,
-      orderBy: { ID: "desc" },
-    });
+    // Get jobs from SQL Server using raw query
+    const jobs: any[] = await sqlserver.$queryRawUnsafe(query);
 
     // Get related data (Loc, Owner, JobType, Rol) for each job
     const locIds = [...new Set(jobs.map(j => j.Loc).filter(Boolean))];
     const ownerIds = [...new Set(jobs.map(j => j.Owner).filter(Boolean))];
     const typeIds = [...new Set(jobs.map(j => j.Type).filter(Boolean))];
 
-    // Fetch related records
-    const [locs, owners, jobTypes] = await Promise.all([
-      locIds.length > 0
-        ? sqlserver.loc.findMany({ where: { Loc: { in: locIds as number[] } } })
-        : [],
-      ownerIds.length > 0
-        ? sqlserver.owner.findMany({ where: { ID: { in: ownerIds as number[] } } })
-        : [],
-      typeIds.length > 0
-        ? sqlserver.jobType.findMany({ where: { ID: { in: typeIds as number[] } } })
-        : [],
-    ]);
+    // Fetch related records using raw SQL for SQL Server 2008 compatibility
+    const locs: any[] = locIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Loc WHERE Loc IN (${locIds.join(",")})`)
+      : [];
+
+    const owners: any[] = ownerIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Owner WHERE ID IN (${ownerIds.join(",")})`)
+      : [];
+
+    const jobTypes: any[] = typeIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM JobType WHERE ID IN (${typeIds.join(",")})`)
+      : [];
 
     // Get Rol records for names (Owner.Rol and Loc.Rol point to Rol.ID)
     const rolIds = [
@@ -49,8 +44,8 @@ export async function GET(request: NextRequest) {
       ])
     ];
 
-    const rols = rolIds.length > 0
-      ? await sqlserver.rol.findMany({ where: { ID: { in: rolIds as number[] } } })
+    const rols: any[] = rolIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Rol WHERE ID IN (${rolIds.join(",")})`)
       : [];
 
     // Create lookup maps
