@@ -124,7 +124,8 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const fetchTicket = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/tickets/${ticketId}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/tickets/${ticketId}?status=Completed`);
       if (response.ok) {
         const data = await response.json();
         setTicket(data);
@@ -143,21 +144,9 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   };
 
   const handleSave = async () => {
-    try {
-      const response = await fetch(`/api/tickets/${ticketId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        setTicket(updated);
-        setFormData(updated);
-        setIsDirty(false);
-      }
-    } catch (error) {
-      console.error("Error saving ticket:", error);
-    }
+    // SQL Server connection is read-only
+    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
+    setIsDirty(false);
   };
 
   const openAccount = () => {

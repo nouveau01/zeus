@@ -195,7 +195,8 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
       if (payroll !== "All") params.set("payroll", payroll === "Yes" ? "true" : "false");
       if (premisesId) params.set("premisesId", premisesId);
 
-      const response = await fetch(`/api/tickets?${params.toString()}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/tickets?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setTickets(data);
