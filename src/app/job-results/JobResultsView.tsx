@@ -171,21 +171,38 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
         params.set("premisesId", premisesId);
       }
 
-      const response = await fetch(`/api/jobs?${params.toString()}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/jobs?${params.toString()}`);
       if (response.ok) {
-        const data = await response.json();
-        const jobResults: JobResult[] = data.map((job: any) => ({
-          ...job,
-          revenueBilled: Math.random() * 100000,
-          materials: Math.random() * 50000,
-          labor: Math.random() * 10000,
-          committed: Math.random() * 5000,
-          totalCost: Math.random() * 60000,
-          profit: (Math.random() - 0.3) * 50000,
-          ratio: Math.random() * 100,
-          budget: Math.random() * 80000,
-          toBeBilled: Math.random() * 20000,
-          billedPercent: Math.random() * 100,
+        const result = await response.json();
+        const jobResults: JobResult[] = (result.data || []).map((job: any) => ({
+          id: job.id,
+          externalId: job.jobNumber,
+          jobNumber: job.jobNumber,
+          jobName: job.description || "",
+          jobDescription: job.description,
+          status: job.status,
+          type: job.type,
+          date: job.date,
+          premises: job.premises,
+          customer: job.customer,
+          // Use real financial data from SQL Server
+          revenueBilled: job.revenue || 0,
+          materials: job.materials || 0,
+          labor: job.labor || 0,
+          committed: 0,
+          totalCost: job.cost || 0,
+          profit: job.profit || 0,
+          ratio: job.revenue ? ((job.profit || 0) / job.revenue * 100) : 0,
+          budget: job.budgetRevenue || 0,
+          toBeBilled: (job.budgetRevenue || 0) - (job.revenue || 0),
+          billedPercent: job.budgetRevenue ? ((job.revenue || 0) / job.budgetRevenue * 100) : 0,
+          // Hours
+          regularHours: job.regularHours || 0,
+          overtimeHours: job.overtimeHours || 0,
+          doubleTimeHours: job.doubleTimeHours || 0,
+          travelHours: job.travelHours || 0,
+          totalHours: job.totalHours || 0,
         }));
         setJobs(jobResults);
       }

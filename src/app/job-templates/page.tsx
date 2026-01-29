@@ -59,7 +59,8 @@ export default function JobTemplatesPage() {
 
   const fetchTemplates = async () => {
     try {
-      const response = await fetch("/api/job-templates");
+      // Use SQL Server direct connection
+      const response = await fetch("/api/sqlserver/job-templates");
       if (response.ok) {
         const data = await response.json();
         setTemplates(data);
@@ -73,7 +74,8 @@ export default function JobTemplatesPage() {
 
   const fetchJobTypes = async () => {
     try {
-      const response = await fetch("/api/job-types");
+      // Use SQL Server direct connection
+      const response = await fetch("/api/sqlserver/job-types");
       if (response.ok) {
         const data = await response.json();
         setJobTypes(data);
@@ -127,47 +129,18 @@ export default function JobTemplatesPage() {
   };
 
   const handleSave = async () => {
-    if (!formData.name?.trim()) {
-      alert("Template name is required");
-      return;
-    }
-
-    try {
-      if (selectedTemplate?.id) {
-        // Update existing
-        const response = await fetch(`/api/job-templates/${selectedTemplate.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        if (response.ok) {
-          await fetchTemplates();
-          setHasChanges(false);
-          setIsEditing(false);
-        }
-      } else {
-        // Create new
-        const response = await fetch("/api/job-templates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        if (response.ok) {
-          const created = await response.json();
-          await fetchTemplates();
-          setSelectedTemplate(created);
-          setFormData(created);
-          setHasChanges(false);
-          setIsEditing(false);
-        }
-      }
-    } catch (error) {
-      console.error("Error saving template:", error);
-      alert("Error saving template");
-    }
+    // SQL Server connection is read-only
+    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
+    setHasChanges(false);
+    setIsEditing(false);
   };
 
   const handleDelete = async () => {
+    // SQL Server connection is read-only
+    alert("Read-only mode - Cannot delete from Total Service.");
+  };
+
+  const handleDeleteOld = async () => {
     if (!selectedTemplate?.id) return;
 
     if (!confirm(`Are you sure you want to delete "${selectedTemplate.name}"?`)) {

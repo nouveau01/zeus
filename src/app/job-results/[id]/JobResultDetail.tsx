@@ -88,7 +88,8 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
   const fetchJob = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/jobs/${jobId}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/jobs/${jobId}`);
       if (response.ok) {
         const data = await response.json();
         setJob(data);

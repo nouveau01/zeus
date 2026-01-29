@@ -191,7 +191,8 @@ export default function JobDetailPage() {
 
   const fetchJob = async () => {
     try {
-      const response = await fetch(`/api/jobs/${params.id}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/jobs/${params.id}`);
       if (response.ok) {
         const data = await response.json();
         setJob(data);
@@ -204,22 +205,8 @@ export default function JobDetailPage() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!job) return;
-    setIsUpdating(true);
-    try {
-      const response = await fetch(`/api/jobs/${job.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (response.ok) {
-        await fetchJob();
-      }
-    } catch (error) {
-      console.error("Error updating status:", error);
-    } finally {
-      setIsUpdating(false);
-    }
+    // SQL Server connection is read-only
+    alert("Read-only mode - Changes cannot be saved to Total Service.");
   };
 
   const handleFieldUpdate = async (fieldKey: string, value: any) => {

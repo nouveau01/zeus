@@ -26,10 +26,21 @@ export default function JobsPage() {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch("/api/jobs");
+      // Use SQL Server direct connection
+      const response = await fetch("/api/sqlserver/jobs");
       if (response.ok) {
-        const data = await response.json();
-        setJobs(data);
+        const result = await response.json();
+        // Map SQL Server response to expected format
+        const mappedJobs = (result.data || []).map((job: any) => ({
+          id: job.id,
+          externalId: job.jobNumber,
+          jobName: job.description || "",
+          status: job.status,
+          type: job.type,
+          premises: job.premises,
+          customer: job.customer,
+        }));
+        setJobs(mappedJobs);
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
