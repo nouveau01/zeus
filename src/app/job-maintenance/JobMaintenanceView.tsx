@@ -34,10 +34,12 @@ const toolbarIcons = [
 ] as const;
 
 interface Job {
-  id: string;
+  id: string | number;
   externalId: string | null;
+  jobNumber: string;
   jobName: string;
   jobDescription: string | null;
+  description: string;
   status: string;
   type: string | null;
   contractType: string | null;
@@ -45,13 +47,14 @@ interface Job {
   dueDate: string | null;
   template: string | null;
   premises: {
-    id: string;
+    id: string | number;
     premisesId: string | null;
+    locId: string | null;
     name: string | null;
     address: string;
   } | null;
   customer: {
-    id: string;
+    id: string | number;
     name: string;
   } | null;
 }
@@ -214,17 +217,48 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (activeTab !== "All") {
-        params.set("type", activeTab);
-      }
-      if (premisesId) {
-        params.set("premisesId", premisesId);
-      }
+      params.set("limit", "500"); // Limit for performance
 
-      const response = await fetch(`/api/jobs?${params.toString()}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/jobs?${params.toString()}`);
       if (response.ok) {
-        const data = await response.json();
-        setJobs(data);
+        const result = await response.json();
+        // Map SQL Server response to Job interface
+        const mappedJobs: Job[] = (result.data || []).map((job: any) => ({
+          id: job.id,
+          externalId: job.jobNumber,
+          jobNumber: job.jobNumber,
+          jobName: job.description || "",
+          jobDescription: job.description,
+          description: job.description || "",
+          status: job.status || "Open",
+          type: job.type || null,
+          contractType: null,
+          date: job.date,
+          dueDate: job.closeDate,
+          template: null,
+          premises: job.premises ? {
+            id: job.premises.id,
+            premisesId: job.premises.locId,
+            locId: job.premises.locId,
+            name: job.premises.name,
+            address: job.premises.address || "",
+          } : null,
+          customer: job.customer ? {
+            id: job.customer.id,
+            name: job.customer.name,
+          } : null,
+        }));
+
+        // Filter by type if not "All"
+        let filteredJobs = mappedJobs;
+        if (activeTab !== "All") {
+          filteredJobs = mappedJobs.filter(j =>
+            j.type?.toLowerCase() === activeTab.toLowerCase()
+          );
+        }
+
+        setJobs(filteredJobs);
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -438,7 +472,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         break;
       case "edit":
         if (selectedRow) {
-          const job = jobs.find(j => j.id === selectedRow);
+          const job = jobs.find(j => String(j.id) === selectedRow);
           if (job) openTab(`Job ${job.externalId || job.id}`, `/job-maintenance/${job.id}`);
         } else {
           alert("Please select a job to edit");
@@ -446,7 +480,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         break;
       case "delete":
         if (selectedRow) {
-          const job = jobs.find(j => j.id === selectedRow);
+          const job = jobs.find(j => String(j.id) === selectedRow);
           if (job && confirm(`Delete job "${job.externalId || job.jobName}"?`)) {
             try {
               const res = await fetch(`/api/jobs/${selectedRow}`, { method: "DELETE" });
@@ -459,7 +493,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         break;
       case "replicate":
         if (selectedRow) {
-          const job = jobs.find(j => j.id === selectedRow);
+          const job = jobs.find(j => String(j.id) === selectedRow);
           if (job && confirm(`Create a copy of job "${job.externalId || job.jobName}"?`)) {
             try {
               const res = await fetch(`/api/jobs/${selectedRow}/replicate`, { method: "POST" });
@@ -483,7 +517,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         break;
       case "approve":
         if (selectedRow) {
-          const job = jobs.find(j => j.id === selectedRow);
+          const job = jobs.find(j => String(j.id) === selectedRow);
           if (job) {
             if (job.status === "Approved") {
               alert("This job is already approved.");
@@ -512,7 +546,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         break;
       case "accounts":
         if (selectedRow) {
-          const job = jobs.find(j => j.id === selectedRow);
+          const job = jobs.find(j => String(j.id) === selectedRow);
           if (job?.premises) {
             openTab(`Account ${job.premises.premisesId || job.premises.id}`, `/accounts/${job.premises.id}`);
           } else {
@@ -525,7 +559,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         break;
       case "buildings":
         if (selectedRow) {
-          const job = jobs.find(j => j.id === selectedRow);
+          const job = jobs.find(j => String(j.id) === selectedRow);
           if (job?.premises) {
             openTab(`Building ${job.premises.premisesId || job.premises.id}`, `/accounts/${job.premises.id}`);
           } else {
@@ -538,7 +572,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         break;
       case "lock":
         if (selectedRow) {
-          const job = jobs.find(j => j.id === selectedRow);
+          const job = jobs.find(j => String(j.id) === selectedRow);
           if (job) {
             const isLocked = job.status === "Locked";
             const action = isLocked ? "unlock" : "lock";
@@ -827,10 +861,10 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
             sortedJobs.map((job) => (
               <div
                 key={job.id}
-                onClick={() => setSelectedRow(job.id)}
+                onClick={() => setSelectedRow(String(job.id))}
                 onDoubleClick={() => handleDoubleClick(job)}
                 className={`flex text-[12px] cursor-pointer border-b border-[#d0d0d0] ${
-                  selectedRow === job.id
+                  selectedRow === String(job.id)
                     ? "bg-[#0078d4] text-white"
                     : "bg-white hover:bg-[#f0f8ff]"
                 }`}
