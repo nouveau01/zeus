@@ -54,6 +54,18 @@ export async function GET(
       : [];
     const premisesRolMap = new Map(premisesRols.map(r => [r.ID, r]));
 
+    // Get unit counts per premises
+    const premisesLocIds = premises.map(p => p.Loc);
+    const premisesElevCounts: any[] = premisesLocIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`
+          SELECT Loc, COUNT(*) as cnt
+          FROM Elev
+          WHERE Loc IN (${premisesLocIds.join(",")})
+          GROUP BY Loc
+        `)
+      : [];
+    const premisesElevCountMap = new Map(premisesElevCounts.map(e => [e.Loc, e.cnt]));
+
     // Map to response format
     const response = {
       id: owner.ID.toString(),
@@ -104,14 +116,19 @@ export async function GET(
       premises: premises.map(p => {
         const pRol = p.Rol ? premisesRolMap.get(p.Rol) : null;
         return {
-          id: p.Loc,
-          locId: p.ID,
-          tag: p.Tag || "",
+          id: p.Loc.toString(),
+          premisesId: p.ID || p.Loc.toString(),
+          tag: p.Tag || pRol?.Name || "",
           name: pRol?.Name || p.Tag || "",
-          address: pRol?.Address || "",
-          city: pRol?.City || "",
-          state: pRol?.State || "",
-          zip: pRol?.Zip || "",
+          address: pRol?.Address || p.Address || "",
+          city: pRol?.City || p.City || "",
+          state: pRol?.State || p.State || "",
+          zip: pRol?.Zip || p.Zip || "",
+          type: p.Type || "",
+          status: p.Status,
+          isActive: p.Status === 1,
+          balance: p.Balance || 0,
+          units: premisesElevCountMap.get(p.Loc) || 0,
         };
       }),
     };

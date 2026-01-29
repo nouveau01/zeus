@@ -70,7 +70,8 @@ export default function UnitsPage() {
   const fetchUnits = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/units");
+      // Use SQL Server direct connection
+      const response = await fetch("/api/sqlserver/units");
       if (response.ok) {
         const data = await response.json();
         // Map API response to our interface

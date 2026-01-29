@@ -282,7 +282,8 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   useEffect(() => {
     const fetchUnit = async () => {
       try {
-        const response = await fetch(`/api/units/${unitId}`);
+        // Use SQL Server direct connection
+        const response = await fetch(`/api/sqlserver/units/${unitId}`);
         if (response.ok) {
           const data = await response.json();
           const loadedUnit: UnitData = {
@@ -359,89 +360,10 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   }, [unit, templateCustomFields, tests, remarks, unitCustom, originalUnit, originalTemplateCustom, originalTests, originalRemarks, originalUnitCustom]);
 
   const handleSave = async () => {
-    try {
-      const response = await fetch(`/api/units/${unitId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          unitNumber: unit.unitNumber,
-          state: unit.stateNumber,
-          description: unit.description,
-          template: unit.template,
-          cat: unit.category,
-          unitType: unit.type,
-          building: unit.building,
-          manufacturer: unit.manufacturer,
-          serial: unit.serialNumber,
-          status: unit.status,
-          price: unit.priceS ? parseFloat(unit.priceS.replace(/[^0-9.-]/g, '')) : null,
-          group: unit.group,
-          week: unit.week,
-          sinceDate: unit.onServiceSince,
-          lastDate: unit.lastServiceOn,
-          installDate: unit.installed,
-          installBy: unit.installedBy,
-          premisesId: unit.accountId,
-          remarks: remarks,
-          custom1: unitCustom.testIncluded,
-          custom2: unitCustom.testCustomPricing,
-          custom3: unitCustom.custom3,
-          custom4: unitCustom.custom4,
-          custom5: unitCustom.custom5,
-          custom6: unitCustom.custom6,
-          custom7: unitCustom.custom7,
-          custom8: unitCustom.custom8,
-          custom9: unitCustom.custom9,
-          custom10: unitCustom.custom10,
-          custom11: unitCustom.custom11,
-          custom12: unitCustom.custom12,
-          custom13: unitCustom.custom13,
-          custom14: unitCustom.custom14,
-          custom15: unitCustom.custom15,
-          custom16: unitCustom.custom16,
-          custom17: unitCustom.custom17,
-          custom18: unitCustom.custom18,
-          custom19: unitCustom.custom19,
-          custom20: unitCustom.custom20,
-        }),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        const updatedUnit: UnitData = {
-          id: updated.id,
-          unitNumber: updated.unitNumber || "",
-          description: updated.description || "",
-          stateNumber: updated.state || "",
-          template: updated.template || "Standard",
-          category: updated.cat || "",
-          type: updated.unitType || "Elevator",
-          building: updated.building || "",
-          accountId: updated.premisesId || "",
-          accountTag: updated.premises?.address || updated.premises?.premisesId || "",
-          status: updated.status || "Active",
-          group: updated.group || "",
-          onServiceSince: updated.sinceDate ? new Date(updated.sinceDate).toLocaleDateString() : "",
-          lastServiceOn: updated.lastDate ? new Date(updated.lastDate).toLocaleDateString() : "",
-          installed: updated.installDate ? new Date(updated.installDate).toLocaleDateString() : "",
-          installedBy: updated.installBy || "",
-          manufacturer: updated.manufacturer || "",
-          serialNumber: updated.serial || "",
-          priceS: updated.price ? `$${parseFloat(updated.price).toFixed(2)}` : "$0.00",
-          week: updated.week || "",
-        };
-        setUnit(updatedUnit);
-        setOriginalUnit(updatedUnit);
-        setOriginalTemplateCustom([...templateCustomFields]);
-        setOriginalTests([...tests]);
-        setOriginalRemarks(updated.remarks || "");
-        setRemarks(updated.remarks || "");
-        setOriginalUnitCustom({ ...unitCustom });
-        setHasChanges(false);
-        setIsEditing(false);
-      }
-    } catch (error) {
-      console.error("Error saving unit:", error);
-    }
+    // SQL Server connection is read-only
+    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
+    setHasChanges(false);
+    setIsEditing(false);
   };
 
   const handleUndo = () => {
