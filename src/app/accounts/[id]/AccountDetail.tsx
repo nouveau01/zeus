@@ -257,7 +257,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   const fetchAccountToCopy = async () => {
     try {
-      const response = await fetch(`/api/premises/${copyFromId}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/premises/${copyFromId}`);
       if (response.ok) {
         const data = await response.json();
         // Copy the data but keep it as a new record
@@ -283,7 +284,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   const fetchAccount = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/premises/${accountId}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/premises/${accountId}`);
       if (response.ok) {
         const data = await response.json();
         setAccount(data);
@@ -374,42 +376,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   };
 
   const handleSave = async () => {
-    if (!formData.address?.trim()) {
-      alert("Address is required");
-      return;
-    }
-
-    try {
-      if (isNew) {
-        // Create new account
-        const response = await fetch("/api/premises", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...formData, customerId: customerId || formData.customerId }),
-        });
-        if (response.ok) {
-          const created = await response.json();
-          setIsDirty(false);
-          if (onClose) onClose();
-          openTab(created.name || created.address, `/accounts/${created.id}`);
-        }
-      } else {
-        // Update existing
-        const response = await fetch(`/api/premises/${accountId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        if (response.ok) {
-          const updated = await response.json();
-          setAccount(updated);
-          setFormData(updated);
-          setIsDirty(false);
-        }
-      }
-    } catch (error) {
-      console.error("Error saving account:", error);
-    }
+    // SQL Server connection is read-only
+    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
+    setIsDirty(false);
   };
 
   const openCustomer = () => {

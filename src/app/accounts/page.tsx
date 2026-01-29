@@ -255,9 +255,10 @@ export default function AccountsPage() {
   const fetchAccounts = async () => {
     setLoading(true);
     try {
+      // Use SQL Server direct connection
       const url = activeTab === "All"
-        ? "/api/premises"
-        : `/api/premises?filter=${encodeURIComponent(activeTab)}`;
+        ? "/api/sqlserver/premises"
+        : `/api/sqlserver/premises?filter=${encodeURIComponent(activeTab)}`;
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
