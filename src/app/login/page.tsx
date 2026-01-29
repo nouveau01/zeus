@@ -53,7 +53,7 @@ export default function LoginPage() {
             Z.E.U.S.
           </h1>
           <p className="text-slate-400 text-sm tracking-widest uppercase">
-            Field Service Management
+            Zach's Enterprise Unified System
           </p>
         </div>
 
