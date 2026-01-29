@@ -29,6 +29,7 @@ interface UsePageConfigResult {
   isLoading: boolean;
   refreshConfig: () => Promise<void>;
   updateFields: (newFields: FieldConfig[]) => void;
+  updateFieldLabel: (fieldName: string, newLabel: string) => void;
 }
 
 export function usePageConfig(
@@ -153,6 +154,15 @@ export function usePageConfig(
     setFields(newFields);
   }, []);
 
+  // Update a single field's label
+  const updateFieldLabel = useCallback((fieldName: string, newLabel: string) => {
+    setFields((prev) =>
+      prev.map((f) =>
+        f.fieldName === fieldName ? { ...f, displayLabel: newLabel } : f
+      )
+    );
+  }, []);
+
   return {
     fields,
     getLabel,
@@ -162,6 +172,7 @@ export function usePageConfig(
     isLoading,
     refreshConfig: fetchConfig,
     updateFields,
+    updateFieldLabel,
   };
 }
 

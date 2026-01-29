@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
 import { AdminTools } from "@/components/AdminTools";
+import { EditableColumnHeader } from "@/components/EditableColumnHeader";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import {
   FileText,
@@ -33,15 +34,18 @@ import {
 // Default field configuration for Dispatch/Call Manager
 const DISPATCH_DEFAULT_FIELDS = createDefaultFields({
   ticketNumber: { label: "Ticket #", width: 70 },
-  woNumber: { label: "WO #", width: 70 },
+  woNumber: { label: "W/O #", width: 70 },
   type: { label: "Type", width: 100 },
-  accountId: { label: "Account Tag", width: 120 },
+  account: { label: "Account", width: 120 },
   address: { label: "Address", width: 180 },
   unit: { label: "Unit", width: 60 },
+  description: { label: "Description", width: 200 },
   status: { label: "Status", width: 80 },
+  callDate: { label: "Call Date", width: 100 },
   scheduled: { label: "Scheduled", width: 120 },
   worker: { label: "Worker", width: 120 },
   city: { label: "City", width: 100 },
+  state: { label: "State", width: 60 },
 });
 
 interface Ticket {
@@ -178,7 +182,7 @@ export default function DispatchPage() {
   const [viewMode, setViewMode] = useState<"grid" | "schedule">("grid");
 
   // Page configuration for admin customization
-  const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("dispatch", DISPATCH_DEFAULT_FIELDS);
+  const { fields, getLabel, isVisible, getVisibleFields, updateFields, updateFieldLabel } = usePageConfig("dispatch", DISPATCH_DEFAULT_FIELDS);
   const [isEditMode, setIsEditMode] = useState(false);
 
   // Filters
@@ -925,97 +929,149 @@ export default function DispatchPage() {
                     onMouseDown={(e) => handleColumnResizeStart(e, "selector")}
                   />
                 </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.ticketNumber, minWidth: columnWidths.ticketNumber }} onClick={() => handleSort("ticketNumber")}>
-                  Ticket # {sortColumn === "ticketNumber" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "ticketNumber"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.woNumber, minWidth: columnWidths.woNumber }} onClick={() => handleSort("woNumber")}>
-                  W/O # {sortColumn === "woNumber" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "woNumber"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.type, minWidth: columnWidths.type }} onClick={() => handleSort("type")}>
-                  Type {sortColumn === "type" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "type"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.account, minWidth: columnWidths.account }} onClick={() => handleSort("accountTag")}>
-                  Account {sortColumn === "accountTag" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "account"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.address, minWidth: columnWidths.address }} onClick={() => handleSort("address")}>
-                  Address {sortColumn === "address" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "address"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.unit, minWidth: columnWidths.unit }} onClick={() => handleSort("unit")}>
-                  Unit {sortColumn === "unit" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "unit"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.description, minWidth: columnWidths.description }} onClick={() => handleSort("description")}>
-                  Description {sortColumn === "description" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "description"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.status, minWidth: columnWidths.status }} onClick={() => handleSort("status")}>
-                  Status {sortColumn === "status" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "status"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.callDate, minWidth: columnWidths.callDate }} onClick={() => handleSort("callDate")}>
-                  Call Date {sortColumn === "callDate" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "callDate"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.scheduled, minWidth: columnWidths.scheduled }} onClick={() => handleSort("scheduled")}>
-                  Scheduled {sortColumn === "scheduled" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "scheduled"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.worker, minWidth: columnWidths.worker }} onClick={() => handleSort("worker")}>
-                  Worker {sortColumn === "worker" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "worker"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.city, minWidth: columnWidths.city }} onClick={() => handleSort("city")}>
-                  City {sortColumn === "city" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "city"); }}
-                  />
-                </th>
-                <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative cursor-pointer hover:bg-[#e0e0e0] select-none" style={{ width: columnWidths.state, minWidth: columnWidths.state }} onClick={() => handleSort("state")}>
-                  State {sortColumn === "state" && (sortDirection === "asc" ? "▲" : "▼")}
-                  <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
-                    onMouseDown={(e) => { e.stopPropagation(); handleColumnResizeStart(e, "state"); }}
-                  />
-                </th>
+                <EditableColumnHeader
+                  fieldName="ticketNumber"
+                  label={getLabel("ticketNumber")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("ticketNumber")}
+                  width={columnWidths.ticketNumber}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "ticketNumber")}
+                />
+                <EditableColumnHeader
+                  fieldName="woNumber"
+                  label={getLabel("woNumber")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("woNumber")}
+                  width={columnWidths.woNumber}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "woNumber")}
+                />
+                <EditableColumnHeader
+                  fieldName="type"
+                  label={getLabel("type")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("type")}
+                  width={columnWidths.type}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "type")}
+                />
+                <EditableColumnHeader
+                  fieldName="account"
+                  label={getLabel("account")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("accountTag")}
+                  width={columnWidths.account}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "account")}
+                />
+                <EditableColumnHeader
+                  fieldName="address"
+                  label={getLabel("address")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("address")}
+                  width={columnWidths.address}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "address")}
+                />
+                <EditableColumnHeader
+                  fieldName="unit"
+                  label={getLabel("unit")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("unit")}
+                  width={columnWidths.unit}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "unit")}
+                />
+                <EditableColumnHeader
+                  fieldName="description"
+                  label={getLabel("description")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("description")}
+                  width={columnWidths.description}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "description")}
+                />
+                <EditableColumnHeader
+                  fieldName="status"
+                  label={getLabel("status")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("status")}
+                  width={columnWidths.status}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "status")}
+                />
+                <EditableColumnHeader
+                  fieldName="callDate"
+                  label={getLabel("callDate")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("callDate")}
+                  width={columnWidths.callDate}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "callDate")}
+                />
+                <EditableColumnHeader
+                  fieldName="scheduled"
+                  label={getLabel("scheduled")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("scheduled")}
+                  width={columnWidths.scheduled}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "scheduled")}
+                />
+                <EditableColumnHeader
+                  fieldName="worker"
+                  label={getLabel("worker")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("worker")}
+                  width={columnWidths.worker}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "worker")}
+                />
+                <EditableColumnHeader
+                  fieldName="city"
+                  label={getLabel("city")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("city")}
+                  width={columnWidths.city}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "city")}
+                />
+                <EditableColumnHeader
+                  fieldName="state"
+                  label={getLabel("state")}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("state")}
+                  width={columnWidths.state}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "state")}
+                />
               </tr>
             </thead>
             <tbody>

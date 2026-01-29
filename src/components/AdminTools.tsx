@@ -127,21 +127,21 @@ export function AdminTools({
   if (isEditMode) {
     return (
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 border border-yellow-400 rounded text-[11px] text-yellow-800">
+        <div className="flex items-center gap-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-[11px] text-white">
           <Edit3 className="w-3 h-3" />
           Edit Mode
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-1 px-2 py-1 bg-green-100 border border-green-400 rounded text-[11px] text-green-800 hover:bg-green-200"
+          className="flex items-center gap-1 px-2 py-1 bg-blue-600 border border-blue-700 rounded text-[11px] text-white hover:bg-blue-700 disabled:opacity-50"
         >
           <Save className="w-3 h-3" />
           {saving ? "Saving..." : "Save"}
         </button>
         <button
           onClick={handleCancel}
-          className="flex items-center gap-1 px-2 py-1 bg-gray-100 border border-gray-400 rounded text-[11px] text-gray-700 hover:bg-gray-200"
+          className="flex items-center gap-1 px-2 py-1 bg-slate-500 border border-slate-600 rounded text-[11px] text-white hover:bg-slate-600"
         >
           <X className="w-3 h-3" />
           Cancel
