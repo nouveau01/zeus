@@ -98,7 +98,8 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   const fetchJob = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/jobs/${jobId}`);
+      // Use SQL Server direct connection
+      const response = await fetch(`/api/sqlserver/jobs/${jobId}`);
       if (response.ok) {
         const data = await response.json();
         setJob(data);
@@ -113,20 +114,9 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
 
   // Save callback for the unsaved changes hook
   const handleSaveForHook = useCallback(async () => {
-    setSavingFromHook(true);
-    try {
-      const response = await fetch(`/api/jobs/${jobId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (!response.ok) throw new Error("Failed to save job");
-      const updated = await response.json();
-      setJob(updated);
-    } finally {
-      setSavingFromHook(false);
-    }
-  }, [jobId, formData]);
+    // SQL Server connection is read-only
+    alert("Read-only mode - Changes cannot be saved to Total Service.");
+  }, []);
 
   // Unsaved changes hook
   const {
@@ -146,20 +136,9 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   };
 
   const handleSave = async () => {
-    try {
-      const response = await fetch(`/api/jobs/${jobId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        setJob(updated);
-        setHasChanges(false);
-      }
-    } catch (error) {
-      console.error("Error saving job:", error);
-    }
+    // SQL Server connection is read-only
+    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
+    setHasChanges(false);
   };
 
   const formatDate = (dateStr: string | null) => {
