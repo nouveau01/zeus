@@ -12,6 +12,7 @@ import {
   Home,
   HelpCircle,
 } from "lucide-react";
+import { getJobTypes } from "@/lib/actions/job-templates";
 
 interface JobType {
   id: string;
@@ -51,17 +52,8 @@ export default function JobTypesPage() {
 
   const fetchJobTypes = async () => {
     try {
-      const response = await fetch("/api/sqlserver/job-types");
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.notAvailable) {
-          setSqlServerError("SQL Server connection not available on this machine.");
-        } else {
-          setSqlServerError(data.error || "Failed to load job types");
-        }
-        return;
-      }
+      // Use Server Action - pulls from SQL Server
+      const data = await getJobTypes();
 
       setJobTypes(data);
       setSqlServerError(null);

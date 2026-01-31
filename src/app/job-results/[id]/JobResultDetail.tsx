@@ -15,6 +15,7 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { getJobById } from "@/lib/actions/jobs";
 
 interface JobResultDetailProps {
   jobId: string;
@@ -88,10 +89,9 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
   const fetchJob = async () => {
     setLoading(true);
     try {
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/jobs/${jobId}`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getJobById(jobId);
+      if (data) {
         setJob(data);
       }
     } catch (error) {

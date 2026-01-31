@@ -258,10 +258,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   const fetchAccountToCopy = async () => {
     try {
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/premises/${copyFromId}`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getAccountById(copyFromId!);
+      if (data) {
         // Copy the data but keep it as a new record
         setFormData({
           ...data,

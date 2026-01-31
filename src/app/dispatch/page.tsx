@@ -6,6 +6,7 @@ import { AdminTools } from "@/components/AdminTools";
 import { EditableColumnHeader } from "@/components/EditableColumnHeader";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import { getTickets, getCallHistory } from "@/lib/actions/tickets";
+import { getInvoices } from "@/lib/actions/invoices";
 import {
   FileText,
   Save,
@@ -599,31 +600,29 @@ export default function DispatchPage() {
   // Fetch ledger for a customer
   const fetchLedger = async (customerId: string) => {
     try {
-      const response = await fetch(`/api/sqlserver/invoices?customerId=${customerId}&limit=20`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getInvoices({ customerId, limit: 20 });
 
-        // Map to ledger format
-        let runningBalance = 0;
-        const ledger: LedgerItem[] = data.map((inv: any) => {
-          const amount = parseFloat(inv.total || inv.amount || 0);
-          runningBalance += amount;
-          const invDate = new Date(inv.date || inv.invoiceDate);
-          const daysDiff = Math.floor((Date.now() - invDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Map to ledger format
+      let runningBalance = 0;
+      const ledger: LedgerItem[] = data.map((inv: any) => {
+        const amount = parseFloat(inv.total || inv.amount || 0);
+        runningBalance += amount;
+        const invDate = new Date(inv.date || inv.invoiceDate);
+        const daysDiff = Math.floor((Date.now() - invDate.getTime()) / (1000 * 60 * 60 * 24));
 
-          return {
-            date: invDate.toLocaleDateString(),
-            ref: inv.invoiceNumber || inv.id,
-            location: inv.premises?.tag || inv.location || "",
-            desc: inv.description || "",
-            amount: amount,
-            balance: amount, // Would need proper balance calculation
-            days: daysDiff,
-          };
-        });
+        return {
+          date: invDate.toLocaleDateString(),
+          ref: inv.invoiceNumber || inv.id,
+          location: inv.premisesTag || inv.location || "",
+          desc: inv.description || "",
+          amount: amount,
+          balance: amount, // Would need proper balance calculation
+          days: daysDiff,
+        };
+      });
 
-        setLedgerItems(ledger);
-      }
+      setLedgerItems(ledger);
     } catch (error) {
       console.error("Error fetching ledger:", error);
       setLedgerItems([]);

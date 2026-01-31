@@ -18,6 +18,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { getTicketById } from "@/lib/actions/tickets";
 
 interface Ticket {
   id: string;
@@ -124,10 +125,9 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const fetchTicket = async () => {
     setLoading(true);
     try {
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/tickets/${ticketId}?status=Completed`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getTicketById(ticketId);
+      if (data) {
         setTicket(data);
         setFormData(data);
       }

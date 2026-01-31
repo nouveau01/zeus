@@ -12,6 +12,7 @@ import {
   Trash2,
   HelpCircle,
 } from "lucide-react";
+import { getJobTemplates, getJobTypes } from "@/lib/actions/job-templates";
 
 interface JobType {
   id: string;
@@ -59,12 +60,9 @@ export default function JobTemplatesPage() {
 
   const fetchTemplates = async () => {
     try {
-      // Use SQL Server direct connection
-      const response = await fetch("/api/sqlserver/job-templates");
-      if (response.ok) {
-        const data = await response.json();
-        setTemplates(data);
-      }
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getJobTemplates();
+      setTemplates(data);
     } catch (error) {
       console.error("Error fetching templates:", error);
     } finally {
@@ -74,12 +72,9 @@ export default function JobTemplatesPage() {
 
   const fetchJobTypes = async () => {
     try {
-      // Use SQL Server direct connection
-      const response = await fetch("/api/sqlserver/job-types");
-      if (response.ok) {
-        const data = await response.json();
-        setJobTypes(data);
-      }
+      // Use Server Action - pulls from SQL Server
+      const data = await getJobTypes();
+      setJobTypes(data);
     } catch (error) {
       console.error("Error fetching job types:", error);
     }

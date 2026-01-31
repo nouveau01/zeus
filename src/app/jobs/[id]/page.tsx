@@ -10,6 +10,7 @@ import { Tabs } from "@/components/layout/Tabs";
 import { Section } from "@/components/layout/Section";
 import { FieldGrid, Field } from "@/components/layout/FieldGrid";
 import { JobHistory } from "@/components/layout/JobHistory";
+import { getJobById } from "@/lib/actions/jobs";
 
 const JOB_STATUSES = [
   "Open",
@@ -191,10 +192,9 @@ export default function JobDetailPage() {
 
   const fetchJob = async () => {
     try {
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/jobs/${params.id}`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getJobById(params.id as string);
+      if (data) {
         setJob(data);
       }
     } catch (error) {
