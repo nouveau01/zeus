@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
+import { getJobs } from "@/lib/actions/jobs";
 
 // Toolbar icons matching Job Maintenance
 const toolbarIcons = [
@@ -163,49 +164,50 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (activeTab !== "All") {
-        params.set("type", activeTab);
-      }
-      if (premisesId) {
-        params.set("premisesId", premisesId);
-      }
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const result = await getJobs({
+        type: activeTab !== "All" ? activeTab : undefined,
+        premisesId: premisesId || undefined,
+      });
 
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/jobs?${params.toString()}`);
-      if (response.ok) {
-        const result = await response.json();
-        const jobResults: JobResult[] = (result.data || []).map((job: any) => ({
-          id: job.id,
-          externalId: job.jobNumber,
-          jobNumber: job.jobNumber,
-          jobName: job.description || "",
-          jobDescription: job.description,
-          status: job.status,
-          type: job.type,
-          date: job.date,
-          premises: job.premises,
-          customer: job.customer,
-          // Use real financial data from SQL Server
-          revenueBilled: job.revenue || 0,
-          materials: job.materials || 0,
-          labor: job.labor || 0,
-          committed: 0,
-          totalCost: job.cost || 0,
-          profit: job.profit || 0,
-          ratio: job.revenue ? ((job.profit || 0) / job.revenue * 100) : 0,
-          budget: job.budgetRevenue || 0,
-          toBeBilled: (job.budgetRevenue || 0) - (job.revenue || 0),
-          billedPercent: job.budgetRevenue ? ((job.revenue || 0) / job.budgetRevenue * 100) : 0,
-          // Hours
-          regularHours: job.regularHours || 0,
-          overtimeHours: job.overtimeHours || 0,
-          doubleTimeHours: job.doubleTimeHours || 0,
-          travelHours: job.travelHours || 0,
-          totalHours: job.totalHours || 0,
-        }));
-        setJobs(jobResults);
-      }
+      const jobResults: JobResult[] = result.map((job: any) => ({
+        id: job.id,
+        externalId: job.externalId,
+        jobNumber: job.externalId,
+        jobName: job.jobName || "",
+        jobDescription: job.description,
+        status: job.status,
+        type: job.type,
+        date: job.jobDate,
+        premises: job.premisesId ? {
+          id: job.premisesId,
+          premisesId: job.premisesId,
+          name: job.premisesTag,
+          address: job.premisesAddress,
+        } : null,
+        customer: job.customerId ? {
+          id: job.customerId,
+          name: job.customerName,
+        } : null,
+        // Financial data (may need to be fetched separately or added to jobs data layer)
+        revenueBilled: job.revenue || 0,
+        materials: job.materials || 0,
+        labor: job.labor || 0,
+        committed: 0,
+        totalCost: job.cost || 0,
+        profit: job.profit || 0,
+        ratio: job.revenue ? ((job.profit || 0) / job.revenue * 100) : 0,
+        budget: job.budgetRevenue || 0,
+        toBeBilled: (job.budgetRevenue || 0) - (job.revenue || 0),
+        billedPercent: job.budgetRevenue ? ((job.revenue || 0) / job.budgetRevenue * 100) : 0,
+        // Hours
+        regularHours: job.regularHours || 0,
+        overtimeHours: job.overtimeHours || 0,
+        doubleTimeHours: job.doubleTimeHours || 0,
+        travelHours: job.travelHours || 0,
+        totalHours: job.totalHours || 0,
+      }));
+      setJobs(jobResults);
     } catch (error) {
       console.error("Error fetching jobs:", error);
     } finally {

@@ -23,6 +23,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { getTickets } from "@/lib/actions/tickets";
 
 // Toolbar icons matching Accounts/Customers pattern
 const toolbarIcons = [
@@ -183,24 +184,15 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (startDate) params.set("startDate", startDate);
-      if (endDate) params.set("endDate", endDate);
-      if (activeTab !== "All") params.set("type", activeTab);
-      params.set("status", "Completed");
-      if (mechanic !== "All") params.set("mechanic", mechanic);
-      if (supervisor !== "All") params.set("supervisor", supervisor);
-      if (reviewed !== "All") params.set("reviewed", reviewed === "Yes" ? "true" : "false");
-      if (billed !== "All") params.set("billed", billed === "Yes" ? "true" : "false");
-      if (payroll !== "All") params.set("payroll", payroll === "Yes" ? "true" : "false");
-      if (premisesId) params.set("premisesId", premisesId);
-
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/tickets?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTickets(data);
-      }
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getTickets({
+        status: "Completed",
+        type: activeTab !== "All" ? activeTab : undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        premisesId: premisesId || undefined,
+      });
+      setTickets(data);
     } catch (error) {
       console.error("Error fetching tickets:", error);
     } finally {
