@@ -2,23 +2,24 @@
  * Accounts (Premises) Data Access Layer
  *
  * Fetches from SQL Server (Total Service) and mirrors to PostgreSQL (ZEUS)
+ * Uses exact same query pattern as /api/sqlserver/premises
  */
 
 import prisma from "@/lib/db";
 import sqlserver, { isSqlServerAvailable } from "@/lib/sqlserver";
 
 interface FetchAccountsOptions {
-  search?: string;
+  filter?: string;
   customerId?: string;
-  status?: string;
   limit?: number;
 }
 
 /**
- * Fetch accounts/premises from SQL Server and mirror to PostgreSQL
+ * Fetch accounts/premises from SQL Server
+ * Matches /api/sqlserver/premises/route.ts exactly
  */
 export async function fetchAccounts(options: FetchAccountsOptions = {}) {
-  const { search, customerId, status, limit = 500 } = options;
+  const { filter, customerId, limit = 500 } = options;
 
   if (!isSqlServerAvailable()) {
     console.log("SQL Server not available, reading from PostgreSQL only");
@@ -26,110 +27,117 @@ export async function fetchAccounts(options: FetchAccountsOptions = {}) {
   }
 
   try {
+    // Use raw SQL for SQL Server 2008 compatibility - exact same as API route
+    let query = `SELECT TOP ${limit} * FROM Loc`;
     const conditions: string[] = [];
 
-    if (search) {
-      conditions.push(`(r.Name LIKE '%${search}%' OR r.Address LIKE '%${search}%' OR l.Tag LIKE '%${search}%')`);
+    if (filter && filter !== "All") {
+      conditions.push(`Type = '${filter.replace(/'/g, "''")}'`);
     }
     if (customerId) {
-      conditions.push(`l.Owner = ${parseInt(customerId)}`);
+      conditions.push(`Owner = ${parseInt(customerId)}`);
     }
-    if (status === "Active") {
-      conditions.push(`l.En = 1`);
-    } else if (status === "Inactive") {
-      conditions.push(`l.En = 0`);
-    }
-
-    let query = `
-      SELECT TOP ${limit}
-        l.Loc,
-        l.ID,
-        l.Tag,
-        l.Owner,
-        l.Route,
-        l.Zone,
-        l.Terr as Territory,
-        l.En,
-        l.Rol,
-        l.Type,
-        l.PriceL,
-        l.Remark,
-        l.fCreated,
-        l.fModified,
-        r.Name,
-        r.Address,
-        r.City,
-        r.State,
-        r.Zip,
-        r.Country,
-        r.Phone,
-        r.Fax,
-        r.Mobile,
-        r.Contact,
-        r.Email,
-        o.ID as OwnerID,
-        oRol.Name as OwnerName
-      FROM Loc l
-      LEFT JOIN Rol r ON l.Rol = r.ID
-      LEFT JOIN Owner o ON l.Owner = o.ID
-      LEFT JOIN Rol oRol ON o.Rol = oRol.ID
-    `;
 
     if (conditions.length > 0) {
       query += ` WHERE ${conditions.join(" AND ")}`;
     }
-    query += ` ORDER BY l.Tag`;
+    query += ` ORDER BY Loc DESC`;
 
-    const accounts: any[] = await sqlserver.$queryRawUnsafe(query);
+    // Get locs (premises/accounts) from SQL Server
+    const locs: any[] = await sqlserver.$queryRawUnsafe(query);
 
-    // Get unit counts
-    const locIds = accounts.map(a => a.Loc);
-    let unitCounts: any[] = [];
+    // Get Rol records for names/addresses
+    const rolIds = [...new Set(locs.map(l => l.Rol).filter(Boolean))];
+    const rols: any[] = rolIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Rol WHERE ID IN (${rolIds.join(",")})`)
+      : [];
 
-    if (locIds.length > 0) {
-      unitCounts = await sqlserver.$queryRawUnsafe(`
-        SELECT Loc, COUNT(*) as count FROM Elev WHERE Loc IN (${locIds.join(",")}) GROUP BY Loc
-      `);
-    }
+    // Get Owner records for customer names
+    const ownerIds = [...new Set(locs.map(l => l.Owner).filter(Boolean))];
+    const owners: any[] = ownerIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Owner WHERE ID IN (${ownerIds.join(",")})`)
+      : [];
 
-    const unitCountMap = new Map(unitCounts.map(u => [u.Loc, u.count]));
+    // Get Rol records for owner names
+    const ownerRolIds = [...new Set(owners.map(o => o.Rol).filter(Boolean))];
+    const ownerRols: any[] = ownerRolIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Rol WHERE ID IN (${ownerRolIds.join(",")})`)
+      : [];
 
-    // Map and mirror each account
-    const mappedAccounts = await Promise.all(accounts.map(async (a) => {
-      const mappedAccount = {
-        id: a.Loc.toString(),
-        premisesId: a.ID || a.Loc.toString(),
-        tag: a.Tag || "",
-        name: a.Name || "",
-        address: a.Address || "",
-        city: a.City || "",
-        state: a.State || "",
-        zip: a.Zip || "",
-        country: a.Country || "United States",
-        phone: a.Phone || "",
-        fax: a.Fax || "",
-        mobile: a.Mobile || "",
-        contact: a.Contact || "",
-        email: a.Email || "",
-        isActive: a.En === 1,
-        route: a.Route,
-        zone: a.Zone,
-        territory: a.Territory,
-        type: a.Type,
-        priceLevel: a.PriceL,
-        remarks: a.Remark || "",
-        createdAt: a.fCreated,
-        updatedAt: a.fModified,
-        customerId: a.OwnerID?.toString() || null,
-        customerName: a.OwnerName || "",
-        unitCount: unitCountMap.get(a.Loc) || 0,
+    // Get count of Elevs (units) per loc
+    const locIds = locs.map(l => l.Loc);
+    const elevCounts: any[] = locIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`
+          SELECT Loc, COUNT(*) as cnt
+          FROM Elev
+          WHERE Loc IN (${locIds.join(",")})
+          GROUP BY Loc
+        `)
+      : [];
+
+    // Get count of Jobs per loc
+    const jobCounts: any[] = locIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`
+          SELECT Loc, COUNT(*) as cnt
+          FROM Job
+          WHERE Loc IN (${locIds.join(",")})
+          GROUP BY Loc
+        `)
+      : [];
+
+    // Create lookup maps
+    const rolMap = new Map(rols.map(r => [r.ID, r]));
+    const ownerMap = new Map(owners.map(o => [o.ID, o]));
+    const ownerRolMap = new Map(ownerRols.map(r => [r.ID, r]));
+    const elevCountMap = new Map(elevCounts.map(e => [e.Loc, e.cnt]));
+    const jobCountMap = new Map(jobCounts.map(j => [j.Loc, j.cnt]));
+
+    // Map to response format matching Account interface - exact same as API route
+    const mappedAccounts = locs.map(loc => {
+      const rol = loc.Rol ? rolMap.get(loc.Rol) : null;
+      const owner = loc.Owner ? ownerMap.get(loc.Owner) : null;
+      const ownerRol = owner?.Rol ? ownerRolMap.get(owner.Rol) : null;
+
+      return {
+        id: loc.Loc.toString(),
+        premisesId: loc.ID || loc.Loc.toString(),
+        name: loc.Tag || rol?.Name || "",
+        address: rol?.Address || loc.Address || "",
+        city: rol?.City || loc.City || null,
+        state: rol?.State || loc.State || null,
+        zipCode: rol?.Zip || loc.Zip || null,
+        type: loc.Type || null,
+        isActive: loc.Status === 1,
+        status: loc.Status,
+        balance: loc.Balance || 0,
+        contact: rol?.Contact || null,
+        phone: rol?.Phone || null,
+        fax: rol?.Fax || null,
+        email: rol?.EMail || null,
+        route: loc.Route,
+        zone: loc.Zone,
+        terr: loc.Terr,
+        maint: loc.Maint,
+        billing: loc.Billing,
+        remarks: loc.Remarks || rol?.Remarks || null,
+        custom1: loc.Custom1,
+        custom2: loc.Custom2,
+        custom3: loc.Custom3,
+        custom4: loc.Custom4,
+        custom5: loc.Custom5,
+        createdAt: rol?.Since || null,
+        updatedAt: rol?.Last || null,
+        customerId: owner?.ID?.toString() || "",
+        customer: owner ? {
+          id: owner.ID.toString(),
+          name: ownerRol?.Name || "",
+        } : { id: "", name: "" },
+        _count: {
+          units: elevCountMap.get(loc.Loc) || 0,
+          jobs: jobCountMap.get(loc.Loc) || 0,
+        },
       };
-
-      // Mirror to PostgreSQL
-      await mirrorAccountToPostgres(mappedAccount);
-
-      return mappedAccount;
-    }));
+    });
 
     return mappedAccounts;
   } catch (error) {
@@ -139,90 +147,23 @@ export async function fetchAccounts(options: FetchAccountsOptions = {}) {
 }
 
 /**
- * Mirror an account to PostgreSQL
- */
-async function mirrorAccountToPostgres(account: any) {
-  try {
-    await prisma.premises.upsert({
-      where: { id: account.id },
-      update: {
-        premisesId: account.premisesId,
-        tag: account.tag,
-        name: account.name,
-        address: account.address,
-        city: account.city,
-        state: account.state,
-        zip: account.zip,
-        country: account.country,
-        phone: account.phone,
-        fax: account.fax,
-        mobile: account.mobile,
-        contact: account.contact,
-        email: account.email,
-        isActive: account.isActive,
-        route: account.route?.toString(),
-        zone: account.zone?.toString(),
-        terr: account.territory?.toString(),
-        type: account.type,
-        remarks: account.remarks,
-      },
-      create: {
-        id: account.id,
-        premisesId: account.premisesId,
-        tag: account.tag,
-        name: account.name,
-        address: account.address,
-        city: account.city,
-        state: account.state,
-        zip: account.zip,
-        country: account.country,
-        phone: account.phone,
-        fax: account.fax,
-        mobile: account.mobile,
-        contact: account.contact,
-        email: account.email,
-        isActive: account.isActive,
-        route: account.route?.toString(),
-        zone: account.zone?.toString(),
-        terr: account.territory?.toString(),
-        type: account.type,
-        remarks: account.remarks,
-        customerId: account.customerId,
-      },
-    });
-  } catch (error) {
-    console.error("Error mirroring account to PostgreSQL:", error);
-  }
-}
-
-/**
  * Fallback: fetch from PostgreSQL only
  */
 async function fetchAccountsFromPostgres(options: FetchAccountsOptions) {
-  const { search, customerId, status, limit = 500 } = options;
+  const { filter, customerId, limit = 500 } = options;
 
   const where: any = {};
-
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { address: { contains: search, mode: "insensitive" } },
-      { tag: { contains: search, mode: "insensitive" } },
-    ];
+  if (filter && filter !== "All") {
+    where.type = filter;
   }
   if (customerId) {
     where.customerId = customerId;
-  }
-  if (status === "Active") {
-    where.isActive = true;
-  } else if (status === "Inactive") {
-    where.isActive = false;
   }
 
   const accounts = await prisma.premises.findMany({
     where,
     take: limit,
-    orderBy: { tag: "asc" },
+    orderBy: { id: "desc" },
     include: {
       customer: true,
       _count: {
@@ -234,26 +175,32 @@ async function fetchAccountsFromPostgres(options: FetchAccountsOptions) {
   return accounts.map(a => ({
     id: a.id,
     premisesId: a.premisesId,
-    tag: a.tag,
-    name: a.name,
-    address: a.address,
+    name: a.tag || a.name || "",
+    address: a.address || "",
     city: a.city,
     state: a.state,
-    zip: a.zip,
-    country: a.country,
+    zipCode: a.zip,
+    type: a.type,
+    isActive: a.isActive,
+    status: a.isActive ? 1 : 0,
+    balance: a.balance || 0,
+    contact: a.contact,
     phone: a.phone,
     fax: a.fax,
-    mobile: a.mobile,
-    contact: a.contact,
     email: a.email,
-    isActive: a.isActive,
     route: a.route,
     zone: a.zone,
-    territory: a.terr,
+    terr: a.terr,
     remarks: a.remarks,
-    customerId: a.customerId,
-    customerName: a.customer?.name || "",
-    unitCount: a._count.units,
+    customerId: a.customerId || "",
+    customer: a.customer ? {
+      id: a.customer.id,
+      name: a.customer.name || "",
+    } : { id: "", name: "" },
+    _count: {
+      units: a._count.units,
+      jobs: 0,
+    },
   }));
 }
 
@@ -264,93 +211,81 @@ export async function fetchAccountById(accountId: string) {
   if (!isSqlServerAvailable()) {
     return prisma.premises.findUnique({
       where: { id: accountId },
-      include: {
-        customer: true,
-        units: true,
-      },
+      include: { customer: true, units: true },
     });
   }
 
   try {
-    const query = `
-      SELECT TOP 1
-        l.Loc,
-        l.ID,
-        l.Tag,
-        l.Owner,
-        l.Route,
-        l.Zone,
-        l.Terr as Territory,
-        l.En,
-        l.Rol,
-        l.Type,
-        l.PriceL,
-        l.Remark,
-        l.ColRemark,
-        l.SalesRemark,
-        l.fCreated,
-        l.fModified,
-        r.Name,
-        r.Address,
-        r.City,
-        r.State,
-        r.Zip,
-        r.Country,
-        r.Phone,
-        r.Fax,
-        r.Mobile,
-        r.Contact,
-        r.Email,
-        o.ID as OwnerID,
-        oRol.Name as OwnerName
-      FROM Loc l
-      LEFT JOIN Rol r ON l.Rol = r.ID
-      LEFT JOIN Owner o ON l.Owner = o.ID
-      LEFT JOIN Rol oRol ON o.Rol = oRol.ID
-      WHERE l.Loc = ${parseInt(accountId)}
-    `;
+    const locs: any[] = await sqlserver.$queryRawUnsafe(
+      `SELECT * FROM Loc WHERE Loc = ${parseInt(accountId)}`
+    );
 
-    const accounts: any[] = await sqlserver.$queryRawUnsafe(query);
-
-    if (accounts.length === 0) {
+    if (locs.length === 0) {
       return null;
     }
 
-    const a = accounts[0];
-    const mappedAccount = {
-      id: a.Loc.toString(),
-      premisesId: a.ID || a.Loc.toString(),
-      tag: a.Tag || "",
-      name: a.Name || "",
-      address: a.Address || "",
-      city: a.City || "",
-      state: a.State || "",
-      zip: a.Zip || "",
-      country: a.Country || "United States",
-      phone: a.Phone || "",
-      fax: a.Fax || "",
-      mobile: a.Mobile || "",
-      contact: a.Contact || "",
-      email: a.Email || "",
-      isActive: a.En === 1,
-      route: a.Route,
-      zone: a.Zone,
-      territory: a.Territory,
-      type: a.Type,
-      priceLevel: a.PriceL,
-      remarks: a.Remark || "",
-      colRemarks: a.ColRemark || "",
-      salesRemarks: a.SalesRemark || "",
-      createdAt: a.fCreated,
-      updatedAt: a.fModified,
-      customerId: a.OwnerID?.toString() || null,
-      customerName: a.OwnerName || "",
+    const loc = locs[0];
+
+    // Get Rol record
+    let rol: any = null;
+    if (loc.Rol) {
+      const rols: any[] = await sqlserver.$queryRawUnsafe(
+        `SELECT * FROM Rol WHERE ID = ${loc.Rol}`
+      );
+      rol = rols[0] || null;
+    }
+
+    // Get Owner record
+    let owner: any = null;
+    let ownerRol: any = null;
+    if (loc.Owner) {
+      const owners: any[] = await sqlserver.$queryRawUnsafe(
+        `SELECT * FROM Owner WHERE ID = ${loc.Owner}`
+      );
+      owner = owners[0] || null;
+      if (owner?.Rol) {
+        const ownerRols: any[] = await sqlserver.$queryRawUnsafe(
+          `SELECT * FROM Rol WHERE ID = ${owner.Rol}`
+        );
+        ownerRol = ownerRols[0] || null;
+      }
+    }
+
+    return {
+      id: loc.Loc.toString(),
+      premisesId: loc.ID || loc.Loc.toString(),
+      name: loc.Tag || rol?.Name || "",
+      address: rol?.Address || loc.Address || "",
+      city: rol?.City || loc.City || null,
+      state: rol?.State || loc.State || null,
+      zipCode: rol?.Zip || loc.Zip || null,
+      type: loc.Type || null,
+      isActive: loc.Status === 1,
+      status: loc.Status,
+      balance: loc.Balance || 0,
+      contact: rol?.Contact || null,
+      phone: rol?.Phone || null,
+      fax: rol?.Fax || null,
+      email: rol?.EMail || null,
+      route: loc.Route,
+      zone: loc.Zone,
+      terr: loc.Terr,
+      maint: loc.Maint,
+      billing: loc.Billing,
+      remarks: loc.Remarks || rol?.Remarks || null,
+      custom1: loc.Custom1,
+      custom2: loc.Custom2,
+      custom3: loc.Custom3,
+      custom4: loc.Custom4,
+      custom5: loc.Custom5,
+      createdAt: rol?.Since || null,
+      updatedAt: rol?.Last || null,
+      customerId: owner?.ID?.toString() || "",
+      customer: owner ? {
+        id: owner.ID.toString(),
+        name: ownerRol?.Name || "",
+      } : { id: "", name: "" },
     };
-
-    // Mirror to PostgreSQL
-    await mirrorAccountToPostgres(mappedAccount);
-
-    return mappedAccount;
   } catch (error) {
     console.error("Error fetching account by ID from SQL Server:", error);
     return prisma.premises.findUnique({
