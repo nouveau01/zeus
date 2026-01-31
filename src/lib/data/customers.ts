@@ -163,7 +163,7 @@ async function fetchCustomersFromPostgres(options: FetchCustomersOptions) {
 }
 
 /**
- * Get a single customer by ID
+ * Get a single customer by ID (includes premises/accounts)
  */
 export async function fetchCustomerById(customerId: string) {
   if (!isSqlServerAvailable()) {
@@ -193,6 +193,48 @@ export async function fetchCustomerById(customerId: string) {
       rol = rols[0] || null;
     }
 
+    // Get premises (Loc records) for this customer
+    const locs: any[] = await sqlserver.$queryRawUnsafe(
+      `SELECT * FROM Loc WHERE Owner = ${parseInt(customerId)} ORDER BY Loc DESC`
+    );
+
+    // Get Rol records for premises
+    const locRolIds = [...new Set(locs.map(l => l.Rol).filter(Boolean))];
+    const locRols: any[] = locRolIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Rol WHERE ID IN (${locRolIds.join(",")})`)
+      : [];
+    const locRolMap = new Map(locRols.map(r => [r.ID, r]));
+
+    // Get unit counts per premises
+    const locIds = locs.map(l => l.Loc);
+    const unitCounts: any[] = locIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`
+          SELECT Loc, COUNT(*) as cnt FROM Elev WHERE Loc IN (${locIds.join(",")}) GROUP BY Loc
+        `)
+      : [];
+    const unitCountMap = new Map(unitCounts.map(u => [u.Loc, u.cnt]));
+
+    // Map premises
+    const premises = locs.map(loc => {
+      const locRol = loc.Rol ? locRolMap.get(loc.Rol) : null;
+      return {
+        id: loc.Loc.toString(),
+        premisesId: loc.ID || loc.Loc.toString(),
+        name: loc.Tag || locRol?.Name || "",
+        address: locRol?.Address || loc.Address || "",
+        city: locRol?.City || loc.City || null,
+        state: locRol?.State || loc.State || null,
+        zipCode: locRol?.Zip || loc.Zip || null,
+        type: loc.Type || null,
+        isActive: loc.Status === 1,
+        status: loc.Status,
+        balance: loc.Balance || 0,
+        _count: {
+          units: unitCountMap.get(loc.Loc) || 0,
+        },
+      };
+    });
+
     return {
       id: owner.ID.toString(),
       name: rol?.Name || "",
@@ -218,6 +260,7 @@ export async function fetchCustomerById(customerId: string) {
       cellular: rol?.Cellular || null,
       createdAt: rol?.Since || null,
       updatedAt: rol?.Last || null,
+      premises: premises,
     };
   } catch (error) {
     console.error("Error fetching customer by ID from SQL Server:", error);
