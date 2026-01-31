@@ -19,6 +19,7 @@ import { useTabs } from "@/context/TabContext";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 import { AdminTools } from "@/components/AdminTools";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
+import { getJobs } from "@/lib/actions/jobs";
 
 // Default field configuration for Job Maintenance
 const JOBS_DEFAULT_FIELDS = createDefaultFields({
@@ -234,50 +235,41 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.set("limit", "500"); // Limit for performance
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const result = await getJobs({
+        type: activeTab !== "All" ? activeTab : undefined,
+        premisesId: premisesId || undefined,
+        limit: 500,
+      });
 
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/jobs?${params.toString()}`);
-      if (response.ok) {
-        const result = await response.json();
-        // Map SQL Server response to Job interface
-        const mappedJobs: Job[] = (result.data || []).map((job: any) => ({
-          id: job.id,
-          externalId: job.jobNumber,
-          jobNumber: job.jobNumber,
-          jobName: job.description || "",
-          jobDescription: job.description,
-          description: job.description || "",
-          status: job.status || "Open",
-          type: job.type || null,
-          contractType: null,
-          date: job.date,
-          dueDate: job.closeDate,
-          template: null,
-          premises: job.premises ? {
-            id: job.premises.id,
-            premisesId: job.premises.locId,
-            locId: job.premises.locId,
-            name: job.premises.name,
-            address: job.premises.address || "",
-          } : null,
-          customer: job.customer ? {
-            id: job.customer.id,
-            name: job.customer.name,
-          } : null,
-        }));
+      // Map response to Job interface
+      const mappedJobs: Job[] = result.map((job: any) => ({
+        id: job.id,
+        externalId: job.externalId,
+        jobNumber: job.externalId,
+        jobName: job.jobName || "",
+        jobDescription: job.description,
+        description: job.description || "",
+        status: job.status || "Open",
+        type: job.type || null,
+        contractType: null,
+        date: job.jobDate,
+        dueDate: job.closedDate,
+        template: null,
+        premises: job.premisesId ? {
+          id: job.premisesId,
+          premisesId: job.premisesId,
+          locId: job.premisesId,
+          name: job.premisesTag,
+          address: job.premisesAddress || "",
+        } : null,
+        customer: job.customerId ? {
+          id: job.customerId,
+          name: job.customerName,
+        } : null,
+      }));
 
-        // Filter by type if not "All"
-        let filteredJobs = mappedJobs;
-        if (activeTab !== "All") {
-          filteredJobs = mappedJobs.filter(j =>
-            j.type?.toLowerCase() === activeTab.toLowerCase()
-          );
-        }
-
-        setJobs(filteredJobs);
-      }
+      setJobs(mappedJobs);
     } catch (error) {
       console.error("Error fetching jobs:", error);
     } finally {

@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Lock,
 } from "lucide-react";
+import { getUnits } from "@/lib/actions/units";
 
 interface Unit {
   id: string;
@@ -66,33 +67,29 @@ export default function UnitsPage() {
   const types = ["All", "Elevator", "Hydraulic", "Service"];
   const buildings = ["All", "Hospital", "Office / Commercial", "Store / Retail", "School", "Other"];
 
-  // Fetch units from API
+  // Fetch units - uses Server Action that pulls from SQL Server and mirrors to PostgreSQL
   const fetchUnits = async () => {
     setLoading(true);
     try {
-      // Use SQL Server direct connection
-      const response = await fetch("/api/sqlserver/units");
-      if (response.ok) {
-        const data = await response.json();
-        // Map API response to our interface
-        const mappedUnits: Unit[] = data.map((u: any) => ({
-          id: u.id,
-          accountId: u.premises?.premisesId || "",
-          accountTag: u.premises?.address || "",
-          unitNumber: u.unitNumber || "",
-          type: u.unitType || "Elevator",
-          category: u.cat || "CONSULTANT",
-          building: u.building || "",
-          customerId: u.premises?.customer?.id || "",
-          customerName: u.premises?.customer?.name || "",
-          status: u.status || "Active",
-          stateNumber: u.state || "",
-          premisesId: u.premisesId,
-        }));
-        setUnits(mappedUnits);
-        if (mappedUnits.length > 0) {
-          setSelectedUnit(mappedUnits[0]);
-        }
+      const data = await getUnits({});
+      // Map response to our interface
+      const mappedUnits: Unit[] = data.map((u: any) => ({
+        id: u.id,
+        accountId: u.premisesId || "",
+        accountTag: u.premisesAddress || "",
+        unitNumber: u.unit || "",
+        type: u.elevatorType || "Elevator",
+        category: u.cat || "CONSULTANT",
+        building: u.building || "",
+        customerId: u.customerId || "",
+        customerName: u.customerName || "",
+        status: u.isActive ? "Active" : "Inactive",
+        stateNumber: u.state || "",
+        premisesId: u.premisesId,
+      }));
+      setUnits(mappedUnits);
+      if (mappedUnits.length > 0) {
+        setSelectedUnit(mappedUnits[0]);
       }
     } catch (error) {
       console.error("Error fetching units:", error);

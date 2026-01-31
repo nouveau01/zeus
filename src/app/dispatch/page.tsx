@@ -5,6 +5,7 @@ import { useTabs } from "@/context/TabContext";
 import { AdminTools } from "@/components/AdminTools";
 import { EditableColumnHeader } from "@/components/EditableColumnHeader";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
+import { getTickets, getCallHistory } from "@/lib/actions/tickets";
 import {
   FileText,
   Save,
@@ -346,26 +347,30 @@ export default function DispatchPage() {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      // Build query params
-      const params = new URLSearchParams();
-      if (statusFilter !== "All") {
-        params.append("status", statusFilter === "Completed" || statusFilter === "Closed" ? "Completed" : "Open");
-      }
-      if (typeFilter !== "All") {
-        params.append("type", typeFilter);
-      }
+      // Build params for server action
+      const status = statusFilter === "All" ? "All" : (statusFilter === "Completed" || statusFilter === "Closed" ? "Completed" : "Open");
+
+      let formattedStartDate: string | undefined;
+      let formattedEndDate: string | undefined;
+
       if (startDate) {
         const [month, day, year] = startDate.split("/");
-        params.append("startDate", `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+        formattedStartDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
       }
       if (endDate) {
         const [month, day, year] = endDate.split("/");
-        params.append("endDate", `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`);
+        formattedEndDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
       }
 
-      const response = await fetch(`/api/sqlserver/tickets?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action instead of API fetch - data is pulled from SQL Server and mirrored to PostgreSQL
+      const data = await getTickets({
+        status: status as "Open" | "Completed" | "All",
+        type: typeFilter !== "All" ? typeFilter : undefined,
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+      });
+
+      if (data && data.length >= 0) {
 
         // Store full API data for detail view
         const fullDataMap = new Map<string, any>();
@@ -566,19 +571,8 @@ export default function DispatchPage() {
   // Fetch call history for a premises
   const fetchCallHistory = async (premisesId: string) => {
     try {
-      // Fetch both open and completed tickets for this premises
-      const [openRes, completedRes] = await Promise.all([
-        fetch(`/api/sqlserver/tickets?premisesId=${premisesId}&limit=20`),
-        fetch(`/api/sqlserver/tickets?status=Completed&premisesId=${premisesId}&limit=20`),
-      ]);
-
-      const openData = openRes.ok ? await openRes.json() : [];
-      const completedData = completedRes.ok ? await completedRes.json() : [];
-
-      // Combine and sort by date
-      const allTickets = [...openData, ...completedData].sort((a: any, b: any) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const allTickets = await getCallHistory(premisesId);
 
       // Map to call history format
       const history: CallHistoryItem[] = allTickets.slice(0, 20).map((t: any) => ({
@@ -587,7 +581,7 @@ export default function DispatchPage() {
         type: t.type,
         category: t.category || "None",
         location: `${t.premises?.address || ""}\nCITY ID: ${t.unitName || ""}`,
-        description: t.description || "",
+        description: t.description || t.scopeOfWork || "",
         resolution: t.resolution || "",
         worker: t.mechCrew || "",
         status: t.status,

@@ -19,6 +19,7 @@ import { useTabs } from "@/context/TabContext";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 import { AdminTools } from "@/components/AdminTools";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
+import { getAccounts } from "@/lib/actions/accounts";
 
 // Default field configuration for Accounts
 const ACCOUNTS_DEFAULT_FIELDS = createDefaultFields({
@@ -273,15 +274,11 @@ export default function AccountsPage() {
   const fetchAccounts = async () => {
     setLoading(true);
     try {
-      // Use SQL Server direct connection
-      const url = activeTab === "All"
-        ? "/api/sqlserver/premises"
-        : `/api/sqlserver/premises?filter=${encodeURIComponent(activeTab)}`;
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        setAccounts(data);
-      }
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getAccounts({
+        status: activeTab === "All" ? undefined : activeTab,
+      });
+      setAccounts(data);
     } catch (error) {
       console.error("Error fetching accounts:", error);
     } finally {

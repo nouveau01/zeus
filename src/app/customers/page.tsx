@@ -18,6 +18,7 @@ import {
 import { useTabs } from "@/context/TabContext";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 import { AdminTools } from "@/components/AdminTools";
+import { getCustomers } from "@/lib/actions/customers";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 
 // Default field configuration for Customers
@@ -239,15 +240,11 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      // Use SQL Server direct connection
-      const url = activeTab === "All"
-        ? "/api/sqlserver/customers"
-        : `/api/sqlserver/customers?type=${encodeURIComponent(activeTab)}`;
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        setCustomers(data);
-      }
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getCustomers({
+        status: activeTab === "All" ? undefined : activeTab,
+      });
+      setCustomers(data);
     } catch (error) {
       console.error("Error fetching customers:", error);
     } finally {
