@@ -271,6 +271,91 @@ export async function fetchAccountById(accountId: string) {
     });
   }
 
-  const accounts = await fetchAccounts({ limit: 1000 });
-  return accounts.find(a => a.id === accountId);
+  try {
+    const query = `
+      SELECT TOP 1
+        l.Loc,
+        l.ID,
+        l.Tag,
+        l.Owner,
+        l.Route,
+        l.Zone,
+        l.Terr as Territory,
+        l.En,
+        l.Rol,
+        l.Type,
+        l.PriceL,
+        l.Remark,
+        l.ColRemark,
+        l.SalesRemark,
+        l.fCreated,
+        l.fModified,
+        r.Name,
+        r.Address,
+        r.City,
+        r.State,
+        r.Zip,
+        r.Country,
+        r.Phone,
+        r.Fax,
+        r.Mobile,
+        r.Contact,
+        r.Email,
+        o.ID as OwnerID,
+        oRol.Name as OwnerName
+      FROM Loc l
+      LEFT JOIN Rol r ON l.Rol = r.ID
+      LEFT JOIN Owner o ON l.Owner = o.ID
+      LEFT JOIN Rol oRol ON o.Rol = oRol.ID
+      WHERE l.Loc = ${parseInt(accountId)}
+    `;
+
+    const accounts: any[] = await sqlserver.$queryRawUnsafe(query);
+
+    if (accounts.length === 0) {
+      return null;
+    }
+
+    const a = accounts[0];
+    const mappedAccount = {
+      id: a.Loc.toString(),
+      premisesId: a.ID || a.Loc.toString(),
+      tag: a.Tag || "",
+      name: a.Name || "",
+      address: a.Address || "",
+      city: a.City || "",
+      state: a.State || "",
+      zip: a.Zip || "",
+      country: a.Country || "United States",
+      phone: a.Phone || "",
+      fax: a.Fax || "",
+      mobile: a.Mobile || "",
+      contact: a.Contact || "",
+      email: a.Email || "",
+      isActive: a.En === 1,
+      route: a.Route,
+      zone: a.Zone,
+      territory: a.Territory,
+      type: a.Type,
+      priceLevel: a.PriceL,
+      remarks: a.Remark || "",
+      colRemarks: a.ColRemark || "",
+      salesRemarks: a.SalesRemark || "",
+      createdAt: a.fCreated,
+      updatedAt: a.fModified,
+      customerId: a.OwnerID?.toString() || null,
+      customerName: a.OwnerName || "",
+    };
+
+    // Mirror to PostgreSQL
+    await mirrorAccountToPostgres(mappedAccount);
+
+    return mappedAccount;
+  } catch (error) {
+    console.error("Error fetching account by ID from SQL Server:", error);
+    return prisma.premises.findUnique({
+      where: { id: accountId },
+      include: { customer: true, units: true },
+    });
+  }
 }

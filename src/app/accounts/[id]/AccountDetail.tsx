@@ -15,6 +15,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
+import { getAccountById } from "@/lib/actions/accounts";
 
 interface Unit {
   id: string;
@@ -284,10 +285,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   const fetchAccount = async () => {
     setLoading(true);
     try {
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/premises/${accountId}`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getAccountById(accountId);
+      if (data) {
         setAccount(data);
         setFormData(data);
         // Load remarks from database

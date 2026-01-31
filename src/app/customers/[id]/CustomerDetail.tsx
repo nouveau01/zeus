@@ -19,6 +19,7 @@ import {
 import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
+import { getCustomerById } from "@/lib/actions/customers";
 
 interface Contact {
   id: string;
@@ -211,10 +212,9 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   const fetchCustomer = async () => {
     setLoading(true);
     try {
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/customers/${customerId}`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getCustomerById(customerId);
+      if (data) {
         setCustomer(data);
         setFormData(data);
       }

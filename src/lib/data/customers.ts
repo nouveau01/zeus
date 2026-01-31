@@ -254,6 +254,75 @@ export async function fetchCustomerById(customerId: string) {
     });
   }
 
-  const customers = await fetchCustomers({ limit: 1 });
-  return customers.find(c => c.id === customerId);
+  try {
+    const query = `
+      SELECT TOP 1
+        o.ID,
+        o.Rol,
+        o.En,
+        o.Billing,
+        o.Type,
+        o.Custom1,
+        o.Custom2,
+        o.Remark,
+        o.fCreated,
+        o.fModified,
+        r.Name,
+        r.Address,
+        r.City,
+        r.State,
+        r.Zip,
+        r.Country,
+        r.Phone,
+        r.Fax,
+        r.Mobile,
+        r.Contact,
+        r.Email
+      FROM Owner o
+      LEFT JOIN Rol r ON o.Rol = r.ID
+      WHERE o.ID = ${parseInt(customerId)}
+    `;
+
+    const customers: any[] = await sqlserver.$queryRawUnsafe(query);
+
+    if (customers.length === 0) {
+      return null;
+    }
+
+    const c = customers[0];
+    const mappedCustomer = {
+      id: c.ID.toString(),
+      name: c.Name || "",
+      address: c.Address || "",
+      city: c.City || "",
+      state: c.State || "",
+      zip: c.Zip || "",
+      country: c.Country || "United States",
+      phone: c.Phone || "",
+      fax: c.Fax || "",
+      mobile: c.Mobile || "",
+      contact: c.Contact || "",
+      email: c.Email || "",
+      isActive: c.En === 1,
+      billing: c.Billing,
+      type: c.Type || "",
+      custom1: c.Custom1 || "",
+      custom2: c.Custom2 || "",
+      remarks: c.Remark || "",
+      createdAt: c.fCreated,
+      updatedAt: c.fModified,
+    };
+
+    // Mirror to PostgreSQL
+    await mirrorCustomerToPostgres(mappedCustomer);
+
+    return mappedCustomer;
+  } catch (error) {
+    console.error("Error fetching customer by ID from SQL Server:", error);
+    // Fallback to PostgreSQL
+    return prisma.customer.findUnique({
+      where: { id: customerId },
+      include: { premises: true },
+    });
+  }
 }

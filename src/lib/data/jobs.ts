@@ -241,6 +241,92 @@ export async function fetchJobById(jobId: string) {
     });
   }
 
-  const jobs = await fetchJobs({ limit: 1000 });
-  return jobs.find(j => j.id === jobId);
+  try {
+    const query = `
+      SELECT TOP 1
+        j.ID,
+        j.Loc,
+        j.Owner,
+        j.Status,
+        j.Type,
+        j.fDesc,
+        j.fDate,
+        j.CDate,
+        j.CBy,
+        j.Mech,
+        j.Super,
+        j.Est,
+        j.Budget,
+        j.PO,
+        j.Custom1,
+        j.Custom2,
+        j.Custom3,
+        j.Remark,
+        j.fCreated,
+        j.fModified,
+        jt.Type as TypeName,
+        l.Tag as LocTag,
+        lr.Address as LocAddress,
+        lr.City as LocCity,
+        lr.State as LocState,
+        o.ID as OwnerID,
+        oRol.Name as OwnerName
+      FROM Job j
+      LEFT JOIN JobType jt ON j.Type = jt.ID
+      LEFT JOIN Loc l ON j.Loc = l.Loc
+      LEFT JOIN Rol lr ON l.Rol = lr.ID
+      LEFT JOIN Owner o ON j.Owner = o.ID
+      LEFT JOIN Rol oRol ON o.Rol = oRol.ID
+      WHERE j.ID = ${parseInt(jobId)}
+    `;
+
+    const jobs: any[] = await sqlserver.$queryRawUnsafe(query);
+
+    if (jobs.length === 0) {
+      return null;
+    }
+
+    const j = jobs[0];
+    const mappedJob = {
+      id: j.ID.toString(),
+      externalId: j.ID.toString(),
+      jobName: j.fDesc || `Job ${j.ID}`,
+      description: j.fDesc || "",
+      status: j.Status === 0 ? "Open" : "Closed",
+      type: j.TypeName || "",
+      typeId: j.Type,
+      jobDate: j.fDate,
+      closedDate: j.CDate,
+      closedBy: j.CBy || "",
+      mechanic: j.Mech?.toString() || "",
+      supervisor: j.Super?.toString() || "",
+      estimate: j.Est,
+      budget: j.Budget,
+      poNumber: j.PO || "",
+      custom1: j.Custom1 || "",
+      custom2: j.Custom2 || "",
+      custom3: j.Custom3 || "",
+      remarks: j.Remark || "",
+      createdAt: j.fCreated,
+      updatedAt: j.fModified,
+      premisesId: j.Loc?.toString() || null,
+      premisesTag: j.LocTag || "",
+      premisesAddress: j.LocAddress || "",
+      premisesCity: j.LocCity || "",
+      premisesState: j.LocState || "",
+      customerId: j.OwnerID?.toString() || null,
+      customerName: j.OwnerName || "",
+    };
+
+    // Mirror to PostgreSQL
+    await mirrorJobToPostgres(mappedJob);
+
+    return mappedJob;
+  } catch (error) {
+    console.error("Error fetching job by ID from SQL Server:", error);
+    return prisma.job.findUnique({
+      where: { id: jobId },
+      include: { premises: true, customer: true, tickets: true },
+    });
+  }
 }

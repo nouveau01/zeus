@@ -19,6 +19,7 @@ import {
   Copy,
   ClipboardPaste,
 } from "lucide-react";
+import { getJobById } from "@/lib/actions/jobs";
 
 interface Job {
   id: string;
@@ -98,10 +99,9 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   const fetchJob = async () => {
     setLoading(true);
     try {
-      // Use SQL Server direct connection
-      const response = await fetch(`/api/sqlserver/jobs/${jobId}`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      const data = await getJobById(jobId);
+      if (data) {
         setJob(data);
         setFormData(data);
       }

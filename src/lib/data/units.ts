@@ -230,6 +230,80 @@ export async function fetchUnitById(unitId: string) {
     });
   }
 
-  const units = await fetchUnits({ limit: 1000 });
-  return units.find(u => u.id === unitId);
+  try {
+    const query = `
+      SELECT TOP 1
+        e.ID,
+        e.Loc,
+        e.Unit,
+        e.Car,
+        e.Capacity,
+        e.Speed,
+        e.Machine,
+        e.MFR,
+        e.Controller,
+        e.Motor,
+        e.ElevType,
+        e.Floors,
+        e.Stops,
+        e.En,
+        e.Route,
+        e.Remark,
+        e.Serial,
+        e.fCreated,
+        e.fModified,
+        l.Tag as LocTag,
+        r.Address as LocAddress,
+        r.City as LocCity,
+        r.State as LocState
+      FROM Elev e
+      LEFT JOIN Loc l ON e.Loc = l.Loc
+      LEFT JOIN Rol r ON l.Rol = r.ID
+      WHERE e.ID = ${parseInt(unitId)}
+    `;
+
+    const units: any[] = await sqlserver.$queryRawUnsafe(query);
+
+    if (units.length === 0) {
+      return null;
+    }
+
+    const u = units[0];
+    const mappedUnit = {
+      id: u.ID.toString(),
+      unit: u.Unit || "",
+      car: u.Car || "",
+      capacity: u.Capacity,
+      speed: u.Speed,
+      machine: u.Machine || "",
+      manufacturer: u.MFR || "",
+      controller: u.Controller || "",
+      motor: u.Motor || "",
+      elevatorType: u.ElevType || "",
+      floors: u.Floors,
+      stops: u.Stops,
+      isActive: u.En === 1,
+      route: u.Route,
+      remarks: u.Remark || "",
+      serial: u.Serial || "",
+      createdAt: u.fCreated,
+      updatedAt: u.fModified,
+      premisesId: u.Loc?.toString() || null,
+      premisesTag: u.LocTag || "",
+      premisesAddress: u.LocAddress || "",
+      premisesCity: u.LocCity || "",
+      premisesState: u.LocState || "",
+    };
+
+    // Mirror to PostgreSQL
+    await mirrorUnitToPostgres(mappedUnit);
+
+    return mappedUnit;
+  } catch (error) {
+    console.error("Error fetching unit by ID from SQL Server:", error);
+    return prisma.unit.findUnique({
+      where: { id: unitId },
+      include: { premises: true, tests: true },
+    });
+  }
 }

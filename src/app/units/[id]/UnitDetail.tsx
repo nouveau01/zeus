@@ -15,6 +15,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
+import { getUnitById } from "@/lib/actions/units";
 
 interface UnitData {
   id: string;
@@ -282,22 +283,21 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   useEffect(() => {
     const fetchUnit = async () => {
       try {
-        // Use SQL Server direct connection
-        const response = await fetch(`/api/sqlserver/units/${unitId}`);
-        if (response.ok) {
-          const data = await response.json();
+        // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+        const data = await getUnitById(unitId);
+        if (data) {
           const loadedUnit: UnitData = {
             id: data.id,
-            unitNumber: data.unitNumber || "",
+            unitNumber: data.unit || "",
             description: data.description || "",
             stateNumber: data.state || "",
             template: data.template || "Standard",
             category: data.cat || "",
-            type: data.unitType || "Elevator",
+            type: data.elevatorType || "Elevator",
             building: data.building || "",
             accountId: data.premisesId || "",
-            accountTag: data.premises?.address || data.premises?.premisesId || "",
-            status: data.status || "Active",
+            accountTag: data.premisesAddress || data.premisesTag || "",
+            status: data.isActive ? "Active" : "Inactive",
             group: data.group || "",
             onServiceSince: data.sinceDate ? new Date(data.sinceDate).toLocaleDateString() : "",
             lastServiceOn: data.lastDate ? new Date(data.lastDate).toLocaleDateString() : "",
