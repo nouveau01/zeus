@@ -193,10 +193,11 @@ export default function DispatchPage() {
   const [zoneFilter, setZoneFilter] = useState("All");
   const [printOnSave, setPrintOnSave] = useState(false);
 
-  // Date range
-  const [startDate, setStartDate] = useState("1/22/2026");
-  const [endDate, setEndDate] = useState("1/22/2026");
-  const [dateMode, setDateMode] = useState<"All" | "Day" | "Week" | "Month" | "Quarter" | "Year">("Year");
+  // Date range helper
+  const formatDate = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [dateMode, setDateMode] = useState<"All" | "Day" | "Week" | "Month" | "Quarter" | "Year">("All");
   const [superMode, setSuperMode] = useState(false);
 
   // Tickets
@@ -672,7 +673,35 @@ export default function DispatchPage() {
   // Date quick buttons
   const handleDateMode = (mode: "All" | "Day" | "Week" | "Month" | "Quarter" | "Year") => {
     setDateMode(mode);
-    // Would adjust date range based on mode
+    const today = new Date();
+
+    if (mode === "All") {
+      setStartDate("");
+      setEndDate("");
+    } else if (mode === "Day") {
+      setStartDate(formatDate(today));
+      setEndDate(formatDate(today));
+    } else if (mode === "Week") {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 7);
+      setStartDate(formatDate(weekAgo));
+      setEndDate(formatDate(today));
+    } else if (mode === "Month") {
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(today.getMonth() - 1);
+      setStartDate(formatDate(monthAgo));
+      setEndDate(formatDate(today));
+    } else if (mode === "Quarter") {
+      const quarterAgo = new Date(today);
+      quarterAgo.setMonth(today.getMonth() - 3);
+      setStartDate(formatDate(quarterAgo));
+      setEndDate(formatDate(today));
+    } else if (mode === "Year") {
+      const yearAgo = new Date(today);
+      yearAgo.setFullYear(today.getFullYear() - 1);
+      setStartDate(formatDate(yearAgo));
+      setEndDate(formatDate(today));
+    }
   };
 
   // Toolbar handlers
