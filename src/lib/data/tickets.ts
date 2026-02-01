@@ -34,7 +34,7 @@ interface FetchTicketsOptions {
   startDate?: string;
   endDate?: string;
   premisesId?: string;
-  limit?: number;
+  limit?: number;  // Default increased to 1000 for better coverage
 }
 
 /**
@@ -47,7 +47,7 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
     startDate,
     endDate,
     premisesId,
-    limit = 500
+    limit = 1000  // Increased from 500 to ensure we get more tickets
   } = options;
 
   if (!isSqlServerAvailable()) {
@@ -64,11 +64,13 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
     // Build query conditions
     const conditions: string[] = [];
 
+    // Use CDate (creation date) for filtering instead of DDate (dispatch date)
+    // This ensures tickets are found by when they were created, not when dispatched
     if (startDate) {
-      conditions.push(`DDate >= '${startDate}'`);
+      conditions.push(`CDate >= '${startDate}'`);
     }
     if (endDate) {
-      conditions.push(`DDate <= '${endDate} 23:59:59'`);
+      conditions.push(`CDate <= '${endDate} 23:59:59'`);
     }
     if (type && type !== "All" && TYPE_ID_MAP[type] !== undefined) {
       conditions.push(`Type = ${TYPE_ID_MAP[type]}`);
@@ -77,7 +79,7 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
       conditions.push(`${locField} = ${parseInt(premisesId)}`);
     }
 
-    // Build full query
+    // Build full query - order by ID DESC to get newest first
     let query = `SELECT TOP ${limit} * FROM ${table}`;
     if (conditions.length > 0) {
       query += ` WHERE ${conditions.join(" AND ")}`;

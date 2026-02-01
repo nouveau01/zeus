@@ -43,5 +43,19 @@ Include `<AdminTools>` in all module pages for admin customization:
 
 - Open tickets: `TicketO` table
 - Completed tickets: `TicketD` table
-- Query by `DDate` (dispatch date) for date filtering
-- `CDate` is creation date
+
+**Date fields in ticket tables:**
+- `CDate` - Creation date (when ticket was created)
+- `DDate` - Dispatch date (when ticket was dispatched)
+- `EDate` - End/Completion date (when ticket was completed)
+- `ID` - Auto-increment, newest tickets have highest IDs
+
+**IMPORTANT:** Use `CDate` for date filtering, not `DDate`, since DDate may be NULL or different.
+
+## Live Data Sync
+
+Data should ALWAYS be fetched fresh from SQL Server on every request:
+- No caching in Server Actions or data layer
+- Every page load/refresh gets latest data from SQL Server
+- Data is mirrored to PostgreSQL for backup only
+- If SQL Server is unavailable, fall back to PostgreSQL
