@@ -63,6 +63,32 @@ A ticket can be created long ago but completed today, so completed tickets must 
 - Quick date buttons: Day (today), Week (7 days), Month (30 days), Quarter (90 days), Year (365 days)
 - Clicking column headers toggles sort direction
 
+## Column Sorting Standard
+
+**ALL columns in data grids MUST be sortable.** Every column header should:
+- Be clickable to sort by that column
+- Toggle between ascending/descending on repeated clicks
+- Show a sort direction indicator (chevron up/down)
+
+Never use `field: null` for columns - every column gets a sort field.
+
+## Date/Time Display
+
+SQL Server dates come without timezone info. **Do NOT use timezone conversion** when displaying dates - display them as-is (they are already in EST/local time).
+
+```tsx
+// WRONG - causes timezone shift
+const date = new Date(dateStr);
+return date.toLocaleString(); // Converts UTC to local
+
+// RIGHT - parse and display without conversion
+const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T?(\d{2})?:?(\d{2})?/);
+if (parts) {
+  const [, year, month, day, hour = "0", minute = "0"] = parts;
+  // Format directly without Date object conversion
+}
+```
+
 ## Live Data Sync
 
 Data should ALWAYS be fetched fresh from SQL Server on every request:

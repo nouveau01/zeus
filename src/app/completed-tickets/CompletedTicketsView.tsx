@@ -92,7 +92,7 @@ interface Ticket {
 
 const TYPE_TABS = ["All", "Maintenance", "Modernization", "Repair", "Other", "NEW REPAIR"];
 
-type SortField = "ticketNumber" | "workOrder" | "date" | "type" | "category" | "accountId" | "account" | "mechCrew" | "hours" | "invoice" | "job" | "unit";
+type SortField = "ticketNumber" | "workOrder" | "date" | "type" | "category" | "accountId" | "account" | "mechCrew" | "bill" | "reviewed" | "pr" | "vd" | "inv" | "hours" | "invoice" | "job" | "unit" | "emailStatus";
 type SortDirection = "asc" | "desc";
 
 const STORAGE_KEY = "zeus-tickets-state";
@@ -108,8 +108,8 @@ interface PageState {
   supervisor: string;
 }
 
-// Column definitions with default widths
-const columns: { field: SortField | null; label: string; width: number }[] = [
+// Column definitions with default widths - ALL columns are sortable
+const columns: { field: SortField; label: string; width: number }[] = [
   { field: "ticketNumber", label: "Tick #", width: 70 },
   { field: "workOrder", label: "W/O#", width: 70 },
   { field: "date", label: "Date", width: 130 },
@@ -118,16 +118,16 @@ const columns: { field: SortField | null; label: string; width: number }[] = [
   { field: "accountId", label: "ID", width: 80 },
   { field: "account", label: "Account", width: 180 },
   { field: "mechCrew", label: "Mech/Crew", width: 80 },
-  { field: null, label: "Bill", width: 35 },
-  { field: null, label: "Rw", width: 35 },
-  { field: null, label: "PR", width: 35 },
-  { field: null, label: "Vd", width: 35 },
-  { field: null, label: "Inv", width: 35 },
+  { field: "bill", label: "Bill", width: 35 },
+  { field: "reviewed", label: "Rw", width: 35 },
+  { field: "pr", label: "PR", width: 35 },
+  { field: "vd", label: "Vd", width: 35 },
+  { field: "inv", label: "Inv", width: 35 },
   { field: "hours", label: "Hours", width: 60 },
   { field: "invoice", label: "Invoice", width: 60 },
   { field: "job", label: "Job", width: 60 },
   { field: "unit", label: "Unit", width: 70 },
-  { field: null, label: "Email Status", width: 90 },
+  { field: "emailStatus", label: "Email Status", width: 90 },
 ];
 
 interface CompletedTicketsViewProps {
@@ -329,6 +329,30 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
         aVal = (a.unitName || "").toLowerCase();
         bVal = (b.unitName || "").toLowerCase();
         break;
+      case "bill":
+        aVal = a.bill ? 1 : 0;
+        bVal = b.bill ? 1 : 0;
+        break;
+      case "reviewed":
+        aVal = a.reviewed ? 1 : 0;
+        bVal = b.reviewed ? 1 : 0;
+        break;
+      case "pr":
+        aVal = a.pr ? 1 : 0;
+        bVal = b.pr ? 1 : 0;
+        break;
+      case "vd":
+        aVal = a.vd ? 1 : 0;
+        bVal = b.vd ? 1 : 0;
+        break;
+      case "inv":
+        aVal = a.inv ? 1 : 0;
+        bVal = b.inv ? 1 : 0;
+        break;
+      case "emailStatus":
+        aVal = (a.emailStatus || "").toLowerCase();
+        bVal = (b.emailStatus || "").toLowerCase();
+        break;
       default:
         return 0;
     }
@@ -348,7 +372,27 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    // Parse date without timezone conversion - treat as local time from SQL Server
     const date = new Date(dateStr);
+    // Check if the date string has timezone info - if not, adjust for UTC offset
+    // SQL Server dates come without timezone, JS interprets as UTC
+    // We need to display as-is (EST) without conversion
+    const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || dateStr.includes('-', 10);
+
+    if (!hasTimezone) {
+      // No timezone in source - parse components directly to avoid conversion
+      const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T?(\d{2})?:?(\d{2})?/);
+      if (parts) {
+        const [, year, month, day, hour = "0", minute = "0"] = parts;
+        const h = parseInt(hour);
+        const ampm = h >= 12 ? "PM" : "AM";
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${parseInt(month)}/${parseInt(day)}/${year} ${h12}:${minute.padStart(2, '0')} ${ampm}`;
+      }
+    }
+
+    // Fallback to standard formatting
     return date.toLocaleDateString("en-US", {
       month: "numeric",
       day: "numeric",
@@ -622,14 +666,12 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
                 style={{ width: columnWidths[index], maxWidth: columnWidths[index] }}
               >
                 <div
-                  className={`px-2 py-1.5 font-medium text-[#333] select-none overflow-hidden whitespace-nowrap ${
-                    col.field ? "cursor-pointer hover:bg-[#e0e0e0]" : ""
-                  } ${index >= 8 && index <= 12 ? "text-center" : ""} ${index === 13 ? "text-right" : ""}`}
-                  onClick={() => col.field && handleSort(col.field)}
+                  className={`px-2 py-1.5 font-medium text-[#333] select-none overflow-hidden whitespace-nowrap cursor-pointer hover:bg-[#e0e0e0] ${index >= 8 && index <= 12 ? "text-center" : ""} ${index === 13 ? "text-right" : ""}`}
+                  onClick={() => handleSort(col.field)}
                 >
                   <div className={`flex items-center gap-1 ${index >= 8 && index <= 12 ? "justify-center" : ""} ${index === 13 ? "justify-end" : ""}`}>
                     <span className="overflow-hidden text-ellipsis">{col.label}</span>
-                    {col.field && <SortIcon field={col.field} />}
+                    <SortIcon field={col.field} />
                   </div>
                 </div>
                 {/* Resize handle */}
