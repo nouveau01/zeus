@@ -118,18 +118,25 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
 
-  // Filters - default to wide date range to show all tickets
+  // Filters - default to last 30 days
   const [catalogue, setCatalogue] = useState("None");
   const [mechanic, setMechanic] = useState("All");
   const [reviewed, setReviewed] = useState("All");
   const [billed, setBilled] = useState("All");
   const [payroll, setPayroll] = useState("All");
   const [supervisor, setSupervisor] = useState("All");
-  const [startDate, setStartDate] = useState("2020-01-01");
-  const [endDate, setEndDate] = useState("2030-12-31");
+  // Default to last 30 days
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 29);
+    return d.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
   const [activeTab, setActiveTab] = useState("All");
   const [showTotals, setShowTotals] = useState(false);
-  const [sortField, setSortField] = useState<SortField>("ticketNumber");
+  const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -301,19 +308,19 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
 
     switch (range) {
       case "Day":
-        start.setDate(today.getDate() - 1);
+        // Today only - start and end are both today
         break;
       case "Week":
-        start.setDate(today.getDate() - 7);
+        start.setDate(today.getDate() - 6); // Last 7 days including today
         break;
       case "Month":
-        start.setMonth(today.getMonth() - 1);
+        start.setDate(today.getDate() - 29); // Last 30 days
         break;
       case "Quarter":
-        start.setMonth(today.getMonth() - 3);
+        start.setDate(today.getDate() - 89); // Last 90 days
         break;
       case "Year":
-        start.setFullYear(today.getFullYear() - 1);
+        start.setDate(today.getDate() - 364); // Last 365 days
         break;
     }
 
@@ -423,6 +430,17 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
         </div>
 
         <div className="flex items-center gap-1">
+          <span className="text-[11px]">Supervisor</span>
+          <select
+            value={supervisor}
+            onChange={(e) => setSupervisor(e.target.value)}
+            className="px-1 py-0.5 border border-[#a0a0a0] text-[11px] bg-white min-w-[50px]"
+          >
+            <option value="All">All</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-1">
           <span className="text-[11px]">Reviewed</span>
           <select
             value={reviewed}
@@ -432,27 +450,6 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
             <option value="All">All</option>
             <option value="Yes">Yes</option>
             <option value="No">No</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <span className="text-[11px]">Start</span>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="px-1 py-0.5 border border-[#a0a0a0] text-[11px] bg-white"
-          />
-        </div>
-
-        <div className="flex items-center gap-1">
-          <span className="text-[11px]">Supervisor</span>
-          <select
-            value={supervisor}
-            onChange={(e) => setSupervisor(e.target.value)}
-            className="px-1 py-0.5 border border-[#a0a0a0] text-[11px] bg-white min-w-[50px]"
-          >
-            <option value="All">All</option>
           </select>
         </div>
 
@@ -482,6 +479,17 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
           </select>
         </div>
 
+        {/* Start and End date pickers together */}
+        <div className="flex items-center gap-1">
+          <span className="text-[11px]">Start</span>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-1 py-0.5 border border-[#a0a0a0] text-[11px] bg-white"
+          />
+        </div>
+
         <div className="flex items-center gap-1">
           <span className="text-[11px]">End</span>
           <input
@@ -492,6 +500,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
           />
         </div>
 
+        {/* Quick date range buttons */}
         <div className="flex items-center gap-1">
           {["Day", "Week", "Month", "Quarter", "Year"].map((range) => (
             <button
