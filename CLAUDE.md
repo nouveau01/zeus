@@ -56,6 +56,13 @@ Include `<AdminTools>` in all module pages for admin customization:
 
 A ticket can be created long ago but completed today, so completed tickets must be ordered by completion date, not ticket ID.
 
+## Completed Tickets UI
+
+- Default sort: `date DESC` (most recently completed first)
+- Start and End date pickers should be next to each other
+- Quick date buttons: Day (today), Week (7 days), Month (30 days), Quarter (90 days), Year (365 days)
+- Clicking column headers toggles sort direction
+
 ## Live Data Sync
 
 Data should ALWAYS be fetched fresh from SQL Server on every request:
