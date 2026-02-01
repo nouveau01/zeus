@@ -371,14 +371,17 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
     );
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "";
+  const formatDate = (dateInput: string | Date | null | undefined) => {
+    if (!dateInput) return "";
+
+    // Convert to string if it's a Date object
+    const dateStr = dateInput instanceof Date ? dateInput.toISOString() : String(dateInput);
+
     // Parse date without timezone conversion - treat as local time from SQL Server
     const date = new Date(dateStr);
-    // Check if the date string has timezone info - if not, adjust for UTC offset
-    // SQL Server dates come without timezone, JS interprets as UTC
-    // We need to display as-is (EST) without conversion
-    const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || dateStr.includes('-', 10);
+
+    // Check if the date string has timezone info
+    const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || /T\d{2}:\d{2}:\d{2}[+-]/.test(dateStr);
 
     if (!hasTimezone) {
       // No timezone in source - parse components directly to avoid conversion
@@ -392,7 +395,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
       }
     }
 
-    // Fallback to standard formatting
+    // Fallback to standard formatting (for dates with timezone or unparseable)
     return date.toLocaleDateString("en-US", {
       month: "numeric",
       day: "numeric",
