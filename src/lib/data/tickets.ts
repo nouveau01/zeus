@@ -80,12 +80,15 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
       conditions.push(`${locField} = ${parseInt(premisesId)}`);
     }
 
-    // Build full query - order by ID DESC to get newest first
+    // Build full query
+    // For completed tickets, order by EDate (completion date) to show most recently completed first
+    // For open tickets, order by ID (creation order)
+    const orderField = isCompleted ? "EDate" : "ID";
     let query = `SELECT TOP ${limit} * FROM ${table}`;
     if (conditions.length > 0) {
       query += ` WHERE ${conditions.join(" AND ")}`;
     }
-    query += ` ORDER BY ID DESC`;
+    query += ` ORDER BY ${orderField} DESC`;
 
     // Fetch from SQL Server
     const tickets: any[] = await sqlserver.$queryRawUnsafe(query);
