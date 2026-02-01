@@ -131,3 +131,24 @@ aa32e1c Update detail pages and data layer fetch by ID functions
 - [ ] Implement full sync for historical data migration
 - [ ] Add real-time sync status indicator in UI
 - [ ] Complete phase-out plan for SQL Server dependency
+
+## Development Standards
+
+### Column Resize Handles (Added 2026-02-01)
+**IMPORTANT**: Always use the wider resize handle pattern for any columns in data grids/tables:
+
+```tsx
+{/* Resize handle - wider clickable area with thin visual indicator */}
+<div
+  className="absolute top-0 right-[-4px] w-[9px] h-full cursor-col-resize z-10 group"
+  onMouseDown={(e) => handleResizeStart(index, e)}
+>
+  <div className="absolute top-0 left-[4px] w-[1px] h-full bg-transparent group-hover:bg-[#0078d4]" />
+</div>
+```
+
+This pattern:
+- Creates a 9px clickable area (instead of the original 4px)
+- Keeps the visual indicator thin (1px line) that appears on hover
+- Works reliably over Tailscale/remote connections
+- Should be used in ALL module pages with data grids
