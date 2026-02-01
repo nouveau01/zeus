@@ -374,37 +374,21 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   const formatDate = (dateInput: string | Date | null | undefined) => {
     if (!dateInput) return "";
 
-    // Convert to string if it's a Date object
-    const dateStr = dateInput instanceof Date ? dateInput.toISOString() : String(dateInput);
+    // SQL Server stores dates in EST but JavaScript interprets them as UTC
+    // Use UTC methods to get the original values stored in SQL Server
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
 
-    // Parse date without timezone conversion - treat as local time from SQL Server
-    const date = new Date(dateStr);
+    // Use UTC methods to avoid timezone conversion - this gives us the raw values from SQL Server
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const year = date.getUTCFullYear();
+    const hours = date.getUTCHours();
+    const minutes = date.getUTCMinutes();
 
-    // Check if the date string has timezone info
-    const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || /T\d{2}:\d{2}:\d{2}[+-]/.test(dateStr);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
 
-    if (!hasTimezone) {
-      // No timezone in source - parse components directly to avoid conversion
-      const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T?(\d{2})?:?(\d{2})?/);
-      if (parts) {
-        const [, year, month, day, hour = "0", minute = "0"] = parts;
-        const h = parseInt(hour);
-        const ampm = h >= 12 ? "PM" : "AM";
-        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-        return `${parseInt(month)}/${parseInt(day)}/${year} ${h12}:${minute.padStart(2, '0')} ${ampm}`;
-      }
-    }
-
-    // Fallback to standard formatting (for dates with timezone or unparseable)
-    return date.toLocaleDateString("en-US", {
-      month: "numeric",
-      day: "numeric",
-      year: "numeric",
-    }) + " " + date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+    return `${month}/${day}/${year} ${h12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   };
 
   const setDateRange = (range: string) => {
