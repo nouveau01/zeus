@@ -70,3 +70,91 @@ Data should ALWAYS be fetched fresh from SQL Server on every request:
 - Every page load/refresh gets latest data from SQL Server
 - Data is mirrored to PostgreSQL for backup only
 - If SQL Server is unavailable, fall back to PostgreSQL
+
+## Module Page Layout Standard
+
+**ALL module pages with data grids MUST use the same flex-based layout pattern.**
+
+When building a new module, copy the layout from `/src/app/customers/page.tsx` as a starting template, then adjust:
+- Column definitions (fields, labels, widths)
+- Toolbar/filter components (may vary per module)
+- Data fields in rows
+
+**The structure and placement of everything is always the same:**
+
+1. **Column state management:**
+```tsx
+const columns: { field: string | null; label: string; width: number }[] = [
+  { field: "fieldName", label: "Display Label", width: 100 },
+  // ... more columns
+];
+const [columnWidths, setColumnWidths] = useState<number[]>(columns.map(c => c.width));
+```
+
+2. **Resize handlers:**
+```tsx
+const handleResizeStart = (index: number, e: React.MouseEvent) => {
+  e.preventDefault();
+  const startX = e.clientX;
+  const startWidth = columnWidths[index];
+
+  const handleMouseMove = (moveEvent: MouseEvent) => {
+    const diff = moveEvent.clientX - startX;
+    const newWidth = Math.max(30, startWidth + diff);
+    setColumnWidths(prev => {
+      const updated = [...prev];
+      updated[index] = newWidth;
+      return updated;
+    });
+  };
+
+  const handleMouseUp = () => {
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  };
+
+  document.addEventListener("mousemove", handleMouseMove);
+  document.addEventListener("mouseup", handleMouseUp);
+};
+```
+
+3. **Header row with flex layout:**
+```tsx
+<div className="flex bg-[#f0f0f0] border-b border-[#999] text-xs font-semibold">
+  {columns.map((col, index) => (
+    <div
+      key={col.field || index}
+      className="relative flex items-center px-1 py-0.5 border-r border-[#999]"
+      style={{ width: columnWidths[index], minWidth: columnWidths[index] }}
+    >
+      {/* Column label and sort indicator */}
+      {/* Resize handle (see Column Resize Handles section) */}
+    </div>
+  ))}
+</div>
+```
+
+4. **Data rows with matching flex layout:**
+```tsx
+<div className="flex-1 overflow-auto">
+  {data.map((item) => (
+    <div key={item.id} className="flex border-b border-[#ccc] text-xs hover:bg-[#e8f4fc]">
+      {columns.map((col, index) => (
+        <div
+          key={col.field || index}
+          className="px-1 py-0.5 border-r border-[#e0e0e0] truncate"
+          style={{ width: columnWidths[index], minWidth: columnWidths[index] }}
+        >
+          {/* Cell content */}
+        </div>
+      ))}
+    </div>
+  ))}
+</div>
+```
+
+**Key principles:**
+- Use flex layout, NOT HTML tables
+- Single `columnWidths` array controls both header and body column widths
+- All columns get resize handles (see Column Resize Handles section)
+- Toolbar/filters can vary but grid structure stays consistent
