@@ -858,12 +858,13 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
                     <SortIcon field={col.field} />
                   </div>
                 </div>
-                {/* Resize handle */}
+                {/* Resize handle - wider clickable area with thin visual indicator */}
                 <div
-                  className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-[#0078d4] z-10"
+                  className="absolute top-0 right-[-4px] w-[9px] h-full cursor-col-resize z-10 group"
                   onMouseDown={(e) => handleResizeStart(index, e)}
-                  style={{ cursor: "col-resize" }}
-                />
+                >
+                  <div className="absolute top-0 left-[4px] w-[1px] h-full bg-transparent group-hover:bg-[#0078d4]" />
+                </div>
               </div>
             ))}
           </div>

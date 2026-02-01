@@ -947,9 +947,11 @@ export default function DispatchPage() {
               <tr>
                 <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0] relative" style={{ width: columnWidths.selector, minWidth: columnWidths.selector }}>
                   <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#316ac5]"
+                    className="absolute right-[-4px] top-0 bottom-0 w-[9px] cursor-col-resize z-10 group"
                     onMouseDown={(e) => handleColumnResizeStart(e, "selector")}
-                  />
+                  >
+                    <div className="absolute top-0 left-[4px] w-[1px] h-full bg-transparent group-hover:bg-[#316ac5]" />
+                  </div>
                 </th>
                 <EditableColumnHeader
                   fieldName="ticketNumber"
