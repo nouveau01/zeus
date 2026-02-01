@@ -108,6 +108,28 @@ interface PageState {
   supervisor: string;
 }
 
+// Column definitions with default widths
+const columns: { field: SortField | null; label: string; width: number }[] = [
+  { field: "ticketNumber", label: "Tick #", width: 70 },
+  { field: "workOrder", label: "W/O#", width: 70 },
+  { field: "date", label: "Date", width: 130 },
+  { field: "type", label: "Type", width: 90 },
+  { field: "category", label: "Category", width: 70 },
+  { field: "accountId", label: "ID", width: 80 },
+  { field: "account", label: "Account", width: 180 },
+  { field: "mechCrew", label: "Mech/Crew", width: 80 },
+  { field: null, label: "Bill", width: 35 },
+  { field: null, label: "Rw", width: 35 },
+  { field: null, label: "PR", width: 35 },
+  { field: null, label: "Vd", width: 35 },
+  { field: null, label: "Inv", width: 35 },
+  { field: "hours", label: "Hours", width: 60 },
+  { field: "invoice", label: "Invoice", width: 60 },
+  { field: "job", label: "Job", width: 60 },
+  { field: "unit", label: "Unit", width: 70 },
+  { field: null, label: "Email Status", width: 90 },
+];
+
 interface CompletedTicketsViewProps {
   premisesId?: string | null;
 }
@@ -125,7 +147,6 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   const [billed, setBilled] = useState("All");
   const [payroll, setPayroll] = useState("All");
   const [supervisor, setSupervisor] = useState("All");
-  // Default to last 30 days
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 29);
@@ -140,6 +161,42 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [isHydrated, setIsHydrated] = useState(false);
 
+  // Column resize state
+  const [columnWidths, setColumnWidths] = useState<number[]>(columns.map(c => c.width));
+  const [resizing, setResizing] = useState<{ index: number; startX: number; startWidth: number } | null>(null);
+
+  // Column resize handlers
+  const handleResizeStart = (index: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing({ index, startX: e.clientX, startWidth: columnWidths[index] });
+  };
+
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - resizing.startX;
+      const newWidth = Math.max(30, resizing.startWidth + diff);
+      setColumnWidths(prev => {
+        const updated = [...prev];
+        updated[resizing.index] = newWidth;
+        return updated;
+      });
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizing]);
+
   // Load state from localStorage on mount
   useEffect(() => {
     try {
@@ -147,7 +204,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
       if (saved) {
         const state: PageState = JSON.parse(saved);
         setActiveTab(state.activeTab || "All");
-        setSortField(state.sortField || "ticketNumber");
+        setSortField(state.sortField || "date");
         setSortDirection(state.sortDirection || "desc");
         setSelectedRow(state.selectedRow || null);
         setShowTotals(state.showTotals || false);
@@ -191,7 +248,6 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
       const data = await getTickets({
         status: "Completed",
         type: activeTab !== "All" ? activeTab : undefined,
@@ -216,7 +272,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection("asc");
+      setSortDirection(field === "date" ? "desc" : "asc");
     }
   };
 
@@ -283,10 +339,12 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   });
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronDown className="w-3 h-3 text-gray-400" />;
-    return sortDirection === "asc"
-      ? <ChevronUp className="w-3 h-3 text-blue-600" />
-      : <ChevronDown className="w-3 h-3 text-blue-600" />;
+    if (sortField !== field) return null;
+    return sortDirection === "asc" ? (
+      <ChevronUp className="w-3 h-3" />
+    ) : (
+      <ChevronDown className="w-3 h-3" />
+    );
   };
 
   const formatDate = (dateStr: string) => {
@@ -308,19 +366,18 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
 
     switch (range) {
       case "Day":
-        // Today only - start and end are both today
         break;
       case "Week":
-        start.setDate(today.getDate() - 6); // Last 7 days including today
+        start.setDate(today.getDate() - 6);
         break;
       case "Month":
-        start.setDate(today.getDate() - 29); // Last 30 days
+        start.setDate(today.getDate() - 29);
         break;
       case "Quarter":
-        start.setDate(today.getDate() - 89); // Last 90 days
+        start.setDate(today.getDate() - 89);
         break;
       case "Year":
-        start.setDate(today.getDate() - 364); // Last 365 days
+        start.setDate(today.getDate() - 364);
         break;
     }
 
@@ -328,11 +385,9 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
     setEndDate(today.toISOString().split("T")[0]);
   };
 
-  // Calculate totals
   const totalTickets = sortedTickets.length;
   const totalHours = sortedTickets.reduce((sum, t) => sum + Number(t.hours), 0);
 
-  // Don't render until hydrated to avoid flicker
   if (!isHydrated) {
     return (
       <div className="h-full flex items-center justify-center bg-white">
@@ -355,6 +410,31 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
       }
     } catch (error) {
       console.error("Error updating ticket:", error);
+    }
+  };
+
+  // Get cell value for a ticket by column index
+  const getCellValue = (ticket: Ticket, colIndex: number) => {
+    switch (colIndex) {
+      case 0: return ticket.ticketNumber;
+      case 1: return ticket.workOrderNumber || ticket.ticketNumber;
+      case 2: return formatDate(ticket.date);
+      case 3: return ticket.type;
+      case 4: return ticket.category || "";
+      case 5: return ticket.accountId || "";
+      case 6: return ticket.premises?.address || "";
+      case 7: return ticket.mechCrew || "";
+      case 8: return { type: "checkbox", field: "bill", value: ticket.bill };
+      case 9: return { type: "checkbox", field: "reviewed", value: ticket.reviewed };
+      case 10: return { type: "checkbox", field: "pr", value: ticket.pr };
+      case 11: return { type: "checkbox", field: "vd", value: ticket.vd };
+      case 12: return { type: "checkbox", field: "inv", value: ticket.inv };
+      case 13: return Number(ticket.hours).toFixed(2);
+      case 14: return ticket.invoice?.invoiceNumber || "";
+      case 15: return ticket.job?.externalId || "";
+      case 16: return ticket.unitName || "";
+      case 17: return ticket.emailStatus || "No Email Sent";
+      default: return "";
     }
   };
 
@@ -383,7 +463,6 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
               title={item.title}
               onClick={async () => {
                 if (item.action === "new") {
-                  // Tickets should be created from dispatch or job context
                   alert("To create a new ticket, use the Dispatch module or create from a Job.");
                 } else if (item.action === "edit" && selectedRow) {
                   const ticket = tickets.find(t => t.id === selectedRow);
@@ -515,14 +594,14 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
       </div>
 
       {/* Tabs */}
-      <div className="bg-white flex items-end px-2 pt-1">
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
         {TYPE_TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-1.5 text-[12px] border-t border-l border-r rounded-t -mb-px ${
               activeTab === tab
-                ? "bg-white border-[#c0c0c0] border-b-white z-10 font-medium"
+                ? "bg-white border-[#a0a0a0] border-b-white z-10 font-medium"
                 : "bg-[#e8e8e8] border-[#c0c0c0] text-[#606060] hover:bg-[#f0f0f0]"
             }`}
           >
@@ -534,227 +613,113 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
       {/* Grid Container */}
       <div className="flex-1 bg-white border border-[#a0a0a0] mx-2 mb-2 flex flex-col overflow-hidden">
         {/* Column Headers */}
-        <table className="w-full border-collapse table-fixed">
-          <thead>
-            <tr className="bg-[#f0f0f0] text-[12px] text-left">
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "5%" }}
-                onClick={() => handleSort("ticketNumber")}
+        <div className="bg-[#f0f0f0] border-b border-[#c0c0c0] flex-shrink-0 overflow-x-auto">
+          <div className="flex text-[12px]" style={{ minWidth: "max-content" }}>
+            {columns.map((col, index) => (
+              <div
+                key={index}
+                className="relative flex-shrink-0 border-r border-[#c0c0c0] last:border-r-0"
+                style={{ width: columnWidths[index] }}
               >
-                <div className="flex items-center gap-1">
-                  Tick #
-                  <SortIcon field="ticketNumber" />
+                <div
+                  className={`px-2 py-1.5 font-medium text-[#333] select-none truncate ${
+                    col.field ? "cursor-pointer hover:bg-[#e0e0e0]" : ""
+                  } ${index >= 8 && index <= 12 ? "text-center" : ""} ${index === 13 ? "text-right" : ""}`}
+                  onClick={() => col.field && handleSort(col.field)}
+                >
+                  <div className={`flex items-center gap-1 ${index >= 8 && index <= 12 ? "justify-center" : ""} ${index === 13 ? "justify-end" : ""}`}>
+                    <span className="truncate">{col.label}</span>
+                    {col.field && <SortIcon field={col.field} />}
+                  </div>
                 </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "5%" }}
-                onClick={() => handleSort("workOrder")}
-              >
-                <div className="flex items-center gap-1">
-                  W/O#
-                  <SortIcon field="workOrder" />
+                {/* Resize handle */}
+                <div
+                  className="absolute top-0 right-[-4px] w-[9px] h-full cursor-col-resize z-10 group"
+                  onMouseDown={(e) => handleResizeStart(index, e)}
+                >
+                  <div className="absolute top-0 left-[4px] w-[1px] h-full bg-transparent group-hover:bg-[#0078d4]" />
                 </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "10%" }}
-                onClick={() => handleSort("date")}
-              >
-                <div className="flex items-center gap-1">
-                  Date
-                  <SortIcon field="date" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "6%" }}
-                onClick={() => handleSort("type")}
-              >
-                <div className="flex items-center gap-1">
-                  Type
-                  <SortIcon field="type" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "6%" }}
-                onClick={() => handleSort("category")}
-              >
-                <div className="flex items-center gap-1">
-                  Category
-                  <SortIcon field="category" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "7%" }}
-                onClick={() => handleSort("accountId")}
-              >
-                <div className="flex items-center gap-1">
-                  ID
-                  <SortIcon field="accountId" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "12%" }}
-                onClick={() => handleSort("account")}
-              >
-                <div className="flex items-center gap-1">
-                  Account
-                  <SortIcon field="account" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "10%" }}
-                onClick={() => handleSort("mechCrew")}
-              >
-                <div className="flex items-center gap-1">
-                  Mech/Crew
-                  <SortIcon field="mechCrew" />
-                </div>
-              </th>
-              <th className="px-2 py-1.5 font-medium text-[#333] select-none border border-[#c0c0c0] text-center" style={{ width: "3%" }}>Bill</th>
-              <th className="px-2 py-1.5 font-medium text-[#333] select-none border border-[#c0c0c0] text-center" style={{ width: "3%" }}>Rw</th>
-              <th className="px-2 py-1.5 font-medium text-[#333] select-none border border-[#c0c0c0] text-center" style={{ width: "3%" }}>PR</th>
-              <th className="px-2 py-1.5 font-medium text-[#333] select-none border border-[#c0c0c0] text-center" style={{ width: "3%" }}>Vd</th>
-              <th className="px-2 py-1.5 font-medium text-[#333] select-none border border-[#c0c0c0] text-center" style={{ width: "3%" }}>Inv</th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-right"
-                style={{ width: "5%" }}
-                onClick={() => handleSort("hours")}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Hours
-                  <SortIcon field="hours" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "5%" }}
-                onClick={() => handleSort("invoice")}
-              >
-                <div className="flex items-center gap-1">
-                  Invoice
-                  <SortIcon field="invoice" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "5%" }}
-                onClick={() => handleSort("job")}
-              >
-                <div className="flex items-center gap-1">
-                  Job
-                  <SortIcon field="job" />
-                </div>
-              </th>
-              <th
-                className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
-                style={{ width: "6%" }}
-                onClick={() => handleSort("unit")}
-              >
-                <div className="flex items-center gap-1">
-                  Unit
-                  <SortIcon field="unit" />
-                </div>
-              </th>
-              <th className="px-2 py-1.5 font-medium text-[#333] select-none border border-[#c0c0c0]">Email Status</th>
-            </tr>
-          </thead>
-        </table>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Data Rows */}
         <div className="flex-1 overflow-auto">
-          <table className="w-full border-collapse table-fixed">
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={18} className="p-4 text-center text-[#808080] border border-[#d0d0d0]">Loading...</td>
-                </tr>
-              ) : sortedTickets.length === 0 ? (
-                <tr>
-                  <td colSpan={18} className="p-4 text-center text-[#808080] border border-[#d0d0d0]">No completed tickets found</td>
-                </tr>
-              ) : (
-                sortedTickets.map((ticket) => (
-                  <tr
-                    key={ticket.id}
-                    onClick={() => setSelectedRow(ticket.id)}
-                    onDoubleClick={() => handleDoubleClick(ticket)}
-                    className={`text-[12px] cursor-pointer ${
-                      selectedRow === ticket.id
-                        ? "bg-[#0078d4] text-white"
-                        : "bg-white hover:bg-[#f0f8ff]"
-                    }`}
-                  >
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "5%" }}>{ticket.ticketNumber}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "5%" }}>{ticket.workOrderNumber || ticket.ticketNumber}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "10%" }}>{formatDate(ticket.date)}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "6%" }}>{ticket.type}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "6%" }}>{ticket.category || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "7%" }}>{ticket.accountId || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "12%" }}>{ticket.premises?.address || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "10%" }}>{ticket.mechCrew || ""}</td>
-                    <td className="px-2 py-1 text-center border border-[#d0d0d0]" style={{ width: "3%" }}>
-                      <input
-                        type="checkbox"
-                        checked={ticket.bill}
-                        onChange={(e) => updateTicketCheckbox(ticket.id, "bill", e.target.checked)}
-                        className="w-3 h-3 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-2 py-1 text-center border border-[#d0d0d0]" style={{ width: "3%" }}>
-                      <input
-                        type="checkbox"
-                        checked={ticket.reviewed}
-                        onChange={(e) => updateTicketCheckbox(ticket.id, "reviewed", e.target.checked)}
-                        className="w-3 h-3 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-2 py-1 text-center border border-[#d0d0d0]" style={{ width: "3%" }}>
-                      <input
-                        type="checkbox"
-                        checked={ticket.pr}
-                        onChange={(e) => updateTicketCheckbox(ticket.id, "pr", e.target.checked)}
-                        className="w-3 h-3 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-2 py-1 text-center border border-[#d0d0d0]" style={{ width: "3%" }}>
-                      <input
-                        type="checkbox"
-                        checked={ticket.vd}
-                        onChange={(e) => updateTicketCheckbox(ticket.id, "vd", e.target.checked)}
-                        className="w-3 h-3 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-2 py-1 text-center border border-[#d0d0d0]" style={{ width: "3%" }}>
-                      <input
-                        type="checkbox"
-                        checked={ticket.inv}
-                        onChange={(e) => updateTicketCheckbox(ticket.id, "inv", e.target.checked)}
-                        className="w-3 h-3 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-2 py-1 text-right border border-[#d0d0d0]" style={{ width: "5%" }}>{Number(ticket.hours).toFixed(2)}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "5%" }}>{ticket.invoice?.invoiceNumber || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "5%" }}>{ticket.job?.externalId || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "6%" }}>{ticket.unitName || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]">{ticket.emailStatus || "No Email Sent"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          {loading ? (
+            <div className="p-4 text-center text-[#808080]">Loading...</div>
+          ) : sortedTickets.length === 0 ? (
+            <div className="p-4 text-center text-[#808080]">No completed tickets found</div>
+          ) : (
+            <div style={{ minWidth: "max-content" }}>
+              {sortedTickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  onClick={() => setSelectedRow(ticket.id)}
+                  onDoubleClick={() => handleDoubleClick(ticket)}
+                  className={`flex text-[12px] cursor-pointer border-b border-[#d0d0d0] ${
+                    selectedRow === ticket.id
+                      ? "bg-[#0078d4] text-white"
+                      : "bg-white hover:bg-[#f0f8ff]"
+                  }`}
+                >
+                  {columns.map((col, colIndex) => {
+                    const cellValue = getCellValue(ticket, colIndex);
+
+                    // Checkbox columns
+                    if (typeof cellValue === "object" && cellValue.type === "checkbox") {
+                      return (
+                        <div
+                          key={colIndex}
+                          className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 text-center"
+                          style={{ width: columnWidths[colIndex] }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={cellValue.value}
+                            onChange={(e) => updateTicketCheckbox(ticket.id, cellValue.field, e.target.checked)}
+                            className="w-3 h-3 cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // Regular columns
+                    return (
+                      <div
+                        key={colIndex}
+                        className={`px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 ${colIndex === 13 ? "text-right" : ""}`}
+                        style={{ width: columnWidths[colIndex] }}
+                      >
+                        {cellValue as string | number}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Totals Row */}
+        {showTotals && (
+          <div className="flex text-[12px] font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4] flex-shrink-0" style={{ minWidth: "max-content" }}>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0" style={{ width: columnWidths[0] }}>TOTALS</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0" style={{ width: columnWidths[1] }}>{totalTickets} tickets</div>
+            {columns.slice(2, 13).map((_, i) => (
+              <div key={i + 2} className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0" style={{ width: columnWidths[i + 2] }}></div>
+            ))}
+            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 text-right" style={{ width: columnWidths[13] }}>{totalHours.toFixed(2)}</div>
+            {columns.slice(14).map((_, i) => (
+              <div key={i + 14} className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0" style={{ width: columnWidths[i + 14] }}></div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Status Bar with Totals */}
+      {/* Status Bar */}
       <div className="bg-white border-t border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
-        {/* Totals Display */}
         <div className="flex items-center gap-4 text-[11px]">
           {showTotals && (
             <>
@@ -767,15 +732,13 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
             </>
           )}
         </div>
-
-        {/* Toggle Button */}
         <button
           onClick={() => setShowTotals(!showTotals)}
-          className={`px-4 py-1 border border-[#c0c0c0] rounded text-[11px] hover:bg-[#e8e8e8] ${
-            showTotals ? "bg-[#d0e8ff]" : "bg-[#f0f0f0]"
+          className={`px-2 py-0.5 text-[10px] border rounded ${
+            showTotals ? "bg-[#0078d4] text-white border-[#0078d4]" : "bg-white border-[#a0a0a0] hover:bg-[#f0f0f0]"
           }`}
         >
-          {showTotals ? "Totals On" : "Totals Off"}
+          Totals {showTotals ? "On" : "Off"}
         </button>
       </div>
     </div>
