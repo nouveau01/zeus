@@ -64,13 +64,14 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
     // Build query conditions
     const conditions: string[] = [];
 
-    // Use CDate (creation date) for filtering instead of DDate (dispatch date)
-    // This ensures tickets are found by when they were created, not when dispatched
+    // For completed tickets, filter by EDate (end/completion date)
+    // For open tickets, filter by CDate (creation date)
+    const dateField = isCompleted ? "EDate" : "CDate";
     if (startDate) {
-      conditions.push(`CDate >= '${startDate}'`);
+      conditions.push(`${dateField} >= '${startDate}'`);
     }
     if (endDate) {
-      conditions.push(`CDate <= '${endDate} 23:59:59'`);
+      conditions.push(`${dateField} <= '${endDate} 23:59:59'`);
     }
     if (type && type !== "All" && TYPE_ID_MAP[type] !== undefined) {
       conditions.push(`Type = ${TYPE_ID_MAP[type]}`);

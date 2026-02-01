@@ -50,7 +50,9 @@ Include `<AdminTools>` in all module pages for admin customization:
 - `EDate` - End/Completion date (when ticket was completed)
 - `ID` - Auto-increment, newest tickets have highest IDs
 
-**IMPORTANT:** Use `CDate` for date filtering, not `DDate`, since DDate may be NULL or different.
+**Date filtering logic:**
+- Completed tickets (`TicketD`): Filter by `EDate` (completion date)
+- Open tickets (`TicketO`): Filter by `CDate` (creation date)
 
 ## Live Data Sync
 
