@@ -618,17 +618,17 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
             {columns.map((col, index) => (
               <div
                 key={index}
-                className="relative flex-shrink-0 border-r border-[#c0c0c0] last:border-r-0"
-                style={{ width: columnWidths[index] }}
+                className="relative flex-shrink-0 border-r border-[#c0c0c0] last:border-r-0 overflow-hidden"
+                style={{ width: columnWidths[index], maxWidth: columnWidths[index] }}
               >
                 <div
-                  className={`px-2 py-1.5 font-medium text-[#333] select-none truncate ${
+                  className={`px-2 py-1.5 font-medium text-[#333] select-none overflow-hidden whitespace-nowrap ${
                     col.field ? "cursor-pointer hover:bg-[#e0e0e0]" : ""
                   } ${index >= 8 && index <= 12 ? "text-center" : ""} ${index === 13 ? "text-right" : ""}`}
                   onClick={() => col.field && handleSort(col.field)}
                 >
                   <div className={`flex items-center gap-1 ${index >= 8 && index <= 12 ? "justify-center" : ""} ${index === 13 ? "justify-end" : ""}`}>
-                    <span className="truncate">{col.label}</span>
+                    <span className="overflow-hidden text-ellipsis">{col.label}</span>
                     {col.field && <SortIcon field={col.field} />}
                   </div>
                 </div>
@@ -671,8 +671,8 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
                       return (
                         <div
                           key={colIndex}
-                          className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 text-center"
-                          style={{ width: columnWidths[colIndex] }}
+                          className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 text-center overflow-hidden"
+                          style={{ width: columnWidths[colIndex], maxWidth: columnWidths[colIndex] }}
                         >
                           <input
                             type="checkbox"
@@ -689,8 +689,8 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
                     return (
                       <div
                         key={colIndex}
-                        className={`px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 ${colIndex === 13 ? "text-right" : ""}`}
-                        style={{ width: columnWidths[colIndex] }}
+                        className={`px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden whitespace-nowrap text-ellipsis ${colIndex === 13 ? "text-right" : ""}`}
+                        style={{ width: columnWidths[colIndex], maxWidth: columnWidths[colIndex] }}
                       >
                         {cellValue as string | number}
                       </div>
@@ -705,14 +705,14 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
         {/* Totals Row */}
         {showTotals && (
           <div className="flex text-[12px] font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4] flex-shrink-0" style={{ minWidth: "max-content" }}>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0" style={{ width: columnWidths[0] }}>TOTALS</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0" style={{ width: columnWidths[1] }}>{totalTickets} tickets</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden whitespace-nowrap" style={{ width: columnWidths[0], maxWidth: columnWidths[0] }}>TOTALS</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden whitespace-nowrap" style={{ width: columnWidths[1], maxWidth: columnWidths[1] }}>{totalTickets} tickets</div>
             {columns.slice(2, 13).map((_, i) => (
-              <div key={i + 2} className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0" style={{ width: columnWidths[i + 2] }}></div>
+              <div key={i + 2} className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden" style={{ width: columnWidths[i + 2], maxWidth: columnWidths[i + 2] }}></div>
             ))}
-            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 text-right" style={{ width: columnWidths[13] }}>{totalHours.toFixed(2)}</div>
+            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 text-right overflow-hidden whitespace-nowrap" style={{ width: columnWidths[13], maxWidth: columnWidths[13] }}>{totalHours.toFixed(2)}</div>
             {columns.slice(14).map((_, i) => (
-              <div key={i + 14} className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0" style={{ width: columnWidths[i + 14] }}></div>
+              <div key={i + 14} className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden" style={{ width: columnWidths[i + 14], maxWidth: columnWidths[i + 14] }}></div>
             ))}
           </div>
         )}

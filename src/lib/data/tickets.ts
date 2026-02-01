@@ -160,7 +160,9 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
         id: ticket.ID.toString(),
         ticketNumber: ticket.ID,
         workOrderNumber: ticket.WorkOrder ? parseInt(ticket.WorkOrder) : null,
-        date: ticket.CDate,
+        // For completed tickets, use EDate as the primary date (completion date)
+        // For open tickets, use CDate (creation date)
+        date: isCompleted ? ticket.EDate : ticket.CDate,
         dispatchDate: ticket.DDate,
         completedDate: ticket.EDate,
         type: jobTypeMap.get(ticket.Type) || TYPE_MAP[ticket.Type] || `Type ${ticket.Type}`,
