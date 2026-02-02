@@ -119,6 +119,11 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
       ? await sqlserver.$queryRawUnsafe(`SELECT * FROM tblWork WHERE ID IN (${mechIds.join(",")})`)
       : [];
 
+    // Fetch Job records
+    const jobs: any[] = jobIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Job WHERE ID IN (${jobIds.join(",")})`)
+      : [];
+
     // Get Rol records for names
     const rolIds = [
       ...new Set([
@@ -144,6 +149,8 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
     const jobTypeMap = new Map(jobTypes.map(jt => [jt.ID, jt.Type || jt.Name || `Type ${jt.ID}`]));
     // Map mechanic/crew IDs to names from tblWork.fDesc
     const mechMap = new Map(mechanics.map(m => [m.ID, m.fDesc || `Crew ${m.ID}`]));
+    // Map job IDs to job records
+    const jobMap = new Map(jobs.map(j => [j.ID, j]));
 
     // Map and mirror each ticket
     const mappedTickets = await Promise.all(tickets.map(async (ticket) => {
@@ -191,6 +198,11 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
         unitName: elev?.Unit || null,
         unitId: elevId,
         jobId: ticket.Job,
+        job: ticket.Job ? {
+          id: ticket.Job.toString(),
+          externalId: ticket.Job.toString(),
+          jobName: jobMap.get(ticket.Job)?.fDesc || "",
+        } : null,
         phone: ticket.Phone || null,
         notes: ticket.Notes || null,
         source: ticket.Source || null,
