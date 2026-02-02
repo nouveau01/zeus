@@ -15,7 +15,7 @@ let wageCache: Map<number, string> | null = null;
 let categoryCache: Map<string, string> | null = null;
 
 /**
- * Fetch Level lookup values from ListConfig table
+ * Fetch Level lookup values from LType table
  * Returns a map of ID -> Label (e.g., 10 -> "10-Maintenance")
  */
 export async function fetchLevelLookup(): Promise<Map<number, string>> {
@@ -26,16 +26,16 @@ export async function fetchLevelLookup(): Promise<Map<number, string>> {
   }
 
   try {
-    // ListConfig stores lookups with ListName = 'Level'
+    // LType table stores level/type values
     const results: any[] = await sqlserver.$queryRawUnsafe(
-      `SELECT ItemValue, ItemName FROM ListConfig WHERE ListName = 'Level' ORDER BY ItemValue`
+      `SELECT ID, Type, fDesc FROM LType ORDER BY ID`
     );
 
     const map = new Map<number, string>();
     for (const row of results) {
-      if (row.ItemValue !== null) {
-        map.set(row.ItemValue, row.ItemName || `Level ${row.ItemValue}`);
-      }
+      // Use Type field (e.g., "10-Maintenance") or build from ID and fDesc
+      const label = row.Type || row.fDesc || `Level ${row.ID}`;
+      map.set(row.ID, label);
     }
 
     levelCache = map;
