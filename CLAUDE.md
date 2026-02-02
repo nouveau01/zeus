@@ -72,6 +72,29 @@ A ticket can be created long ago but completed today, so completed tickets must 
 
 Never use `field: null` for columns - every column gets a sort field.
 
+## ID to Name Lookups
+
+**Always map IDs to names** when displaying data. Common lookups:
+
+| Field | Table | Name Field |
+|-------|-------|------------|
+| Mech/Crew (DWork, fWork) | `Emp` | `Name` or `fFirst + Last` |
+| Location (LID, Loc) | `Loc` → `Rol` | `Rol.Name` or `Rol.Address` |
+| Owner | `Owner` → `Rol` | `Rol.Name` |
+| Type | `JobType` | `Type` or `Name` |
+
+Pattern in data layer:
+```typescript
+// Collect IDs
+const mechIds = [...new Set(tickets.map(t => t.DWork || t.fWork).filter(Boolean))];
+// Fetch records
+const mechanics = await sqlserver.$queryRawUnsafe(`SELECT * FROM Emp WHERE ID IN (${mechIds.join(",")})`);
+// Create lookup map
+const mechMap = new Map(mechanics.map(m => [m.ID, m.Name || `${m.fFirst} ${m.Last}`.trim()]));
+// Use in mapping
+mechCrew: mechMap.get(ticket.DWork || ticket.fWork) || null,
+```
+
 ## Date/Time Display
 
 SQL Server dates come without timezone info. **Do NOT use timezone conversion** when displaying dates - display them as-is (they are already in EST/local time).

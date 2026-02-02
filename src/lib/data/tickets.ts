@@ -93,11 +93,13 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
     // Fetch from SQL Server
     const tickets: any[] = await sqlserver.$queryRawUnsafe(query);
 
-    // Get related data (Loc, Elev, Owner, Rol for names)
+    // Get related data (Loc, Elev, Owner, Rol for names, Emp for mechanics)
     const locIds = [...new Set(tickets.map(t => isCompleted ? t.Loc : t.LID).filter(Boolean))];
     const elevIds = [...new Set(tickets.map(t => isCompleted ? t.Elev : t.LElev).filter(Boolean))];
     const ownerIds = [...new Set(tickets.map(t => t.Owner).filter(Boolean))];
     const jobIds = [...new Set(tickets.map(t => t.Job).filter(Boolean))];
+    // Get mechanic/employee IDs (DWork for completed, fWork for open tickets)
+    const mechIds = [...new Set(tickets.map(t => t.DWork || t.fWork).filter(Boolean))];
 
     // Fetch related records
     const locs: any[] = locIds.length > 0
@@ -110,6 +112,11 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
 
     const owners: any[] = ownerIds.length > 0
       ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Owner WHERE ID IN (${ownerIds.join(",")})`)
+      : [];
+
+    // Fetch mechanics/employees from Emp table
+    const mechanics: any[] = mechIds.length > 0
+      ? await sqlserver.$queryRawUnsafe(`SELECT * FROM Emp WHERE ID IN (${mechIds.join(",")})`)
       : [];
 
     // Get Rol records for names
@@ -135,6 +142,8 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
     const ownerMap = new Map(owners.map(o => [o.ID, o]));
     const rolMap = new Map(rols.map(r => [r.ID, r]));
     const jobTypeMap = new Map(jobTypes.map(jt => [jt.ID, jt.Type || jt.Name || `Type ${jt.ID}`]));
+    // Map mechanic IDs to names (use Name field, or combine fFirst + Last)
+    const mechMap = new Map(mechanics.map(m => [m.ID, m.Name || `${m.fFirst || ''} ${m.Last || ''}`.trim() || `Mech ${m.ID}`]));
 
     // Map and mirror each ticket
     const mappedTickets = await Promise.all(tickets.map(async (ticket) => {
@@ -177,7 +186,7 @@ export async function fetchTickets(options: FetchTicketsOptions = {}) {
         caller: ticket.Who || "",
         createdBy: ticket.fBy || "",
         accountId: loc?.ID || locId?.toString() || null,
-        mechCrew: ticket.DWork || ticket.fWork?.toString() || null,
+        mechCrew: mechMap.get(ticket.DWork || ticket.fWork) || null,
         hours: hours,
         unitName: elev?.Unit || null,
         unitId: elevId,
