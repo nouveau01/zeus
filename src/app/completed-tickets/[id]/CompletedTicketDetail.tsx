@@ -18,7 +18,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
-import { getTicketById } from "@/lib/actions/tickets";
+import { getTicketById, getLevelOptions, getWageOptions } from "@/lib/actions/tickets";
 
 interface Ticket {
   id: string;
@@ -117,6 +117,8 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const [formData, setFormData] = useState<Partial<Ticket>>({});
   const [isDirty, setIsDirty] = useState(false);
   const [printOnSave, setPrintOnSave] = useState(false);
+  const [levelOptions, setLevelOptions] = useState<{ value: number; label: string }[]>([]);
+  const [wageOptions, setWageOptions] = useState<{ value: number; label: string }[]>([]);
 
   useEffect(() => {
     fetchTicket();
@@ -125,12 +127,19 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const fetchTicket = async () => {
     setLoading(true);
     try {
-      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
-      const data = await getTicketById(ticketId);
+      // Fetch ticket and lookup options in parallel
+      const [data, levels, wages] = await Promise.all([
+        getTicketById(ticketId),
+        getLevelOptions(),
+        getWageOptions(),
+      ]);
+
       if (data) {
         setTicket(data);
         setFormData(data);
       }
+      setLevelOptions(levels);
+      setWageOptions(wages);
     } catch (error) {
       console.error("Error fetching ticket:", error);
     } finally {
@@ -450,11 +459,11 @@ function TicketInfoTab({
             className={`${selectClass} flex-1`}
           >
             <option value="">Select...</option>
-            <option value="1-Emergency">1-Emergency</option>
-            <option value="2-Urgent">2-Urgent</option>
-            <option value="3-Normal">3-Normal</option>
-            <option value="4-Violations">4-Violations</option>
-            <option value="5-Low">5-Low</option>
+            {levelOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -565,12 +574,16 @@ function TicketInfoTab({
             <div className="flex items-center">
               <label className={`${labelClass} w-[45px]`}>Wage</label>
               <select
-                value={formData.wage || ""}
+                value={(formData as any).wageId || ""}
                 onChange={(e) => onChange("wage", e.target.value)}
                 className={`${selectClass} flex-1`}
               >
                 <option value="">Select...</option>
-                <option value={formData.wage || ""}>{formData.wage || "No Wage"}</option>
+                {wageOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

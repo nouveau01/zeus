@@ -7,6 +7,7 @@
 
 import prisma from "@/lib/db";
 import sqlserver, { isSqlServerAvailable } from "@/lib/sqlserver";
+import { fetchLevelLookup, fetchWageLookup, formatTimeOnly } from "./lookups";
 
 // Type mapping for ticket types
 const TYPE_MAP: Record<number, string> = {
@@ -436,14 +437,16 @@ export async function fetchTicketById(ticketId: string | number) {
   const mechId = ticket.DWork || ticket.fWork;
   const jobId = ticket.Job;
 
-  // Fetch related records
-  const [locs, elevs, mechanics, jobs, jobTypes] = await Promise.all([
+  // Fetch related records and lookups in parallel
+  const [locs, elevs, mechanics, jobs, jobTypes, levelLookup, wageLookup] = await Promise.all([
     locId ? sqlserver.$queryRawUnsafe(`SELECT * FROM Loc WHERE Loc = ${locId}`) : Promise.resolve([]),
     elevId ? sqlserver.$queryRawUnsafe(`SELECT * FROM Elev WHERE ID = ${elevId}`) : Promise.resolve([]),
     mechId ? sqlserver.$queryRawUnsafe(`SELECT * FROM tblWork WHERE ID = ${mechId}`) : Promise.resolve([]),
     jobId ? sqlserver.$queryRawUnsafe(`SELECT * FROM Job WHERE ID = ${jobId}`) : Promise.resolve([]),
     ticket.Type !== null ? sqlserver.$queryRawUnsafe(`SELECT * FROM JobType WHERE ID = ${ticket.Type}`) : Promise.resolve([]),
-  ]) as [any[], any[], any[], any[], any[]];
+    fetchLevelLookup(),
+    fetchWageLookup(),
+  ]) as [any[], any[], any[], any[], any[], Map<number, string>, Map<number, string>];
 
   const loc = locs[0] || null;
   const elev = elevs[0] || null;
@@ -468,6 +471,10 @@ export async function fetchTicketById(ticketId: string | number) {
     ? "Completed"
     : getTicketStatus(ticket.Status, ticket.TimeRoute, ticket.TimeSite);
 
+  // Get Level and Wage labels from lookups
+  const levelLabel = ticket.Level ? levelLookup.get(ticket.Level) || null : null;
+  const wageLabel = ticket.WageC ? wageLookup.get(ticket.WageC) || null : null;
+
   return {
     id: ticket.ID.toString(),
     ticketNumber: ticket.ID,
@@ -480,15 +487,24 @@ export async function fetchTicketById(ticketId: string | number) {
     category: ticket.Cat || null,
     status: ticketStatus,
     level: ticket.Level,
+    levelLabel: levelLabel,
     estimate: ticket.Est,
     description: ticket.fDesc || "",
     scopeOfWork: ticket.fDesc || "",
     resolution: isCompleted ? (ticket.DescRes || ticket.Resolution || "") : null,
     caller: ticket.Who || "",
     createdBy: ticket.fBy || "",
+    resolvedBy: ticket.RBy || null,
     accountId: loc?.ID || locId?.toString() || null,
     mechCrew: mech?.fDesc || null,
+    wage: wageLabel,
+    wageId: ticket.WageC || null,
+    phase: ticket.Phase || null,
     hours: hours,
+    regularHours: parseFloat(ticket.Reg || 0),
+    overtimeHours: parseFloat(ticket.OT || 0),
+    doubleTimeHours: parseFloat(ticket.DT || 0),
+    travelHours: parseFloat(ticket.TT || 0),
     unitName: elev?.Unit || null,
     unitId: elevId,
     jobId: ticket.Job,
@@ -497,15 +513,30 @@ export async function fetchTicketById(ticketId: string | number) {
       externalId: job.ID.toString(),
       jobName: job.fDesc || "",
     } : null,
-    phone: ticket.Phone || null,
+    phone: ticket.Phone || ticket.CPhone || null,
     notes: ticket.Notes || null,
     source: ticket.Source || null,
     calledIn: ticket.CallIn === 1,
     highPriority: ticket.High === 1,
     followUp: ticket.Follow === 1,
-    enRouteTime: ticket.TimeRoute || null,
-    onSiteTime: ticket.TimeSite || null,
-    completedTime: ticket.TimeComp || null,
+    // Time fields - use string time fields if available, otherwise format DateTime
+    enRouteTime: ticket.CTime || formatTimeOnly(ticket.TimeRoute),
+    onSiteTime: ticket.DTime || formatTimeOnly(ticket.TimeSite),
+    completedTime: ticket.ETime || formatTimeOnly(ticket.TimeComp),
+    // Mileage
+    startingMileage: ticket.SMile || 0,
+    endingMileage: ticket.EMile || 0,
+    mileage: ticket.Mileage || 0,
+    // Expenses
+    zoneExpense: parseFloat(ticket.Zone || 0),
+    tollExpense: parseFloat(ticket.Toll || 0),
+    otherExpense: parseFloat(ticket.OtherE || 0),
+    // Flags
+    workComplete: ticket.WorkComplete === 1,
+    chargeable: ticket.Charge === 1,
+    internet: ticket.Internet === 1,
+    // Review
+    reviewStatus: ticket.BReview,
     city: locRol?.City || ticket.City || null,
     state: locRol?.State || ticket.State || null,
     premises: loc ? {

@@ -7,6 +7,7 @@
  */
 
 import { fetchTickets as fetchTicketsData, fetchTicketById as fetchTicketByIdData } from "@/lib/data/tickets";
+import { getAllLevelOptions, getAllWageOptions } from "@/lib/data/lookups";
 
 interface FetchTicketsParams {
   status?: "Open" | "Completed" | "All";
@@ -46,4 +47,18 @@ export async function getCallHistory(premisesId: string) {
   );
 
   return allTickets.slice(0, 20);
+}
+
+/**
+ * Get Level options for dropdowns
+ */
+export async function getLevelOptions() {
+  return getAllLevelOptions();
+}
+
+/**
+ * Get Wage options for dropdowns
+ */
+export async function getWageOptions() {
+  return getAllWageOptions();
 }
