@@ -95,6 +95,57 @@ const mechMap = new Map(mechanics.map(m => [m.ID, m.fDesc]));
 mechCrew: mechMap.get(ticket.DWork || ticket.fWork) || null,
 ```
 
+## Labels Table Lookups
+
+The `Labels` table is the central lookup table for dropdown values. Use the `Screen` column to filter by lookup type.
+
+| Lookup Type | Query |
+|-------------|-------|
+| Level | `SELECT Name, Label FROM Labels WHERE Screen = 'Level'` |
+| Category | `SELECT Name, Label FROM Labels WHERE Screen = 'Category'` |
+
+**Pattern for fetching lookup options:**
+```typescript
+// In /src/lib/data/lookups.ts
+export async function fetchLevelLookup(): Promise<Map<number, string>> {
+  const results: any[] = await sqlserver.$queryRawUnsafe(
+    `SELECT Name, Label FROM Labels WHERE Screen = 'Level' ORDER BY CAST(Name AS INT)`
+  );
+  const map = new Map<number, string>();
+  for (const row of results) {
+    const id = parseInt(row.Name);
+    if (!isNaN(id)) {
+      map.set(id, `${id}-${row.Label}`); // Format as "ID-Label"
+    }
+  }
+  return map;
+}
+
+// For string-based lookups like Category
+export async function fetchCategoryLookup(): Promise<Map<string, string>> {
+  const results: any[] = await sqlserver.$queryRawUnsafe(
+    `SELECT Name, Label FROM Labels WHERE Screen = 'Category' ORDER BY Name`
+  );
+  const map = new Map<string, string>();
+  for (const row of results) {
+    map.set(row.Name, row.Label || row.Name);
+  }
+  return map;
+}
+```
+
+**Wage lookup** uses a separate table:
+```typescript
+// PRWage table for wage codes
+const results = await sqlserver.$queryRawUnsafe(`SELECT ID, fDesc FROM PRWage ORDER BY ID`);
+```
+
+**Using lookups in components:**
+1. Create server action in `/src/lib/actions/tickets.ts`
+2. Fetch options in parent component with `useEffect`
+3. Pass options as props to child components
+4. Render in dropdown: `{options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}`
+
 ## Date/Time Display
 
 SQL Server dates come without timezone info. **Do NOT use timezone conversion** when displaying dates - display them as-is (they are already in EST/local time).
@@ -109,6 +160,21 @@ const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})T?(\d{2})?:?(\d{2})?/);
 if (parts) {
   const [, year, month, day, hour = "0", minute = "0"] = parts;
   // Format directly without Date object conversion
+}
+```
+
+**For time-only fields**, use UTC methods to avoid timezone conversion:
+```typescript
+export function formatTimeOnly(value: Date | string | null): string | null {
+  if (!value) return null;
+  const date = typeof value === 'string' ? new Date(value) : value;
+
+  // Use UTC methods to get the raw values without timezone conversion
+  const hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${h12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 }
 ```
 
