@@ -429,7 +429,7 @@ function TicketInfoTab({
     <div className="h-full overflow-auto p-1">
       <div className="flex gap-4">
         {/* Left Column - Basic Info */}
-        <div className="flex flex-col gap-2 w-[240px]">
+        <div className="flex flex-col gap-2 w-[320px]">
         {/* Ticket # and W/O# */}
         <div className="flex items-center gap-1">
           <label className={`${labelClass} w-[50px]`}>Ticket #</label>
@@ -535,7 +535,7 @@ function TicketInfoTab({
           <textarea
             value={formData.scopeOfWork || ""}
             onChange={(e) => onChange("scopeOfWork", e.target.value)}
-            className="w-full h-[60px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+            className="w-full h-[80px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
           />
         </fieldset>
 
@@ -545,7 +545,7 @@ function TicketInfoTab({
           <textarea
             value={formData.resolution || ""}
             onChange={(e) => onChange("resolution", e.target.value)}
-            className="w-full h-[50px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+            className="w-full h-[120px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
           />
         </fieldset>
       </div>
@@ -924,12 +924,12 @@ function TicketInfoTab({
         </div>
 
         {/* Internal Comments Only */}
-        <fieldset className={`${fieldsetClass}`}>
+        <fieldset className={`${fieldsetClass} flex-1`}>
           <legend className={legendClass}>Internal Comments Only</legend>
           <textarea
             value={formData.internalComments || ""}
             onChange={(e) => onChange("internalComments", e.target.value)}
-            className="w-full h-[60px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+            className="w-full h-[100px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
           />
         </fieldset>
       </div>
