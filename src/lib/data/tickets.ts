@@ -396,14 +396,14 @@ function getTicketStatus(statusField: any, enRouteTime: any, onSiteTime: any): s
  * Get a single ticket by ID
  */
 export async function fetchTicketById(ticketId: string | number) {
-  const tickets = await fetchTickets({ limit: 1 });
-  // For now, refetch - could optimize later
+  const ticketNum = parseInt(ticketId.toString());
+
   if (!isSqlServerAvailable()) {
     const ticket = await prisma.ticket.findFirst({
       where: {
         OR: [
           { id: ticketId.toString() },
-          { ticketNumber: typeof ticketId === 'number' ? ticketId : parseInt(ticketId) }
+          { ticketNumber: ticketNum }
         ]
       },
       include: {
@@ -415,17 +415,108 @@ export async function fetchTicketById(ticketId: string | number) {
     return ticket;
   }
 
-  // Fetch specific ticket from SQL Server
-  const query = `SELECT TOP 1 * FROM TicketO WHERE ID = ${parseInt(ticketId.toString())}`;
-  const results: any[] = await sqlserver.$queryRawUnsafe(query);
+  // Try open tickets first
+  let query = `SELECT TOP 1 * FROM TicketO WHERE ID = ${ticketNum}`;
+  let results: any[] = await sqlserver.$queryRawUnsafe(query);
+  let isCompleted = false;
 
   if (results.length === 0) {
     // Try completed tickets
-    const completedQuery = `SELECT TOP 1 * FROM TicketD WHERE ID = ${parseInt(ticketId.toString())}`;
-    const completedResults: any[] = await sqlserver.$queryRawUnsafe(completedQuery);
-    if (completedResults.length === 0) return null;
+    query = `SELECT TOP 1 * FROM TicketD WHERE ID = ${ticketNum}`;
+    results = await sqlserver.$queryRawUnsafe(query);
+    isCompleted = true;
+    if (results.length === 0) return null;
   }
 
-  // Use fetchTickets to get full mapped data
-  return tickets.find(t => t.ticketNumber === parseInt(ticketId.toString()));
+  const ticket = results[0];
+
+  // Get related data
+  const locId = isCompleted ? ticket.Loc : ticket.LID;
+  const elevId = isCompleted ? ticket.Elev : ticket.LElev;
+  const mechId = ticket.DWork || ticket.fWork;
+  const jobId = ticket.Job;
+
+  // Fetch related records
+  const [locs, elevs, mechanics, jobs, jobTypes] = await Promise.all([
+    locId ? sqlserver.$queryRawUnsafe(`SELECT * FROM Loc WHERE Loc = ${locId}`) : Promise.resolve([]),
+    elevId ? sqlserver.$queryRawUnsafe(`SELECT * FROM Elev WHERE ID = ${elevId}`) : Promise.resolve([]),
+    mechId ? sqlserver.$queryRawUnsafe(`SELECT * FROM tblWork WHERE ID = ${mechId}`) : Promise.resolve([]),
+    jobId ? sqlserver.$queryRawUnsafe(`SELECT * FROM Job WHERE ID = ${jobId}`) : Promise.resolve([]),
+    ticket.Type !== null ? sqlserver.$queryRawUnsafe(`SELECT * FROM JobType WHERE ID = ${ticket.Type}`) : Promise.resolve([]),
+  ]) as [any[], any[], any[], any[], any[]];
+
+  const loc = locs[0] || null;
+  const elev = elevs[0] || null;
+  const mech = mechanics[0] || null;
+  const job = jobs[0] || null;
+  const jobType = jobTypes[0] || null;
+
+  // Get Rol for location name/address
+  let locRol = null;
+  if (loc?.Rol) {
+    const rols: any[] = await sqlserver.$queryRawUnsafe(`SELECT * FROM Rol WHERE ID = ${loc.Rol}`);
+    locRol = rols[0] || null;
+  }
+
+  // Calculate hours for completed tickets
+  const hours = isCompleted
+    ? (parseFloat(ticket.Reg || 0) + parseFloat(ticket.OT || 0) + parseFloat(ticket.DT || 0) + parseFloat(ticket.TT || 0))
+    : 0;
+
+  // Calculate status
+  const ticketStatus = isCompleted
+    ? "Completed"
+    : getTicketStatus(ticket.Status, ticket.TimeRoute, ticket.TimeSite);
+
+  return {
+    id: ticket.ID.toString(),
+    ticketNumber: ticket.ID,
+    workOrderNumber: ticket.WorkOrder ? parseInt(ticket.WorkOrder) : null,
+    date: isCompleted ? ticket.EDate : ticket.CDate,
+    dispatchDate: ticket.DDate,
+    completedDate: ticket.EDate,
+    type: jobType?.Type || jobType?.Name || TYPE_MAP[ticket.Type] || `Type ${ticket.Type}`,
+    typeId: ticket.Type,
+    category: ticket.Cat || null,
+    status: ticketStatus,
+    level: ticket.Level,
+    estimate: ticket.Est,
+    description: ticket.fDesc || "",
+    scopeOfWork: ticket.fDesc || "",
+    resolution: isCompleted ? (ticket.DescRes || ticket.Resolution || "") : null,
+    caller: ticket.Who || "",
+    createdBy: ticket.fBy || "",
+    accountId: loc?.ID || locId?.toString() || null,
+    mechCrew: mech?.fDesc || null,
+    hours: hours,
+    unitName: elev?.Unit || null,
+    unitId: elevId,
+    jobId: ticket.Job,
+    job: job ? {
+      id: job.ID.toString(),
+      externalId: job.ID.toString(),
+      jobName: job.fDesc || "",
+    } : null,
+    phone: ticket.Phone || null,
+    notes: ticket.Notes || null,
+    source: ticket.Source || null,
+    calledIn: ticket.CallIn === 1,
+    highPriority: ticket.High === 1,
+    followUp: ticket.Follow === 1,
+    enRouteTime: ticket.TimeRoute || null,
+    onSiteTime: ticket.TimeSite || null,
+    completedTime: ticket.TimeComp || null,
+    city: locRol?.City || ticket.City || null,
+    state: locRol?.State || ticket.State || null,
+    premises: loc ? {
+      id: loc.Loc.toString(),
+      premisesId: loc.ID || loc.Loc.toString(),
+      address: locRol?.Address || loc.Address || "",
+      tag: loc.Tag || "",
+      city: locRol?.City || ticket.City || null,
+      state: locRol?.State || ticket.State || null,
+      zip: locRol?.Zip || loc.Zip || null,
+      phone: locRol?.Phone || loc.Phone || null,
+    } : null,
+  };
 }
