@@ -426,10 +426,10 @@ function TicketInfoTab({
   const legendClass = "text-[11px] px-1 bg-white";
 
   return (
-    <div className="h-full overflow-auto p-1">
-      <div className="flex gap-4">
+    <div className="h-full overflow-hidden p-1">
+      <div className="flex gap-3 h-full">
         {/* Left Column - Basic Info */}
-        <div className="flex flex-col gap-2 w-[320px]">
+        <div className="flex flex-col gap-1 w-[280px] flex-shrink-0">
         {/* Ticket # and W/O# */}
         <div className="flex items-center gap-1">
           <label className={`${labelClass} w-[50px]`}>Ticket #</label>
@@ -523,7 +523,7 @@ function TicketInfoTab({
           <legend className={legendClass}>Name & Address</legend>
           <div
             onClick={onOpenAccount}
-            className="cursor-pointer hover:bg-[#ffffd8] whitespace-pre-wrap text-[11px] min-h-[70px] leading-tight"
+            className="cursor-pointer hover:bg-[#ffffd8] whitespace-pre-wrap text-[11px] min-h-[60px] max-h-[80px] overflow-auto leading-tight"
           >
             {getNameAddress()}
           </div>
@@ -535,23 +535,23 @@ function TicketInfoTab({
           <textarea
             value={formData.scopeOfWork || ""}
             onChange={(e) => onChange("scopeOfWork", e.target.value)}
-            className="w-full h-[80px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+            className="w-full h-[50px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
           />
         </fieldset>
 
         {/* Resolution */}
-        <fieldset className={fieldsetClass}>
+        <fieldset className={`${fieldsetClass} flex-1`}>
           <legend className={legendClass}>Resolution</legend>
           <textarea
             value={formData.resolution || ""}
             onChange={(e) => onChange("resolution", e.target.value)}
-            className="w-full h-[120px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+            className="w-full h-full min-h-[80px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
           />
         </fieldset>
       </div>
 
       {/* Middle Column - Work Performed, Time Frame, Mileage, Parts Used */}
-      <div className="flex flex-col gap-2 w-[200px]">
+      <div className="flex flex-col gap-1 w-[180px] flex-shrink-0">
         {/* Work Performed */}
         <fieldset className={fieldsetClass}>
           <legend className={legendClass}>Work Performed</legend>
@@ -687,9 +687,9 @@ function TicketInfoTab({
       </div>
 
       {/* Right Section - Time Spent, Checkboxes, Expenses */}
-      <div className="flex flex-col gap-2 w-[420px]">
+      <div className="flex flex-col gap-1 flex-1">
         {/* Top Row: Time Spent + Checkboxes + Expenses side by side */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {/* Time Spent */}
           <fieldset className={`${fieldsetClass} w-[130px] flex-shrink-0`}>
             <legend className={legendClass}>Time Spent</legend>
@@ -912,26 +912,30 @@ function TicketInfoTab({
           </fieldset>
         </div>
 
-        {/* Contract Type */}
-        <div className="flex items-center gap-2">
-          <label className={labelClass}>Contract Type</label>
-          <input
-            type="text"
-            value={formData.contractType || ticket.premises?.type || ""}
-            onChange={(e) => onChange("contractType", e.target.value)}
-            className={`${inputClass} w-[100px]`}
-          />
-        </div>
+        {/* Bottom Row: Contract Type + Internal Comments */}
+        <div className="flex gap-2 flex-1">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1">
+              <label className={labelClass}>Contract Type</label>
+              <input
+                type="text"
+                value={formData.contractType || ticket.premises?.type || ""}
+                onChange={(e) => onChange("contractType", e.target.value)}
+                className={`${inputClass} w-[80px]`}
+              />
+            </div>
+          </div>
 
-        {/* Internal Comments Only */}
-        <fieldset className={`${fieldsetClass} flex-1`}>
-          <legend className={legendClass}>Internal Comments Only</legend>
-          <textarea
-            value={formData.internalComments || ""}
-            onChange={(e) => onChange("internalComments", e.target.value)}
-            className="w-full h-[100px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
-          />
-        </fieldset>
+          {/* Internal Comments Only */}
+          <fieldset className={`${fieldsetClass} flex-1`}>
+            <legend className={legendClass}>Internal Comments Only</legend>
+            <textarea
+              value={formData.internalComments || ""}
+              onChange={(e) => onChange("internalComments", e.target.value)}
+              className="w-full h-full min-h-[60px] border border-[#a0a0a0] bg-white text-[11px] p-1 resize-none"
+            />
+          </fieldset>
+        </div>
       </div>
       </div>
     </div>
