@@ -78,7 +78,7 @@ export async function fetchWageLookup(): Promise<Map<number, string>> {
 }
 
 /**
- * Fetch Category lookup values from Category table
+ * Fetch Category lookup values from Labels table (Screen='Category')
  */
 export async function fetchCategoryLookup(): Promise<Map<string, string>> {
   if (categoryCache) return categoryCache;
@@ -88,13 +88,15 @@ export async function fetchCategoryLookup(): Promise<Map<string, string>> {
   }
 
   try {
+    // Labels table with Screen='Category' stores category values
     const results: any[] = await sqlserver.$queryRawUnsafe(
-      `SELECT ID, fDesc FROM Category ORDER BY ID`
+      `SELECT Name, Label FROM Labels WHERE Screen = 'Category' ORDER BY Name`
     );
 
     const map = new Map<string, string>();
     for (const row of results) {
-      map.set(row.ID?.toString(), row.fDesc || `Category ${row.ID}`);
+      // Name is the code (like "S", "SH"), Label is the description
+      map.set(row.Name, row.Label || row.Name);
     }
 
     categoryCache = map;
@@ -136,6 +138,14 @@ export async function getAllLevelOptions(): Promise<{ value: number; label: stri
  */
 export async function getAllWageOptions(): Promise<{ value: number; label: string }[]> {
   const lookup = await fetchWageLookup();
+  return Array.from(lookup.entries()).map(([value, label]) => ({ value, label }));
+}
+
+/**
+ * Get all Category options for dropdowns
+ */
+export async function getAllCategoryOptions(): Promise<{ value: string; label: string }[]> {
+  const lookup = await fetchCategoryLookup();
   return Array.from(lookup.entries()).map(([value, label]) => ({ value, label }));
 }
 

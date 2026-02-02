@@ -7,7 +7,7 @@
  */
 
 import { fetchTickets as fetchTicketsData, fetchTicketById as fetchTicketByIdData } from "@/lib/data/tickets";
-import { getAllLevelOptions, getAllWageOptions } from "@/lib/data/lookups";
+import { getAllLevelOptions, getAllWageOptions, getAllCategoryOptions } from "@/lib/data/lookups";
 
 interface FetchTicketsParams {
   status?: "Open" | "Completed" | "All";
@@ -61,4 +61,11 @@ export async function getLevelOptions() {
  */
 export async function getWageOptions() {
   return getAllWageOptions();
+}
+
+/**
+ * Get Category options for dropdowns
+ */
+export async function getCategoryOptions() {
+  return getAllCategoryOptions();
 }

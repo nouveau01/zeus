@@ -18,7 +18,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
-import { getTicketById, getLevelOptions, getWageOptions } from "@/lib/actions/tickets";
+import { getTicketById, getLevelOptions, getWageOptions, getCategoryOptions } from "@/lib/actions/tickets";
 
 interface Ticket {
   id: string;
@@ -119,6 +119,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const [printOnSave, setPrintOnSave] = useState(false);
   const [levelOptions, setLevelOptions] = useState<{ value: number; label: string }[]>([]);
   const [wageOptions, setWageOptions] = useState<{ value: number; label: string }[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
     fetchTicket();
@@ -128,10 +129,11 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
     setLoading(true);
     try {
       // Fetch ticket and lookup options in parallel
-      const [data, levels, wages] = await Promise.all([
+      const [data, levels, wages, categories] = await Promise.all([
         getTicketById(ticketId),
         getLevelOptions(),
         getWageOptions(),
+        getCategoryOptions(),
       ]);
 
       if (data) {
@@ -140,6 +142,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
       }
       setLevelOptions(levels);
       setWageOptions(wages);
+      setCategoryOptions(categories);
     } catch (error) {
       console.error("Error fetching ticket:", error);
     } finally {
@@ -364,6 +367,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
             getNameAddress={getNameAddress}
             levelOptions={levelOptions}
             wageOptions={wageOptions}
+            categoryOptions={categoryOptions}
           />
         )}
         {activeTab === 1 && <MaterialsCustomTab />}
@@ -400,6 +404,7 @@ interface TicketInfoTabProps {
   getNameAddress: () => string;
   levelOptions: { value: number; label: string }[];
   wageOptions: { value: number; label: string }[];
+  categoryOptions: { value: string; label: string }[];
 }
 
 function TicketInfoTab({
@@ -411,6 +416,7 @@ function TicketInfoTab({
   getNameAddress,
   levelOptions,
   wageOptions,
+  categoryOptions,
 }: TicketInfoTabProps) {
   const inputClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
   const selectClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
@@ -445,14 +451,16 @@ function TicketInfoTab({
         <div className="flex items-center gap-1">
           <label className={`${labelClass} w-[50px]`}>Category</label>
           <select
-            value={formData.category || "None"}
+            value={formData.category || ""}
             onChange={(e) => onChange("category", e.target.value)}
             className={`${selectClass} flex-1`}
           >
-            <option value="None">None</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="Repair">Repair</option>
-            <option value="Callback">Callback</option>
+            <option value="">None</option>
+            {categoryOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </div>
 
