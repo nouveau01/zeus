@@ -79,6 +79,7 @@ interface Ticket {
   takenBy: string | null;
   resolvedBy: string | null;
   emailStatus: string | null;
+  workTime: string | null;
   description: string | null;
   premises: {
     id: string;
@@ -687,8 +688,8 @@ function TicketInfoTab({
 
       {/* Right Section - Time Spent, Checkboxes, Expenses */}
       <div className="flex flex-col gap-2 w-[420px]">
-        {/* Top Row: Time Spent + Checkboxes side by side */}
-        <div className="flex gap-3">
+        {/* Top Row: Time Spent + Checkboxes + Expenses side by side */}
+        <div className="flex gap-2">
           {/* Time Spent */}
           <fieldset className={`${fieldsetClass} w-[130px] flex-shrink-0`}>
             <legend className={legendClass}>Time Spent</legend>
@@ -734,19 +735,13 @@ function TicketInfoTab({
                 />
               </div>
               <div className="flex items-center">
-                <label className={`${labelClass} w-[45px]`}>Travel</label>
-                <input
-                  type="checkbox"
-                  checked={Number(formData.travelHours) > 0}
-                  className="w-3 h-3 mx-1"
-                  readOnly
-                />
+                <label className={`${labelClass} w-[60px]`}>Travel</label>
                 <input
                   type="number"
                   step="0.01"
                   value={Number(formData.travelHours) || 0}
                   onChange={(e) => onChange("travelHours", parseFloat(e.target.value) || 0)}
-                  className={`${inputClass} w-[35px] text-right`}
+                  className={`${inputClass} w-[50px] text-right`}
                 />
               </div>
               <div className="border-t border-[#a0a0a0] my-0.5" />
@@ -853,69 +848,69 @@ function TicketInfoTab({
               </select>
             </div>
           </div>
-        </div>
 
-        {/* Expenses Row */}
-        <fieldset className={fieldsetClass}>
-          <legend className={legendClass}>Expenses</legend>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1">
-              <label className={labelClass}>Phase</label>
-              <input
-                type="number"
-                value={formData.expensePhase || 1}
-                onChange={(e) => onChange("expensePhase", parseInt(e.target.value) || 1)}
-                className={`${inputClass} w-[35px]`}
-              />
-              <button className="px-1 border border-[#a0a0a0] bg-[#f0f0f0] text-[10px]">...</button>
+          {/* Expenses */}
+          <fieldset className={`${fieldsetClass} w-[120px]`}>
+            <legend className={legendClass}>Expenses</legend>
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[50px]`}>Phase</label>
+                <input
+                  type="number"
+                  value={formData.expensePhase || 1}
+                  onChange={(e) => onChange("expensePhase", parseInt(e.target.value) || 1)}
+                  className={`${inputClass} w-[30px]`}
+                />
+                <button className="px-1 border border-[#a0a0a0] bg-[#f0f0f0] text-[10px] ml-0.5">...</button>
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[50px]`}>Mileage</label>
+                <input
+                  type="text"
+                  value={`$${Number(formData.expenseMileage || 0).toFixed(2)}`}
+                  className={`${inputClass} w-[50px] text-right bg-[#f0f0f0]`}
+                  readOnly
+                />
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[50px]`}>Zone</label>
+                <input
+                  type="text"
+                  value={`$${Number(formData.expenseZone || 0).toFixed(2)}`}
+                  className={`${inputClass} w-[50px] text-right bg-[#f0f0f0]`}
+                  readOnly
+                />
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[50px]`}>Tolls</label>
+                <input
+                  type="text"
+                  value={`$${Number(formData.expenseTolls || 0).toFixed(2)}`}
+                  className={`${inputClass} w-[50px] text-right bg-[#f0f0f0]`}
+                  readOnly
+                />
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[50px]`}>Misc Exp</label>
+                <input
+                  type="text"
+                  value={`$${Number(formData.expenseMisc || 0).toFixed(2)}`}
+                  className={`${inputClass} w-[50px] text-right bg-[#f0f0f0]`}
+                  readOnly
+                />
+              </div>
+              <div className="flex items-center">
+                <label className={`${labelClass} w-[50px]`}>Total</label>
+                <input
+                  type="text"
+                  value={`$${Number(formData.expenseTotal || 0).toFixed(2)}`}
+                  className={`${inputClass} w-[50px] text-right bg-[#f0f0f0]`}
+                  readOnly
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <label className={labelClass}>Mileage</label>
-              <input
-                type="text"
-                value={`$${Number(formData.expenseMileage || 0).toFixed(2)}`}
-                className={`${inputClass} w-[55px] text-right bg-[#f0f0f0]`}
-                readOnly
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <label className={labelClass}>Zone</label>
-              <input
-                type="text"
-                value={`$${Number(formData.expenseZone || 0).toFixed(2)}`}
-                className={`${inputClass} w-[55px] text-right bg-[#f0f0f0]`}
-                readOnly
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <label className={labelClass}>Tolls</label>
-              <input
-                type="text"
-                value={`$${Number(formData.expenseTolls || 0).toFixed(2)}`}
-                className={`${inputClass} w-[55px] text-right bg-[#f0f0f0]`}
-                readOnly
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <label className={labelClass}>Misc Exp</label>
-              <input
-                type="text"
-                value={`$${Number(formData.expenseMisc || 0).toFixed(2)}`}
-                className={`${inputClass} w-[55px] text-right bg-[#f0f0f0]`}
-                readOnly
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <label className={labelClass}>Total</label>
-              <input
-                type="text"
-                value={`$${Number(formData.expenseTotal || 0).toFixed(2)}`}
-                className={`${inputClass} w-[55px] text-right bg-[#f0f0f0]`}
-                readOnly
-              />
-            </div>
-          </div>
-        </fieldset>
+          </fieldset>
+        </div>
 
         {/* Contract Type */}
         <div className="flex items-center gap-2">
