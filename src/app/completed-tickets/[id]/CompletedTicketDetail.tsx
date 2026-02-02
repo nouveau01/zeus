@@ -362,6 +362,8 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
             onOpenAccount={openAccount}
             onOpenJob={openJob}
             getNameAddress={getNameAddress}
+            levelOptions={levelOptions}
+            wageOptions={wageOptions}
           />
         )}
         {activeTab === 1 && <MaterialsCustomTab />}
@@ -396,6 +398,8 @@ interface TicketInfoTabProps {
   onOpenAccount: () => void;
   onOpenJob: () => void;
   getNameAddress: () => string;
+  levelOptions: { value: number; label: string }[];
+  wageOptions: { value: number; label: string }[];
 }
 
 function TicketInfoTab({
@@ -405,6 +409,8 @@ function TicketInfoTab({
   onOpenAccount,
   onOpenJob,
   getNameAddress,
+  levelOptions,
+  wageOptions,
 }: TicketInfoTabProps) {
   const inputClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
   const selectClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
