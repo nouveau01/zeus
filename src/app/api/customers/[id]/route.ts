@@ -86,7 +86,9 @@ export async function PUT(
         website: website || null,
         type: type || "General",
         isActive: isActive ?? true,
-        billing: billing || "Individual",
+        billing: typeof billing === 'string'
+          ? ({ "Individual": 0, "Consolidated": 1, "Corporate": 2 }[billing] ?? 0)
+          : (billing ?? 0),
         custom1: custom1 || null,
         custom2: custom2 || null,
         balance: balance || 0,

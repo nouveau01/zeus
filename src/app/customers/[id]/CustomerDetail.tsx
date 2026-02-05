@@ -231,9 +231,47 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   };
 
   const handleSave = async () => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
-    setIsDirty(false);
+    if (!formData.name?.trim()) {
+      alert("Customer name is required");
+      return;
+    }
+
+    try {
+      if (isNew) {
+        const response = await fetch("/api/customers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsDirty(false);
+          if (onClose) onClose();
+          openTab(data.name, `/customers/${data.id}`);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to create customer");
+        }
+      } else {
+        const response = await fetch(`/api/customers/${customerId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCustomer(data);
+          setFormData(data);
+          setIsDirty(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to update customer");
+        }
+      }
+    } catch (error) {
+      console.error("Error saving customer:", error);
+      alert("Failed to save customer");
+    }
   };
 
   const formatCurrency = (amount: number) => {

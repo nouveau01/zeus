@@ -86,19 +86,78 @@ export default function JobTypesPage() {
     setIsDirty(true);
   };
 
-  const handleSave = () => {
-    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
-    setIsDirty(false);
+  const handleSave = async () => {
+    if (!formData.name?.trim()) {
+      alert("Name is required");
+      return;
+    }
+    try {
+      if (selectedId) {
+        const response = await fetch(`/api/job-types/${selectedId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          await fetchJobTypes();
+          setIsDirty(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to save job type");
+        }
+      } else {
+        const response = await fetch("/api/job-types", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const created = await response.json();
+          await fetchJobTypes();
+          setSelectedId(created.id);
+          setIsDirty(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to create job type");
+        }
+      }
+    } catch (error) {
+      console.error("Error saving job type:", error);
+      alert("Failed to save job type");
+    }
   };
 
-  const handleDelete = () => {
-    if (selectedId) {
-      alert("Read-only mode - Cannot delete records from Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
+  const handleDelete = async () => {
+    if (!selectedId) return;
+    if (!confirm("Are you sure you want to delete this job type?")) return;
+    try {
+      const response = await fetch(`/api/job-types/${selectedId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        await fetchJobTypes();
+        setSelectedId(null);
+        setFormData({});
+        setIsDirty(false);
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to delete job type");
+      }
+    } catch (error) {
+      console.error("Error deleting job type:", error);
+      alert("Failed to delete job type");
     }
   };
 
   const handleNew = () => {
-    alert("Read-only mode - Cannot create new records in Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
+    if (isDirty) {
+      if (!confirm("You have unsaved changes. Discard them?")) {
+        return;
+      }
+    }
+    setSelectedId(null);
+    setFormData({ name: "", description: "", isActive: true });
+    setIsDirty(false);
   };
 
   const selectedType = jobTypes.find((jt) => jt.id === selectedId);

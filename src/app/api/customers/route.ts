@@ -72,7 +72,9 @@ export async function POST(request: NextRequest) {
         website: body.website || null,
         type: body.type || "General",
         isActive: body.isActive !== undefined ? body.isActive : true,
-        billing: body.billing ?? 0,  // 0=Consolidated, 1=Detailed, 2=Detailed Group, 3=Detailed Sub
+        billing: typeof body.billing === 'string'
+          ? ({ "Individual": 0, "Consolidated": 1, "Corporate": 2 }[body.billing] ?? 0)
+          : (body.billing ?? 0),  // 0=Individual, 1=Consolidated, 2=Corporate
         custom1: body.custom1 || null,
         custom2: body.custom2 || null,
         balance: body.balance || 0,

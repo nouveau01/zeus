@@ -485,7 +485,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
 
       {/* Toolbar */}
       <div className="bg-white flex items-center px-2 py-1 border-b border-[#d0d0d0] gap-0.5">
-        {toolbarIcons.map((item, i) => {
+        {toolbarIcons.filter(item => item.action !== "new").map((item, i) => {
           const IconComponent = item.icon;
           return (
             <button
@@ -493,9 +493,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
               className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]"
               title={item.title}
               onClick={async () => {
-                if (item.action === "new") {
-                  alert("To create a new ticket, use the Dispatch module or create from a Job.");
-                } else if (item.action === "edit" && selectedRow) {
+                if (item.action === "edit" && selectedRow) {
                   const ticket = tickets.find(t => t.id === selectedRow);
                   if (ticket) openTab(`Ticket #${ticket.ticketNumber}`, `/completed-tickets/${ticket.id}`);
                 } else if (item.action === "delete" && selectedRow) {

@@ -502,8 +502,7 @@ export default function AccountsPage() {
   const handleToolbarClick = async (action: string) => {
     switch (action) {
       case "new":
-        // Accounts must be created from within a customer
-        alert("To add a new account, open a Customer and use the Add button in the Account Listing section.");
+        openTab("New Account", "/accounts/new");
         break;
       case "edit":
         if (selectedRow) {

@@ -360,10 +360,35 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   }, [unit, templateCustomFields, tests, remarks, unitCustom, originalUnit, originalTemplateCustom, originalTests, originalRemarks, originalUnitCustom]);
 
   const handleSave = async () => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
-    setHasChanges(false);
-    setIsEditing(false);
+    try {
+      const response = await fetch(`/api/units/${unitId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...unit,
+          remarks,
+          templateCustom: templateCustomFields,
+          tests,
+          unitCustom,
+        }),
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setOriginalUnit(updated);
+        setOriginalRemarks(remarks);
+        setOriginalTemplateCustom([...templateCustomFields]);
+        setOriginalTests([...tests]);
+        setOriginalUnitCustom(unitCustom ? { ...unitCustom } : null);
+        setHasChanges(false);
+        setIsEditing(false);
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to save unit");
+      }
+    } catch (error) {
+      console.error("Error saving unit:", error);
+      alert("Failed to save unit");
+    }
   };
 
   const handleUndo = () => {

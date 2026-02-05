@@ -124,15 +124,68 @@ export default function JobTemplatesPage() {
   };
 
   const handleSave = async () => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
-    setHasChanges(false);
-    setIsEditing(false);
+    if (!formData.name?.trim()) {
+      alert("Name is required");
+      return;
+    }
+    try {
+      if (selectedTemplate?.id) {
+        const response = await fetch(`/api/job-templates/${selectedTemplate.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          await fetchTemplates();
+          setHasChanges(false);
+          setIsEditing(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to save template");
+        }
+      } else {
+        const response = await fetch("/api/job-templates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const created = await response.json();
+          await fetchTemplates();
+          setSelectedTemplate(created);
+          setHasChanges(false);
+          setIsEditing(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to create template");
+        }
+      }
+    } catch (error) {
+      console.error("Error saving template:", error);
+      alert("Failed to save template");
+    }
   };
 
   const handleDelete = async () => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Cannot delete from Total Service.");
+    if (!selectedTemplate?.id) return;
+    if (!confirm(`Are you sure you want to delete "${selectedTemplate.name}"?`)) return;
+    try {
+      const response = await fetch(`/api/job-templates/${selectedTemplate.id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        await fetchTemplates();
+        setSelectedTemplate(null);
+        setFormData({});
+        setHasChanges(false);
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to delete template");
+      }
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      alert("Failed to delete template");
+    }
   };
 
   const handleDeleteOld = async () => {

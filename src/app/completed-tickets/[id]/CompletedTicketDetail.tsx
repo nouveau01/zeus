@@ -144,9 +144,26 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   };
 
   const handleSave = async () => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
-    setIsDirty(false);
+    if (!ticket) return;
+    try {
+      const response = await fetch(`/api/tickets/${ticketId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setTicket(updated);
+        setFormData(updated);
+        setIsDirty(false);
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to save ticket");
+      }
+    } catch (error) {
+      console.error("Error saving ticket:", error);
+      alert("Failed to save ticket");
+    }
   };
 
   const openAccount = () => {

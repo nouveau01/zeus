@@ -205,8 +205,23 @@ export default function JobDetailPage() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Changes cannot be saved to Total Service.");
+    if (!job) return;
+    try {
+      const response = await fetch(`/api/jobs/${job.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (response.ok) {
+        await fetchJob();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Failed to update status");
+    }
   };
 
   const handleFieldUpdate = async (fieldKey: string, value: any) => {

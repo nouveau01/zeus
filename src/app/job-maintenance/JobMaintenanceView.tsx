@@ -478,7 +478,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
   const handleToolbarClick = async (action: string) => {
     switch (action) {
       case "new":
-        alert("To create a new job, open an Account and use the Jobs link.\nJobs must be associated with an account.");
+        openTab("New Job", "/job-maintenance/new");
         break;
       case "edit":
         if (selectedRow) {

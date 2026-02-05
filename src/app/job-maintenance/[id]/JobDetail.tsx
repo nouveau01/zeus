@@ -20,6 +20,7 @@ import {
   ClipboardPaste,
 } from "lucide-react";
 import { getJobById } from "@/lib/actions/jobs";
+import { useTabs } from "@/context/TabContext";
 
 interface Job {
   id: string;
@@ -86,15 +87,64 @@ const toolbarIcons = [
 const TABS = ["TFM Custom", "Specifications", "Job Budgets", "Custom/Remarks", "Wage Categories", "Deduction Cat.", "Tech Alert"];
 
 export default function JobDetail({ jobId, onClose }: JobDetailProps) {
-  const [job, setJob] = useState<Job | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { openTab } = useTabs();
+  const isNew = jobId === "new";
+  const [job, setJob] = useState<Job | null>(isNew ? {
+    id: "",
+    externalId: null,
+    jobName: "",
+    jobDescription: null,
+    status: "Open",
+    type: null,
+    contractType: null,
+    template: null,
+    date: new Date().toISOString(),
+    dueDate: null,
+    scheduleDate: null,
+    compDate: null,
+    level: null,
+    supervisor: null,
+    projectManager: null,
+    billingTerms: null,
+    chargeable: true,
+    sRemarks: null,
+    customerRemarks: null,
+    comments: null,
+    reg: null,
+    ot: null,
+    ot17: null,
+    dt: null,
+    tt: null,
+    totalHours: null,
+    premises: null,
+    customer: null,
+  } : null);
+  const [loading, setLoading] = useState(!isNew);
   const [activeTab, setActiveTab] = useState("Specifications");
-  const [formData, setFormData] = useState<Partial<Job>>({});
+  const [formData, setFormData] = useState<Partial<Job>>(isNew ? { status: "Open", chargeable: true } : {});
   const [savingFromHook, setSavingFromHook] = useState(false);
+  const [accounts, setAccounts] = useState<Array<{ id: string; name: string | null; address: string; customerId: string; customer?: { name: string } }>>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
 
   useEffect(() => {
-    fetchJob();
-  }, [jobId]);
+    if (!isNew) {
+      fetchJob();
+    } else {
+      fetchAccounts();
+    }
+  }, [jobId, isNew]);
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch("/api/premises");
+      if (response.ok) {
+        const data = await response.json();
+        setAccounts(data);
+      }
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  };
 
   const fetchJob = async () => {
     setLoading(true);
@@ -114,9 +164,40 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
 
   // Save callback for the unsaved changes hook
   const handleSaveForHook = useCallback(async () => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Changes cannot be saved to Total Service.");
-  }, []);
+    if (isNew) {
+      if (!selectedAccountId) {
+        throw new Error("Please select an account");
+      }
+      if (!formData.jobName?.trim()) {
+        throw new Error("Job name is required");
+      }
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, premisesId: selectedAccountId }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create job");
+      }
+      const created = await response.json();
+      if (onClose) onClose();
+      openTab(`Job ${created.externalId || created.id}`, `/job-maintenance/${created.id}`);
+    } else {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save job");
+      }
+      const updated = await response.json();
+      setJob(updated);
+      setFormData(updated);
+    }
+  }, [formData, jobId, isNew, selectedAccountId, onClose, openTab]);
 
   // Unsaved changes hook
   const {
@@ -136,9 +217,50 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   };
 
   const handleSave = async () => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
-    setHasChanges(false);
+    try {
+      if (isNew) {
+        if (!selectedAccountId) {
+          alert("Please select an account");
+          return;
+        }
+        if (!formData.jobName?.trim()) {
+          alert("Job name is required");
+          return;
+        }
+        const response = await fetch("/api/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...formData, premisesId: selectedAccountId }),
+        });
+        if (response.ok) {
+          const created = await response.json();
+          setHasChanges(false);
+          if (onClose) onClose();
+          openTab(`Job ${created.externalId || created.id}`, `/job-maintenance/${created.id}`);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to create job");
+        }
+      } else {
+        const response = await fetch(`/api/jobs/${jobId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        if (response.ok) {
+          const updated = await response.json();
+          setJob(updated);
+          setFormData(updated);
+          setHasChanges(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to save job");
+        }
+      }
+    } catch (error) {
+      console.error("Error saving job:", error);
+      alert("Failed to save job");
+    }
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -265,13 +387,29 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
           {/* Middle - Account/Unit/Desc */}
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <label className={`${labelClass} text-[#0000ff] font-bold`}>Account</label>
-              <input
-                type="text"
-                value={job.premises?.name || job.premises?.address || ""}
-                readOnly
-                className={`${inputClass} w-[220px] bg-[#f0f0f0]`}
-              />
+              <label className={`${labelClass} text-[#0000ff] font-bold`}>Account{isNew && " *"}</label>
+              {isNew ? (
+                <select
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  className={`${selectClass} w-[220px] ${!selectedAccountId ? "border-red-500" : ""}`}
+                  required
+                >
+                  <option value="">Select Account...</option>
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name || acc.address} {acc.customer?.name ? `(${acc.customer.name})` : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={job.premises?.name || job.premises?.address || ""}
+                  readOnly
+                  className={`${inputClass} w-[220px] bg-[#f0f0f0]`}
+                />
+              )}
             </div>
             <div className="flex items-center gap-2">
               <label className={`${labelClass} text-[#0000ff]`}>Unit</label>
@@ -282,12 +420,13 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className={labelClass}>Desc</label>
+              <label className={labelClass}>{isNew ? "Name *" : "Desc"}</label>
               <input
                 type="text"
-                value={formData.jobDescription || ""}
-                onChange={(e) => onChange("jobDescription", e.target.value)}
-                className={`${inputClass} w-[220px]`}
+                value={isNew ? (formData.jobName || "") : (formData.jobDescription || "")}
+                onChange={(e) => onChange(isNew ? "jobName" : "jobDescription", e.target.value)}
+                className={`${inputClass} w-[220px] ${isNew && !formData.jobName ? "border-red-500" : ""}`}
+                placeholder={isNew ? "Enter job name..." : ""}
               />
             </div>
           </div>

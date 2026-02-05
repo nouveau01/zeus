@@ -131,6 +131,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [selectedContract, setSelectedContract] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(customerId || "");
 
   // Add Unit Dialog state
   const [showAddUnitDialog, setShowAddUnitDialog] = useState(false);
@@ -241,8 +243,23 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     } else if (customerId) {
       // Fetch customer name for display
       fetchCustomerName();
+    } else {
+      // No customer pre-selected, fetch all customers for dropdown
+      fetchCustomers();
     }
   }, [accountId, isNew, copyFromId, customerId]);
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await fetch("/api/customers");
+      if (response.ok) {
+        const data = await response.json();
+        setCustomers(data);
+      }
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    }
+  };
 
   const fetchCustomerName = async () => {
     try {
@@ -375,9 +392,58 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   };
 
   const handleSave = async () => {
-    // SQL Server connection is read-only
-    alert("Read-only mode - Changes cannot be saved to Total Service.\n\nThis view is connected directly to your SQL Server database for viewing only.");
-    setIsDirty(false);
+    if (!formData.address?.trim()) {
+      alert("Address is required");
+      return;
+    }
+
+    const effectiveCustomerId = customerId || selectedCustomerId;
+    if (isNew && !effectiveCustomerId) {
+      alert("Please select a customer");
+      return;
+    }
+
+    try {
+      if (isNew) {
+        const response = await fetch("/api/premises", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...formData, customerId: effectiveCustomerId }),
+        });
+        if (response.ok) {
+          const created = await response.json();
+          setIsDirty(false);
+          if (onClose) onClose();
+          openTab(created.name || created.address, `/accounts/${created.id}`);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to create account");
+        }
+      } else {
+        const response = await fetch(`/api/premises/${accountId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...formData,
+            remarks: accountRemarks,
+            colRemarks: collectionNotes,
+            salesRemarks: salesRemarks,
+          }),
+        });
+        if (response.ok) {
+          const updated = await response.json();
+          setAccount(updated);
+          setFormData(updated);
+          setIsDirty(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to update account");
+        }
+      }
+    } catch (error) {
+      console.error("Error saving account:", error);
+      alert("Failed to save account");
+    }
   };
 
   const openCustomer = () => {
@@ -717,6 +783,22 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       <div className="bg-white border border-[#d0d0d0] m-2 p-3 flex gap-6">
         {/* Left Column - Address Info */}
         <div className="flex flex-col gap-2 min-w-[280px]">
+          {isNew && !customerId && (
+            <div className="flex items-center gap-2">
+              <label className="w-16 text-right text-[12px] text-red-600 font-bold">Customer *</label>
+              <select
+                value={selectedCustomerId}
+                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                className={`flex-1 px-2 py-1 border text-[12px] bg-white ${!selectedCustomerId ? "border-red-500" : "border-[#a0a0a0]"}`}
+                required
+              >
+                <option value="">Select Customer...</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <label className="w-16 text-right text-[12px]">ID</label>
             <input
@@ -736,12 +818,13 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Address</label>
+            <label className={`w-16 text-right text-[12px] ${isNew ? "text-red-600 font-bold" : ""}`}>Address{isNew && " *"}</label>
             <input
               type="text"
               value={formData.address || ""}
               onChange={(e) => handleInputChange("address", e.target.value)}
-              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
+              className={`flex-1 px-2 py-1 border text-[12px] bg-white ${isNew && !formData.address ? "border-red-500" : "border-[#a0a0a0]"}`}
+              placeholder={isNew ? "Enter address..." : ""}
             />
           </div>
           <div className="flex items-center gap-2">
