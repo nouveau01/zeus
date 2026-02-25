@@ -19,6 +19,7 @@ import {
   BarChart3,
   Phone,
   Cog,
+  FileText,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 
@@ -48,6 +49,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   BarChart3,
   Phone,
   Cog,
+  FileText,
 };
 
 const navStructure: NavSection[] = [
@@ -263,6 +265,14 @@ const navStructure: NavSection[] = [
       { name: "Set Custom Labels", href: "/set-custom-labels" },
       { name: "Support Request", href: "/support-request" },
       { name: "TFM-A Config", href: "/tfm-a-config" },
+    ],
+  },
+  {
+    id: "14",
+    name: "Reports",
+    iconName: "FileText",
+    children: [
+      { name: "Report Builder", href: "/ai-reports" },
     ],
   },
 ];
