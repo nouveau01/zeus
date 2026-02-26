@@ -7,6 +7,7 @@ import { EditableColumnHeader } from "@/components/EditableColumnHeader";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import { getTickets, getCallHistory } from "@/lib/actions/tickets";
 import { getInvoices } from "@/lib/actions/invoices";
+import { AutocompleteInput, AutocompleteResult } from "@/components/AutocompleteInput";
 import {
   FileText,
   Save,
@@ -189,7 +190,7 @@ export default function DispatchPage() {
 
   // Filters
   const [scheme, setScheme] = useState("None");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("Open");
   const [workerFilter, setWorkerFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [zoneFilter, setZoneFilter] = useState("All");
@@ -225,6 +226,12 @@ export default function DispatchPage() {
   const [excludeTimeCard, setExcludeTimeCard] = useState(false);
   const [showAllUnits, setShowAllUnits] = useState(false);
 
+  // CRUD state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isNewTicket, setIsNewTicket] = useState(false);
+
   // Custom fields
   const [ticketCustom, setTicketCustom] = useState({
     nhJobb: "", pms: "", collector: "COLLECTOR 4", type: "", violationAp: "",
@@ -259,6 +266,7 @@ export default function DispatchPage() {
 
   // Splitter position (percentage of container height for grid)
   const [gridHeightPercent, setGridHeightPercent] = useState(45);
+  const prevGridHeightRef = useRef(45); // remember height before new ticket collapse
   const containerRef = useRef<HTMLDivElement>(null);
   const isResizingColumn = useRef<string | null>(null);
   const isResizingSplitter = useRef(false);
@@ -308,7 +316,7 @@ export default function DispatchPage() {
     const containerHeight = containerRef.current.offsetHeight;
     const diff = e.clientY - startY.current;
     const diffPercent = (diff / containerHeight) * 100;
-    const newPercent = Math.min(80, Math.max(20, startHeight.current + diffPercent));
+    const newPercent = Math.min(80, Math.max(10, startHeight.current + diffPercent));
     setGridHeightPercent(newPercent);
   }, []);
 
@@ -349,7 +357,8 @@ export default function DispatchPage() {
     setLoading(true);
     try {
       // Build params for server action
-      const status = statusFilter === "All" ? "All" : (statusFilter === "Completed" || statusFilter === "Closed" ? "Completed" : "Open");
+      // Dispatch screen always queries open tickets table (TicketO) — completed live in Completed Tickets tab
+      const status: "Open" | "Completed" | "All" = "Open";
 
       let formattedStartDate: string | undefined;
       let formattedEndDate: string | undefined;
@@ -406,8 +415,11 @@ export default function DispatchPage() {
         }));
         setTickets(mappedTickets);
 
-        // Apply client-side filters for worker and zone
+        // Apply client-side filters for status, worker, and zone
         let filtered = mappedTickets;
+        if (statusFilter !== "All") {
+          filtered = filtered.filter(t => t.status === statusFilter);
+        }
         if (workerFilter !== "All") {
           filtered = filtered.filter(t => t.worker === workerFilter);
         }
@@ -663,6 +675,70 @@ export default function DispatchPage() {
     window.location.href = `mailto:${email}`;
   };
 
+  // Helper to update a single field in ticketDetail
+  const updateDetail = (field: keyof TicketDetail, value: string | boolean) => {
+    setTicketDetail(prev => prev ? { ...prev, [field]: value } : prev);
+  };
+
+  // Autocomplete selection handlers — populate related fields from selected record
+  const handleAccountSelect = (result: AutocompleteResult) => {
+    const a = result.data;
+    setTicketDetail(prev => prev ? {
+      ...prev,
+      accountTag: a.name || "",
+      accountId: a.premisesId || a.id || "",
+      accountAddress: a.address || "",
+      accountCity: a.city || "",
+      accountState: a.state || "",
+      accountZip: a.zipCode || "",
+      accountCountry: "United States",
+      accountPhone: a.phone || "",
+      accountContact: a.contact || "",
+      accountEmail: a.email || "",
+      route: a.route?.toString() || "",
+      zone: a.zone?.toString() || "",
+      territory: a.terr || "",
+      // Also fill customer info from the account's owner
+      customerName: a.customer?.name || prev.customerName,
+      customerId: a.customerId || prev.customerId,
+    } : prev);
+  };
+
+  const handleUnitSelect = (result: AutocompleteResult) => {
+    const u = result.data;
+    setTicketDetail(prev => prev ? {
+      ...prev,
+      unitNumber: u.unitNumber || "",
+    } : prev);
+  };
+
+  const handleJobSelect = (result: AutocompleteResult) => {
+    const j = result.data;
+    setTicketDetail(prev => prev ? {
+      ...prev,
+      jobId: j.id || "",
+      jobNumber: j.jobNumber || j.id || "",
+    } : prev);
+  };
+
+  const handleCustomerSelect = (result: AutocompleteResult) => {
+    const c = result.data;
+    setTicketDetail(prev => prev ? {
+      ...prev,
+      customerName: c.name || "",
+      customerId: c.id || "",
+      customerAddress: c.address || "",
+      customerCity: c.city || "",
+      customerState: c.state || "",
+      customerZip: c.zipCode || "",
+      customerCountry: c.country || "United States",
+      customerPhone: c.phone || "",
+      customerMobile: c.mobile || "",
+      customerContact: c.contact || "",
+      customerEmail: c.email || "",
+    } : prev);
+  };
+
   // Date quick buttons
   const handleDateMode = (mode: "All" | "Day" | "Week" | "Month" | "Quarter" | "Year") => {
     setDateMode(mode);
@@ -699,11 +775,180 @@ export default function DispatchPage() {
 
   // Toolbar handlers
   const handleNewTicket = () => {
-    openTab("New Ticket", "/open-tickets/new");
+    // Calculate next ticket number (max + 1)
+    const maxTicketNum = tickets.reduce((max, t) => {
+      const num = typeof t.ticketNumber === "number" ? t.ticketNumber : parseInt(String(t.ticketNumber)) || 0;
+      return num > max ? num : max;
+    }, 0);
+    const nextNum = maxTicketNum + 1;
+    const now = new Date();
+    const dateStr = `${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getDate().toString().padStart(2, "0")}/${now.getFullYear()}`;
+    const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+    // Save current grid height and collapse grid to give more room for the form
+    prevGridHeightRef.current = gridHeightPercent;
+    setGridHeightPercent(10);
+
+    setSelectedTicket(null);
+    setIsNewTicket(true);
+    setActiveTab("ticketInfo");
+    setTicketDetail({
+      ticketNumber: String(nextNum),
+      woNumber: "",
+      date: dateStr,
+      time: timeStr,
+      caller: "",
+      phoneNumber: "",
+      takenBy: "",
+      source: "",
+      accountId: "",
+      accountTag: "",
+      accountAddress: "",
+      accountCity: "",
+      accountState: "",
+      accountZip: "",
+      accountCountry: "",
+      accountPhone: "",
+      accountMobile: "",
+      accountContact: "",
+      accountEmail: "",
+      category: "",
+      level: "",
+      unitNumber: "",
+      nature: "",
+      jobId: "",
+      jobNumber: "",
+      testMech: "",
+      calledIn: false,
+      highPriority: false,
+      updateMechLocation: false,
+      onServiceExp: "",
+      scopeOfWork: "",
+      maintenanceNotes: "",
+      followUpNotes: "",
+      codes: "",
+      followUpNeeded: false,
+      notes: "",
+      schedDate: "",
+      schedTime: "",
+      schedMech: "",
+      enRouteTime: "",
+      onSiteTime: "",
+      completedTime: "",
+      witness: "",
+      customerName: "",
+      customerAddress: "",
+      customerCity: "",
+      customerState: "",
+      customerZip: "",
+      customerCountry: "",
+      customerPhone: "",
+      customerFax: "",
+      customerMobile: "",
+      customerContact: "",
+      customerEmail: "",
+      customerSince: "",
+      customerType: "",
+      accountType: "",
+      zone: "",
+      route: "",
+      territory: "",
+      locsUnits: "",
+      acctBalance: "",
+      currBalance: "",
+      accountRemarks: "",
+      customerRemarks: "",
+      billingRemarks: "",
+    });
   };
 
-  const handleSave = () => {
-    alert("Save functionality - This is a read-only view of SQL Server data.");
+  const handleCancelNew = () => {
+    setIsNewTicket(false);
+    setTicketDetail(null);
+    // Restore grid height to what it was before new ticket mode
+    setGridHeightPercent(prevGridHeightRef.current);
+  };
+
+  const handleSave = async () => {
+    if (!ticketDetail) return;
+
+    // If editing an existing ticket, need a selected ticket
+    if (!isNewTicket && !selectedTicket) return;
+
+    setSaving(true);
+    setSaveMessage(null);
+    try {
+      // Map ticketDetail state to the API's expected body format
+      const body: Record<string, any> = {
+        ticketNumber: parseInt(ticketDetail.ticketNumber) || undefined,
+        workOrderNumber: parseInt(ticketDetail.woNumber) || parseInt(ticketDetail.ticketNumber) || undefined,
+        date: ticketDetail.date,
+        type: ticketDetail.nature === "New Job" ? "Other" : "Maintenance",
+        category: ticketDetail.category || undefined,
+        level: ticketDetail.level || undefined,
+        status: isNewTicket ? "Open" : (selectedTicket?.status || "Open"),
+        description: ticketDetail.scopeOfWork || undefined,
+        scopeOfWork: ticketDetail.scopeOfWork || undefined,
+        mechCrew: ticketDetail.schedMech || undefined,
+        unitName: ticketDetail.unitNumber || undefined,
+        enRouteTime: ticketDetail.enRouteTime || undefined,
+        onSiteTime: ticketDetail.onSiteTime || undefined,
+        completedTime: ticketDetail.completedTime || undefined,
+        takenBy: ticketDetail.takenBy || undefined,
+        resolution: ticketDetail.maintenanceNotes || undefined,
+        calledInBy: ticketDetail.caller || undefined,
+        internalComments: ticketDetail.notes || undefined,
+        nameAddress: ticketDetail.accountAddress || undefined,
+        accountId: ticketDetail.accountId || undefined,
+        accountPremisesId: ticketDetail.accountId || undefined,
+      };
+
+      if (isNewTicket) {
+        // CREATE new ticket
+        const response = await fetch("/api/tickets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: "Unknown error" }));
+          throw new Error(err.error || "Failed to create ticket");
+        }
+
+        setIsNewTicket(false);
+        setGridHeightPercent(prevGridHeightRef.current);
+        setSaveMessage({ type: "success", text: `Ticket #${ticketDetail.ticketNumber} created successfully` });
+        setTimeout(() => setSaveMessage(null), 2000);
+        // Refresh ticket list using the same filters as the grid
+        await fetchTickets();
+        setSaving(false);
+        return;
+      }
+
+      // UPDATE existing ticket
+      const response = await fetch(`/api/tickets/${selectedTicket!.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || "Failed to save ticket");
+      }
+
+      setSaveMessage({ type: "success", text: "Ticket saved successfully" });
+      // Auto-hide success message after 2 seconds
+      setTimeout(() => setSaveMessage(null), 2000);
+      // Refresh the ticket list
+      await fetchTickets();
+    } catch (error: any) {
+      setSaveMessage({ type: "error", text: error.message || "Failed to save ticket" });
+      setTimeout(() => setSaveMessage(null), 4000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleRefresh = () => {
@@ -724,7 +969,35 @@ export default function DispatchPage() {
 
   const handleDelete = () => {
     if (selectedTicket) {
-      alert("Delete functionality - This is a read-only view of SQL Server data.");
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedTicket) return;
+    setSaveMessage(null);
+    try {
+      const response = await fetch(`/api/tickets/${selectedTicket.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || "Failed to delete ticket");
+      }
+
+      setShowDeleteConfirm(false);
+      // Remove from list and clear detail
+      setTickets(prev => prev.filter(t => t.id !== selectedTicket.id));
+      setFilteredTickets(prev => prev.filter(t => t.id !== selectedTicket.id));
+      setSelectedTicket(null);
+      setTicketDetail(null);
+      setSaveMessage({ type: "success", text: "Ticket deleted successfully" });
+      setTimeout(() => setSaveMessage(null), 2000);
+    } catch (error: any) {
+      setShowDeleteConfirm(false);
+      setSaveMessage({ type: "error", text: error.message || "Failed to delete ticket" });
+      setTimeout(() => setSaveMessage(null), 4000);
     }
   };
 
@@ -772,7 +1045,7 @@ export default function DispatchPage() {
 
   const workers = ["All", "MORRISON S", "ALMONTE E", "CANZONA C", "NGONZALEZ"];
   const types = ["All", "Maintenance", "Violation", "Other", "NEW REPAIR"];
-  const statuses = ["All", "Open", "Assigned", "En Route", "On Site", "Completed", "Closed"];
+  const statuses = ["All", "Open", "Assigned", "En Route", "On Site"];
   const zones = ["All", "DIVISION #1", "DIVISION #2", "DIVISION #3", "DIVISION #4", "DIVISION #5"];
   const schemes = ["None", "Priority", "Zone", "Worker", "Type"];
   const sources = ["GENERAL", "PHONE", "EMAIL", "WALK-IN", "WEB"];
@@ -941,7 +1214,7 @@ export default function DispatchPage() {
       {/* Main Content - Grid + Detail Panel */}
       <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
         {/* Ticket Grid */}
-        <div className="overflow-auto bg-white border border-[#808080] m-1" style={{ height: `${gridHeightPercent}%`, minHeight: "100px" }}>
+        <div className="overflow-auto bg-white border border-[#808080] m-1" style={{ height: `${gridHeightPercent}%`, minHeight: "40px" }}>
           <table className="border-collapse text-[11px]" style={{ minWidth: "max-content" }}>
             <thead className="bg-[#f0f0f0] sticky top-0">
               <tr>
@@ -1149,6 +1422,30 @@ export default function DispatchPage() {
 
         {/* Detail Panel */}
         <div className="flex-1 bg-white border border-[#808080] m-1 flex flex-col overflow-hidden" style={{ minHeight: "100px" }}>
+          {/* Save/Cancel bar for new ticket mode */}
+          {isNewTicket && (
+            <div className="flex items-center justify-between px-3 py-1.5 bg-[#e8f5e9] border-b border-[#4caf50]">
+              <div className="flex items-center gap-2 text-[12px] text-[#2e7d32] font-medium">
+                <span>New Ticket #{ticketDetail?.ticketNumber}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-4 py-1 text-[11px] bg-[#0078d4] text-white border border-[#005a9e] rounded hover:bg-[#106ebe] disabled:opacity-50 font-medium"
+                >
+                  {saving ? "Saving..." : "Save Ticket"}
+                </button>
+                <button
+                  onClick={handleCancelNew}
+                  className="px-4 py-1 text-[11px] bg-[#d4d0c8] text-[#333] border border-[#808080] rounded hover:bg-[#c0c0c0]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Detail Tabs */}
           <div className="flex border-b border-[#808080]">
             <button onClick={() => setActiveTab("ticketInfo")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "ticketInfo" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
@@ -1166,8 +1463,11 @@ export default function DispatchPage() {
             <button onClick={() => setActiveTab("callHistory")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "callHistory" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
               5 Call History
             </button>
-            <button onClick={() => setActiveTab("ledger")} className={`px-3 py-1 text-[11px] ${activeTab === "ledger" ? "bg-white font-medium text-[#e74c3c]" : "bg-[#d4d0c8] text-[#e74c3c]"}`}>
+            <button onClick={() => setActiveTab("ledger")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "ledger" ? "bg-white font-medium text-[#e74c3c]" : "bg-[#d4d0c8] text-[#e74c3c]"}`}>
               6 Ledger
+            </button>
+            <button onClick={() => setActiveTab("callRecording")} className={`px-3 py-1 text-[11px] ${activeTab === "callRecording" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
+              7 Call Recording
             </button>
           </div>
 
@@ -1184,37 +1484,39 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">W/O #</label>
-                    <input type="text" value={ticketDetail.woNumber} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-[#ffffe1] w-[80px]" />
+                    <input type="text" value={ticketDetail.woNumber} onChange={(e) => updateDetail("woNumber", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-[#ffffe1] w-[80px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Date</label>
-                    <input type="text" value={ticketDetail.date} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+                    <input type="text" value={ticketDetail.date} onChange={(e) => updateDetail("date", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Time</label>
-                    <input type="text" value={ticketDetail.time} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+                    <input type="text" value={ticketDetail.time} onChange={(e) => updateDetail("time", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Caller</label>
-                    <select value={ticketDetail.caller} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]">
-                      <option>New</option>
-                      <option>Who</option>
+                    <select value={ticketDetail.caller} onChange={(e) => updateDetail("caller", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]">
+                      <option value=""></option>
+                      <option value="New">New</option>
+                      <option value="Who">Who</option>
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Phone #</label>
-                    <input type="text" value={ticketDetail.phoneNumber} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+                    <input type="text" value={ticketDetail.phoneNumber} onChange={(e) => updateDetail("phoneNumber", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Taken By</label>
-                    <input type="text" value={ticketDetail.takenBy} readOnly className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-[#f0f0f0] w-[80px]" />
+                    <input type="text" value={ticketDetail.takenBy} onChange={(e) => updateDetail("takenBy", e.target.value)} readOnly={!isNewTicket} className={`flex-1 px-1 py-0.5 border border-[#808080] text-[11px] w-[80px] ${isNewTicket ? "bg-white" : "bg-[#f0f0f0]"}`} />
                   </div>
                   <button className="px-2 py-0.5 border border-[#808080] bg-[#f0f0f0] hover:bg-[#e0e0e0] text-[11px] mt-1">
                     Called Again
                   </button>
                   <div className="flex items-center gap-1 mt-1">
                     <label className="w-14 text-[11px]">Source</label>
-                    <select value={ticketDetail.source} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]">
+                    <select value={ticketDetail.source} onChange={(e) => updateDetail("source", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]">
+                      <option value=""></option>
                       {sources.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
@@ -1224,49 +1526,61 @@ export default function DispatchPage() {
                 <div className="flex flex-col gap-1 min-w-[220px]">
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px] text-[#ffcc00] bg-[#000080] px-1">Account</label>
-                    <input
-                      type="text"
-                      value={ticketDetail.accountTag}
-                      readOnly
-                      onClick={handleNavigateToAccount}
-                      className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white text-[#0000ff] cursor-pointer hover:underline"
-                    />
+                    {isNewTicket ? (
+                      <AutocompleteInput
+                        value={ticketDetail.accountTag}
+                        onChange={(val) => updateDetail("accountTag", val)}
+                        onSelect={handleAccountSelect}
+                        searchType="accounts"
+                        placeholder="Search accounts..."
+                        className="bg-[#ffffcc]"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={ticketDetail.accountTag}
+                        readOnly
+                        onClick={handleNavigateToAccount}
+                        className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white text-[#0000ff] cursor-pointer hover:underline"
+                      />
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">ID</label>
-                    <input type="text" value={ticketDetail.accountId} readOnly className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-[#f0f0f0]" />
+                    <input type="text" value={ticketDetail.accountId} onChange={(e) => updateDetail("accountId", e.target.value)} readOnly={!isNewTicket} className={`flex-1 px-1 py-0.5 border border-[#808080] text-[11px] ${isNewTicket ? "bg-white" : "bg-[#f0f0f0]"}`} />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Address</label>
-                    <input type="text" value={ticketDetail.accountAddress} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.accountAddress} onChange={(e) => updateDetail("accountAddress", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">City</label>
-                    <input type="text" value={ticketDetail.accountCity} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.accountCity} onChange={(e) => updateDetail("accountCity", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">State</label>
-                    <select value={ticketDetail.accountState} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[50px]">
-                      <option>NY</option>
-                      <option>NJ</option>
-                      <option>CT</option>
+                    <select value={ticketDetail.accountState} onChange={(e) => updateDetail("accountState", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[50px]">
+                      <option value=""></option>
+                      <option value="NY">NY</option>
+                      <option value="NJ">NJ</option>
+                      <option value="CT">CT</option>
                     </select>
                     <label className="text-[11px] ml-1">Zip</label>
-                    <input type="text" value={ticketDetail.accountZip} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
+                    <input type="text" value={ticketDetail.accountZip} onChange={(e) => updateDetail("accountZip", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Country</label>
-                    <input type="text" value={ticketDetail.accountCountry} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.accountCountry} onChange={(e) => updateDetail("accountCountry", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Phone</label>
-                    <input type="text" value={ticketDetail.accountPhone} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
+                    <input type="text" value={ticketDetail.accountPhone} onChange={(e) => updateDetail("accountPhone", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
                     <label className="text-[11px]">Mobile</label>
-                    <input type="text" value={ticketDetail.accountMobile} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
+                    <input type="text" value={ticketDetail.accountMobile} onChange={(e) => updateDetail("accountMobile", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Contact</label>
-                    <input type="text" value={ticketDetail.accountContact} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.accountContact} onChange={(e) => updateDetail("accountContact", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                     <label className="text-[11px]">E-Mail</label>
                     <span
                       onClick={() => handleEmailClick(ticketDetail.accountEmail)}
@@ -1281,41 +1595,72 @@ export default function DispatchPage() {
                 <div className="flex flex-col gap-1 min-w-[200px]">
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Category</label>
-                    <select value={ticketDetail.category} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                    <select value={ticketDetail.category} onChange={(e) => updateDetail("category", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Level</label>
-                    <select value={ticketDetail.level} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                    <select value={ticketDetail.level} onChange={(e) => updateDetail("level", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
                       {levels.map(l => <option key={l} value={l}>{l}</option>)}
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px] text-[#0000ff]">Unit</label>
-                    <span
-                      onClick={handleNavigateToUnit}
-                      className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
-                    >
-                      {ticketDetail.unitNumber}
-                    </span>
-                    <span className="text-[11px] ml-2">Route: 507, ALMONTE E</span>
+                    {isNewTicket ? (
+                      <AutocompleteInput
+                        value={ticketDetail.unitNumber}
+                        onChange={(val) => updateDetail("unitNumber", val)}
+                        onSelect={handleUnitSelect}
+                        searchType="units"
+                        filterParams={ticketDetail.accountId ? { premisesId: ticketDetail.accountId } : undefined}
+                        placeholder="Search units..."
+                      />
+                    ) : (
+                      <>
+                        <span
+                          onClick={handleNavigateToUnit}
+                          className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
+                        >
+                          {ticketDetail.unitNumber}
+                        </span>
+                        {ticketDetail.unitNumber && (
+                          <span className="text-[11px] ml-2">Route: {ticketDetail.route || ""}</span>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Nature</label>
-                    <select value={ticketDetail.nature} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                    <select value={ticketDetail.nature} onChange={(e) => updateDetail("nature", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
                       {natures.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px] text-[#0000ff]">Job</label>
-                    <span
-                      onClick={handleNavigateToJob}
-                      className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
-                    >
-                      {ticketDetail.jobNumber}
-                    </span>
-                    <button className="px-1 border border-[#808080] bg-white text-[11px] ml-1">...</button>
+                    {isNewTicket ? (
+                      <AutocompleteInput
+                        value={ticketDetail.jobNumber}
+                        onChange={(val) => updateDetail("jobNumber", val)}
+                        onSelect={handleJobSelect}
+                        searchType="jobs"
+                        filterParams={ticketDetail.accountId ? { premisesId: ticketDetail.accountId } : undefined}
+                        placeholder="Search jobs..."
+                      />
+                    ) : (
+                      <>
+                        <span
+                          onClick={handleNavigateToJob}
+                          className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
+                        >
+                          {ticketDetail.jobNumber}
+                        </span>
+                        <button className="px-1 border border-[#808080] bg-white text-[11px] ml-1">...</button>
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="flex items-center gap-1 text-[11px]">
@@ -1323,28 +1668,29 @@ export default function DispatchPage() {
                       Test
                     </label>
                     <label className="text-[11px] ml-2">Mech</label>
-                    <select value={ticketDetail.testMech} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option>Mechanic</option>
+                    <select value={ticketDetail.testMech} onChange={(e) => updateDetail("testMech", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
+                      <option value="Mechanic">Mechanic</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-0.5 mt-1">
                     <label className="flex items-center gap-1 text-[11px]">
-                      <input type="checkbox" checked={ticketDetail.calledIn} onChange={() => {}} />
+                      <input type="checkbox" checked={ticketDetail.calledIn} onChange={(e) => updateDetail("calledIn", e.target.checked)} />
                       Called In
                     </label>
                     <label className="flex items-center gap-1 text-[11px]">
-                      <input type="checkbox" checked={ticketDetail.highPriority} onChange={() => {}} />
+                      <input type="checkbox" checked={ticketDetail.highPriority} onChange={(e) => updateDetail("highPriority", e.target.checked)} />
                       High Priority
                     </label>
                     <label className="flex items-center gap-1 text-[11px]">
-                      <input type="checkbox" checked={ticketDetail.updateMechLocation} onChange={() => {}} />
+                      <input type="checkbox" checked={ticketDetail.updateMechLocation} onChange={(e) => updateDetail("updateMechLocation", e.target.checked)} />
                       Update Mechanic Location
                     </label>
                   </div>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-[11px] text-[#27ae60] font-bold">On Service</span>
                     <label className="text-[11px] ml-2">Exp</label>
-                    <input type="text" value={ticketDetail.onServiceExp} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+                    <input type="text" value={ticketDetail.onServiceExp} onChange={(e) => updateDetail("onServiceExp", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
                 </div>
               </div>
@@ -1358,21 +1704,23 @@ export default function DispatchPage() {
                   <label className="text-[11px] font-bold">SCOPE OF WORK</label>
                   <textarea
                     value={ticketDetail.scopeOfWork}
+                    onChange={(e) => updateDetail("scopeOfWork", e.target.value)}
                     className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white resize-none min-h-[60px]"
                   />
                   <label className="text-[11px] font-bold mt-2">MAINTENANCE</label>
                   <textarea
                     value={ticketDetail.maintenanceNotes}
+                    onChange={(e) => updateDetail("maintenanceNotes", e.target.value)}
                     className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white resize-none min-h-[80px]"
                   />
                   <div className="flex items-center gap-2">
                     <label className="flex items-center gap-1 text-[11px]">
-                      <input type="checkbox" checked={ticketDetail.followUpNeeded} onChange={() => {}} />
+                      <input type="checkbox" checked={ticketDetail.followUpNeeded} onChange={(e) => updateDetail("followUpNeeded", e.target.checked)} />
                       F/U - Follow Up Needed
                     </label>
                   </div>
                   <label className="text-[11px]">- Notes -</label>
-                  <input type="text" value={ticketDetail.notes} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                  <input type="text" value={ticketDetail.notes} onChange={(e) => updateDetail("notes", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                 </div>
 
                 {/* Right - Scheduling */}
@@ -1380,7 +1728,7 @@ export default function DispatchPage() {
                   <label className="text-[11px] font-bold">SCHEDULING</label>
                   <div className="flex items-center gap-1">
                     <label className="w-12 text-[11px]">Date</label>
-                    <input type="text" value={ticketDetail.schedDate} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.schedDate} onChange={(e) => updateDetail("schedDate", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                     <label className="flex items-center gap-1 text-[11px]">
                       <input type="radio" name="timeType" />
                       S
@@ -1395,21 +1743,23 @@ export default function DispatchPage() {
                   <div className="flex items-center gap-1">
                     <label className="w-12 text-[11px]">Time</label>
                     <select className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option>En Route</option>
-                      <option>On Site</option>
+                      <option value=""></option>
+                      <option value="En Route">En Route</option>
+                      <option value="On Site">On Site</option>
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-12 text-[11px]">Mech</label>
-                    <select value={ticketDetail.schedMech} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                    <select value={ticketDetail.schedMech} onChange={(e) => updateDetail("schedMech", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
                       {workers.filter(w => w !== "All").map(w => <option key={w} value={w}>{w}</option>)}
                     </select>
                     <label className="text-[11px]">Completed</label>
-                    <input type="text" value={ticketDetail.completedTime} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
+                    <input type="text" value={ticketDetail.completedTime} onChange={(e) => updateDetail("completedTime", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
                   </div>
                   <div className="mt-2">
                     <label className="text-[11px] font-bold">WITNESS</label>
-                    <input type="text" value={ticketDetail.witness} className="w-full px-1 py-0.5 border border-[#808080] text-[11px] bg-white mt-1" />
+                    <input type="text" value={ticketDetail.witness} onChange={(e) => updateDetail("witness", e.target.value)} className="w-full px-1 py-0.5 border border-[#808080] text-[11px] bg-white mt-1" />
                   </div>
                   <div className="mt-2">
                     <div className="flex items-center justify-between">
@@ -1449,45 +1799,57 @@ export default function DispatchPage() {
                 <div className="flex flex-col gap-1 min-w-[200px]">
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Name</label>
-                    <input
-                      type="text"
-                      value={ticketDetail.customerName}
-                      onClick={handleNavigateToCustomer}
-                      className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white text-[#0000ff] cursor-pointer hover:underline"
-                    />
+                    {isNewTicket ? (
+                      <AutocompleteInput
+                        value={ticketDetail.customerName}
+                        onChange={(val) => updateDetail("customerName", val)}
+                        onSelect={handleCustomerSelect}
+                        searchType="customers"
+                        placeholder="Search customers..."
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={ticketDetail.customerName}
+                        readOnly
+                        onClick={handleNavigateToCustomer}
+                        className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white text-[#0000ff] cursor-pointer hover:underline"
+                      />
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Address</label>
-                    <input type="text" value={ticketDetail.customerAddress} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.customerAddress} onChange={(e) => updateDetail("customerAddress", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">City</label>
-                    <input type="text" value={ticketDetail.customerCity} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.customerCity} onChange={(e) => updateDetail("customerCity", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">State</label>
-                    <select value={ticketDetail.customerState} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[50px]">
-                      <option>NY</option>
-                      <option>NJ</option>
+                    <select value={ticketDetail.customerState} onChange={(e) => updateDetail("customerState", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[50px]">
+                      <option value=""></option>
+                      <option value="NY">NY</option>
+                      <option value="NJ">NJ</option>
                     </select>
                     <label className="text-[11px]">Zip</label>
-                    <input type="text" value={ticketDetail.customerZip} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
+                    <input type="text" value={ticketDetail.customerZip} onChange={(e) => updateDetail("customerZip", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Country</label>
-                    <input type="text" value={ticketDetail.customerCountry} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.customerCountry} onChange={(e) => updateDetail("customerCountry", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Phone</label>
-                    <input type="text" value={ticketDetail.customerPhone} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
+                    <input type="text" value={ticketDetail.customerPhone} onChange={(e) => updateDetail("customerPhone", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
                     <label className="text-[11px]">Fax</label>
-                    <input type="text" value={ticketDetail.customerFax} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
+                    <input type="text" value={ticketDetail.customerFax} onChange={(e) => updateDetail("customerFax", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Mobile</label>
-                    <input type="text" value={ticketDetail.customerMobile} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
+                    <input type="text" value={ticketDetail.customerMobile} onChange={(e) => updateDetail("customerMobile", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
                     <label className="text-[11px]">Contact</label>
-                    <input type="text" value={ticketDetail.customerContact} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
+                    <input type="text" value={ticketDetail.customerContact} onChange={(e) => updateDetail("customerContact", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[90px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">E-Mail</label>
@@ -1497,7 +1859,7 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Since</label>
-                    <input type="text" value={ticketDetail.customerSince} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+                    <input type="text" value={ticketDetail.customerSince} onChange={(e) => updateDetail("customerSince", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
                 </div>
 
@@ -1505,54 +1867,58 @@ export default function DispatchPage() {
                 <div className="flex flex-col gap-1 min-w-[150px]">
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Customer Type</label>
-                    <select value={ticketDetail.customerType} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option>General</option>
+                    <select value={ticketDetail.customerType} onChange={(e) => updateDetail("customerType", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
+                      <option value="General">General</option>
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Account Type</label>
-                    <select value={ticketDetail.accountType} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option>S</option>
+                    <select value={ticketDetail.accountType} onChange={(e) => updateDetail("accountType", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
+                      <option value="S">S</option>
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Zone</label>
-                    <select value={ticketDetail.zone} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                    <select value={ticketDetail.zone} onChange={(e) => updateDetail("zone", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
                       {zones.filter(z => z !== "All").map(z => <option key={z} value={z}>{z}</option>)}
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Route</label>
-                    <input type="text" value={ticketDetail.route} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.route} onChange={(e) => updateDetail("route", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Territory</label>
-                    <select value={ticketDetail.territory} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option>RS</option>
+                    <select value={ticketDetail.territory} onChange={(e) => updateDetail("territory", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
+                      <option value=""></option>
+                      <option value="RS">RS</option>
                     </select>
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]"># Locs/Units</label>
-                    <input type="text" value={ticketDetail.locsUnits} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[40px]" />
+                    <input type="text" value={ticketDetail.locsUnits} onChange={(e) => updateDetail("locsUnits", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[40px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Acct Balance</label>
-                    <input type="text" value={ticketDetail.acctBalance} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.acctBalance} onChange={(e) => updateDetail("acctBalance", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Curr Balance</label>
-                    <input type="text" value={ticketDetail.currBalance} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="text" value={ticketDetail.currBalance} onChange={(e) => updateDetail("currBalance", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                   </div>
                 </div>
 
                 {/* Right - Remarks */}
                 <div className="flex-1 flex flex-col gap-1">
                   <label className="text-[11px]">Account Remarks</label>
-                  <textarea value={ticketDetail.accountRemarks} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white resize-none min-h-[40px]" />
+                  <textarea value={ticketDetail.accountRemarks} onChange={(e) => updateDetail("accountRemarks", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white resize-none min-h-[40px]" />
                   <label className="text-[11px]">Customer Remarks</label>
-                  <textarea value={ticketDetail.customerRemarks} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white resize-none min-h-[40px]" />
+                  <textarea value={ticketDetail.customerRemarks} onChange={(e) => updateDetail("customerRemarks", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white resize-none min-h-[40px]" />
                   <label className="text-[11px]">Billing Remarks</label>
-                  <textarea value={ticketDetail.billingRemarks} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white resize-none min-h-[40px]" />
+                  <textarea value={ticketDetail.billingRemarks} onChange={(e) => updateDetail("billingRemarks", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white resize-none min-h-[40px]" />
                 </div>
               </div>
             )}
@@ -1608,8 +1974,8 @@ export default function DispatchPage() {
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-bold">TFM Ticket Custom</label>
                   <div className="flex gap-4 text-[11px]">
-                    <div className="flex items-center gap-1"><label className="w-16">Signature</label><input type="text" value={tfmCustom.signature1} className="w-[100px] px-1 py-0.5 border border-[#808080] bg-white" /><label className="flex items-center gap-1"><input type="checkbox" checked={tfmCustom.pt} onChange={() => {}} />P/T</label></div>
-                    <div className="flex items-center gap-1"><label className="w-16">Signature</label><input type="text" value={tfmCustom.signature2} className="w-[100px] px-1 py-0.5 border border-[#808080] bg-white" /><label className="flex items-center gap-1"><input type="checkbox" checked={tfmCustom.lsd} onChange={() => {}} />LSD</label></div>
+                    <div className="flex items-center gap-1"><label className="w-16">Signature</label><input type="text" value={tfmCustom.signature1} className="w-[100px] px-1 py-0.5 border border-[#808080] bg-white" /><label className="flex items-center gap-1"><input type="checkbox" checked={tfmCustom.pt} onChange={(e) => setTfmCustom(prev => ({ ...prev, pt: e.target.checked }))} />P/T</label></div>
+                    <div className="flex items-center gap-1"><label className="w-16">Signature</label><input type="text" value={tfmCustom.signature2} className="w-[100px] px-1 py-0.5 border border-[#808080] bg-white" /><label className="flex items-center gap-1"><input type="checkbox" checked={tfmCustom.lsd} onChange={(e) => setTfmCustom(prev => ({ ...prev, lsd: e.target.checked }))} />LSD</label></div>
                     <div className="flex items-center gap-1"><label className="w-16">Custom3</label><input type="text" value={tfmCustom.custom3} className="w-[100px] px-1 py-0.5 border border-[#808080] bg-white" /></div>
                   </div>
                 </div>
@@ -1716,9 +2082,80 @@ export default function DispatchPage() {
                 </div>
               </div>
             )}
+
+            {/* Tab 7 - Call Recording */}
+            {activeTab === "callRecording" && (
+              <div className="flex flex-col h-full gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-medium">Call Recording</span>
+                  <span className="text-[11px] text-[#666]">
+                    {ticketDetail ? `Ticket #${ticketDetail.ticketNumber}` : "No ticket selected"}
+                  </span>
+                </div>
+                <div className="flex-1 flex items-center justify-center border border-[#808080] bg-[#f9f9f9] rounded">
+                  <div className="text-center">
+                    <div className="text-[11px] text-[#999] mb-1">No recording available</div>
+                    <div className="text-[10px] text-[#bbb]">Call recordings will appear here when available</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Save/Delete feedback message */}
+      {saveMessage && (
+        <div
+          className="fixed bottom-4 right-4 z-50 px-4 py-2 border text-[12px] shadow-lg"
+          style={{
+            fontFamily: "Segoe UI, Tahoma, sans-serif",
+            backgroundColor: saveMessage.type === "success" ? "#e8f5e9" : "#fbe9e7",
+            borderColor: saveMessage.type === "success" ? "#4caf50" : "#e53935",
+            color: saveMessage.type === "success" ? "#2e7d32" : "#c62828",
+          }}
+        >
+          {saveMessage.text}
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && selectedTicket && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#d4d0c8] border-2 border-[#808080] shadow-lg" style={{ minWidth: "320px", fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+            <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between">
+              <span className="text-[12px] font-bold">Confirm Delete</span>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-white hover:bg-[#c0c0c0] hover:text-black px-1"
+              >
+                x
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-[12px] mb-4">
+                Are you sure you want to delete ticket #{selectedTicket.ticketNumber}?
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-1 bg-[#d4d0c8] border-2 hover:bg-[#e0e0e0] text-[12px]"
+                  style={{ borderColor: "#808080" }}
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-1 bg-[#d4d0c8] border-2 hover:bg-[#e0e0e0] text-[12px]"
+                  style={{ borderColor: "#808080" }}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

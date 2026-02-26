@@ -9,6 +9,7 @@ import prisma from "@/lib/db";
 import sqlserver, { isSqlServerAvailable } from "@/lib/sqlserver";
 
 interface FetchAccountsOptions {
+  search?: string;
   filter?: string;
   customerId?: string;
   limit?: number;
@@ -19,7 +20,7 @@ interface FetchAccountsOptions {
  * Matches /api/sqlserver/premises/route.ts exactly
  */
 export async function fetchAccounts(options: FetchAccountsOptions = {}) {
-  const { filter, customerId, limit = 500 } = options;
+  const { search, filter, customerId, limit = 500 } = options;
 
   if (!isSqlServerAvailable()) {
     console.log("SQL Server not available, reading from PostgreSQL only");
@@ -31,6 +32,10 @@ export async function fetchAccounts(options: FetchAccountsOptions = {}) {
     let query = `SELECT TOP ${limit} * FROM Loc`;
     const conditions: string[] = [];
 
+    if (search) {
+      const escaped = search.replace(/'/g, "''");
+      conditions.push(`(Tag LIKE '%${escaped}%' OR ID LIKE '%${escaped}%' OR Address LIKE '%${escaped}%' OR City LIKE '%${escaped}%')`);
+    }
     if (filter && filter !== "All") {
       conditions.push(`Type = '${filter.replace(/'/g, "''")}'`);
     }

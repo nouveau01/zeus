@@ -32,6 +32,26 @@ interface RouteData {
   remarks: string | null;
 }
 
+interface RouteFormData {
+  name: string;
+  mech: number | null;
+  loc: number;
+  elev: number;
+  hour: number;
+  amount: number;
+  remarks: string;
+}
+
+const emptyForm: RouteFormData = {
+  name: "",
+  mech: null,
+  loc: 0,
+  elev: 0,
+  hour: 0,
+  amount: 0,
+  remarks: "",
+};
+
 interface RouteTotals {
   totalRoutes: number;
   totalAccounts: number;
@@ -115,6 +135,16 @@ export default function RoutesPage() {
 
   // Active filters
   const [activeFilters, setActiveFilters] = useState<Record<string, FilterValue>>({});
+
+  // CRUD dialog state
+  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [formData, setFormData] = useState<RouteFormData>({ ...emptyForm });
+  const [editingRoute, setEditingRoute] = useState<RouteData | null>(null);
+  const [deletingRoute, setDeletingRoute] = useState<RouteData | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSaving, setFormSaving] = useState(false);
 
   // Clear all filters
   const clearFilters = () => {
@@ -343,31 +373,152 @@ export default function RoutesPage() {
     setOpenMenu(null);
   };
 
+  // CRUD handlers
+  const handleNew = () => {
+    setFormData({ ...emptyForm });
+    setFormError(null);
+    setShowNewDialog(true);
+  };
+
+  const handleEdit = () => {
+    if (!selectedRow) return;
+    const route = routes.find((r) => r.name === selectedRow);
+    if (!route) return;
+    setEditingRoute(route);
+    setFormData({
+      name: route.name,
+      mech: route.mechId,
+      loc: route.accountCount,
+      elev: route.unitCount,
+      hour: route.hours,
+      amount: route.projectedRevenue,
+      remarks: route.remarks || "",
+    });
+    setFormError(null);
+    setShowEditDialog(true);
+  };
+
+  const handleDelete = () => {
+    if (!selectedRow) return;
+    const route = routes.find((r) => r.name === selectedRow);
+    if (!route) return;
+    setDeletingRoute(route);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleFormSubmitNew = async () => {
+    if (!formData.name.trim()) {
+      setFormError("Route name is required.");
+      return;
+    }
+    setFormSaving(true);
+    setFormError(null);
+    try {
+      const res = await fetch("/api/routes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setFormError(data.error || "Failed to create route.");
+        return;
+      }
+      setShowNewDialog(false);
+      fetchRoutes();
+    } catch {
+      setFormError("Network error. Please try again.");
+    } finally {
+      setFormSaving(false);
+    }
+  };
+
+  const handleFormSubmitEdit = async () => {
+    if (!editingRoute) return;
+    if (!formData.name.trim()) {
+      setFormError("Route name is required.");
+      return;
+    }
+    setFormSaving(true);
+    setFormError(null);
+    try {
+      const res = await fetch(`/api/routes/${editingRoute.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setFormError(data.error || "Failed to update route.");
+        return;
+      }
+      setShowEditDialog(false);
+      setEditingRoute(null);
+      fetchRoutes();
+    } catch {
+      setFormError("Network error. Please try again.");
+    } finally {
+      setFormSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingRoute) return;
+    setFormSaving(true);
+    setFormError(null);
+    try {
+      const res = await fetch(`/api/routes/${deletingRoute.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setFormError(data.error || "Failed to delete route.");
+        return;
+      }
+      setShowDeleteConfirm(false);
+      setDeletingRoute(null);
+      setSelectedRow(null);
+      fetchRoutes();
+    } catch {
+      setFormError("Network error. Please try again.");
+    } finally {
+      setFormSaving(false);
+    }
+  };
+
   // Toolbar click handler
   const handleToolbarClick = async (action: string) => {
     switch (action) {
       case "new":
-        alert("New Route - Coming soon");
+        handleNew();
         break;
       case "edit":
         if (selectedRow) {
-          alert("Edit Route - Coming soon");
-        } else {
-          alert("Please select a route to edit");
+          handleEdit();
         }
         break;
       case "delete":
         if (selectedRow) {
-          alert("Delete Route - Coming soon");
-        } else {
-          alert("Please select a route to delete");
+          handleDelete();
         }
         break;
       case "replicate":
         if (selectedRow) {
-          alert("Replicate - Coming soon");
-        } else {
-          alert("Please select a route to replicate");
+          // Replicate: open new dialog pre-populated with selected route data
+          const route = routes.find((r) => r.name === selectedRow);
+          if (route) {
+            setFormData({
+              name: route.name + " (Copy)",
+              mech: route.mechId,
+              loc: route.accountCount,
+              elev: route.unitCount,
+              hour: route.hours,
+              amount: route.projectedRevenue,
+              remarks: route.remarks || "",
+            });
+            setFormError(null);
+            setShowNewDialog(true);
+          }
         }
         break;
       case "filter":
@@ -386,7 +537,7 @@ export default function RoutesPage() {
   };
 
   // Edit menu actions
-  const handleNewRecord = () => handleToolbarClick("new");
+  const handleNewRecord = () => handleNew();
   const handleEditRecord = () => handleToolbarClick("edit");
   const handleDeleteRecord = () => handleToolbarClick("delete");
   const handleReplicateRecord = () => handleToolbarClick("replicate");
@@ -686,6 +837,274 @@ export default function RoutesPage() {
         initialFilters={activeFilters}
         pageId="routes"
       />
+
+      {/* New Route Dialog */}
+      {showNewDialog && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+          <div className="absolute inset-0 bg-black/30" onClick={() => setShowNewDialog(false)} />
+          <div className="relative bg-[#ece9d8] border-2 border-[#808080] shadow-lg" style={{ width: 420 }}>
+            {/* Title Bar */}
+            <div className="bg-gradient-to-r from-[#0a246a] to-[#3a6ea5] px-2 py-1 flex items-center justify-between">
+              <span className="text-white text-[12px] font-bold">New Route</span>
+              <button
+                onClick={() => setShowNewDialog(false)}
+                className="text-white hover:bg-[#c45050] px-1.5 text-[14px] leading-none font-bold"
+              >
+                X
+              </button>
+            </div>
+            {/* Body */}
+            <div className="p-4 space-y-3">
+              {formError && (
+                <div className="bg-[#fff0f0] border border-[#cc0000] text-[#cc0000] px-2 py-1 text-[11px]">
+                  {formError}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Name *</label>
+                <input
+                  className="flex-1 border border-[#808080] px-1 py-0.5 text-[12px] bg-white"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  autoFocus
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Mechanic</label>
+                <input
+                  className="flex-1 border border-[#808080] px-1 py-0.5 text-[12px] bg-white"
+                  type="number"
+                  value={formData.mech ?? ""}
+                  onChange={(e) => setFormData({ ...formData, mech: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="Employee ID"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Accounts #</label>
+                <input
+                  className="w-[80px] border border-[#808080] px-1 py-0.5 text-[12px] bg-white text-center"
+                  type="number"
+                  value={formData.loc}
+                  onChange={(e) => setFormData({ ...formData, loc: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Units #</label>
+                <input
+                  className="w-[80px] border border-[#808080] px-1 py-0.5 text-[12px] bg-white text-center"
+                  type="number"
+                  value={formData.elev}
+                  onChange={(e) => setFormData({ ...formData, elev: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Hours</label>
+                <input
+                  className="w-[80px] border border-[#808080] px-1 py-0.5 text-[12px] bg-white text-center"
+                  type="number"
+                  step="0.01"
+                  value={formData.hour}
+                  onChange={(e) => setFormData({ ...formData, hour: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Amount</label>
+                <input
+                  className="w-[100px] border border-[#808080] px-1 py-0.5 text-[12px] bg-white text-right"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-start gap-2">
+                <label className="w-[80px] text-right text-[12px] pt-1">Remarks</label>
+                <textarea
+                  className="flex-1 border border-[#808080] px-1 py-0.5 text-[12px] bg-white resize-none"
+                  rows={3}
+                  value={formData.remarks}
+                  onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                />
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="border-t border-[#808080] px-4 py-2 flex justify-end gap-2">
+              <button
+                onClick={handleFormSubmitNew}
+                disabled={formSaving}
+                className="px-4 py-1 text-[12px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e0dcd4] active:bg-[#0078d4] active:text-white disabled:opacity-50"
+              >
+                {formSaving ? "Saving..." : "OK"}
+              </button>
+              <button
+                onClick={() => setShowNewDialog(false)}
+                className="px-4 py-1 text-[12px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e0dcd4]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Route Dialog */}
+      {showEditDialog && editingRoute && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+          <div className="absolute inset-0 bg-black/30" onClick={() => setShowEditDialog(false)} />
+          <div className="relative bg-[#ece9d8] border-2 border-[#808080] shadow-lg" style={{ width: 420 }}>
+            {/* Title Bar */}
+            <div className="bg-gradient-to-r from-[#0a246a] to-[#3a6ea5] px-2 py-1 flex items-center justify-between">
+              <span className="text-white text-[12px] font-bold">Edit Route - {editingRoute.name}</span>
+              <button
+                onClick={() => setShowEditDialog(false)}
+                className="text-white hover:bg-[#c45050] px-1.5 text-[14px] leading-none font-bold"
+              >
+                X
+              </button>
+            </div>
+            {/* Body */}
+            <div className="p-4 space-y-3">
+              {formError && (
+                <div className="bg-[#fff0f0] border border-[#cc0000] text-[#cc0000] px-2 py-1 text-[11px]">
+                  {formError}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Name *</label>
+                <input
+                  className="flex-1 border border-[#808080] px-1 py-0.5 text-[12px] bg-white"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  autoFocus
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Mechanic</label>
+                <input
+                  className="flex-1 border border-[#808080] px-1 py-0.5 text-[12px] bg-white"
+                  type="number"
+                  value={formData.mech ?? ""}
+                  onChange={(e) => setFormData({ ...formData, mech: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="Employee ID"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Accounts #</label>
+                <input
+                  className="w-[80px] border border-[#808080] px-1 py-0.5 text-[12px] bg-white text-center"
+                  type="number"
+                  value={formData.loc}
+                  onChange={(e) => setFormData({ ...formData, loc: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Units #</label>
+                <input
+                  className="w-[80px] border border-[#808080] px-1 py-0.5 text-[12px] bg-white text-center"
+                  type="number"
+                  value={formData.elev}
+                  onChange={(e) => setFormData({ ...formData, elev: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Hours</label>
+                <input
+                  className="w-[80px] border border-[#808080] px-1 py-0.5 text-[12px] bg-white text-center"
+                  type="number"
+                  step="0.01"
+                  value={formData.hour}
+                  onChange={(e) => setFormData({ ...formData, hour: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-[80px] text-right text-[12px]">Amount</label>
+                <input
+                  className="w-[100px] border border-[#808080] px-1 py-0.5 text-[12px] bg-white text-right"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-start gap-2">
+                <label className="w-[80px] text-right text-[12px] pt-1">Remarks</label>
+                <textarea
+                  className="flex-1 border border-[#808080] px-1 py-0.5 text-[12px] bg-white resize-none"
+                  rows={3}
+                  value={formData.remarks}
+                  onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                />
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="border-t border-[#808080] px-4 py-2 flex justify-end gap-2">
+              <button
+                onClick={handleFormSubmitEdit}
+                disabled={formSaving}
+                className="px-4 py-1 text-[12px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e0dcd4] active:bg-[#0078d4] active:text-white disabled:opacity-50"
+              >
+                {formSaving ? "Saving..." : "OK"}
+              </button>
+              <button
+                onClick={() => setShowEditDialog(false)}
+                className="px-4 py-1 text-[12px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e0dcd4]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && deletingRoute && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+          <div className="absolute inset-0 bg-black/30" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative bg-[#ece9d8] border-2 border-[#808080] shadow-lg" style={{ width: 360 }}>
+            {/* Title Bar */}
+            <div className="bg-gradient-to-r from-[#0a246a] to-[#3a6ea5] px-2 py-1 flex items-center justify-between">
+              <span className="text-white text-[12px] font-bold">Confirm Delete</span>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-white hover:bg-[#c45050] px-1.5 text-[14px] leading-none font-bold"
+              >
+                X
+              </button>
+            </div>
+            {/* Body */}
+            <div className="p-4">
+              {formError && (
+                <div className="bg-[#fff0f0] border border-[#cc0000] text-[#cc0000] px-2 py-1 text-[11px] mb-3">
+                  {formError}
+                </div>
+              )}
+              <div className="flex items-start gap-3">
+                <div className="text-[24px] text-[#cc0000] leading-none mt-0.5">!</div>
+                <div className="text-[12px]">
+                  <p>Are you sure you want to delete route <strong>{deletingRoute.name}</strong>?</p>
+                  <p className="mt-1 text-[#666]">This action cannot be undone.</p>
+                </div>
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="border-t border-[#808080] px-4 py-2 flex justify-end gap-2">
+              <button
+                onClick={handleConfirmDelete}
+                disabled={formSaving}
+                className="px-4 py-1 text-[12px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e0dcd4] active:bg-[#0078d4] active:text-white disabled:opacity-50"
+              >
+                {formSaving ? "Deleting..." : "Yes, Delete"}
+              </button>
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setFormError(null); }}
+                className="px-4 py-1 text-[12px] bg-[#d4d0c8] border border-[#808080] hover:bg-[#e0dcd4]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
