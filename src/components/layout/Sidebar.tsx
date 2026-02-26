@@ -253,7 +253,7 @@ const navStructure: NavSection[] = [
     name: "Control",
     iconName: "Cog",
     children: [
-      { name: "Users", href: "/users" },
+      { name: "Users", href: "/settings" },
       { name: "Zones", href: "/zones" },
       { name: "Sales Tax Regions", href: "/sales-tax-regions" },
       { name: "Indexes", href: "/indexes" },

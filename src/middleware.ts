@@ -7,8 +7,8 @@ export default withAuth({
 });
 
 export const config = {
-  // Protect all routes except login, api/auth, static files, and Next.js internals
+  // Protect page routes only — API routes handle their own auth
   matcher: [
-    "/((?!login|api/auth|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|api|_next/static|_next/image|favicon.ico).*)",
   ],
 };

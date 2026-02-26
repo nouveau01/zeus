@@ -42,6 +42,7 @@ import QuoteDetail from "@/app/quotes/[id]/QuoteDetail";
 import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
 import JobTemplatesPage from "@/app/job-templates/page";
 import AIReportsView from "@/app/ai-reports/AIReportsView";
+import SettingsPage from "@/app/settings/page";
 
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
@@ -388,6 +389,11 @@ export function TabContent() {
   // Check for ai-reports route
   if (activeTab.route === "/ai-reports") {
     return <AIReportsView />;
+  }
+
+  // Check for settings route
+  if (activeTab.route === "/settings") {
+    return <SettingsPage />;
   }
 
   // Render based on route

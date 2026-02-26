@@ -18,7 +18,7 @@ import { useTabs } from "@/context/TabContext";
 import { useSession, signOut } from "next-auth/react";
 
 export function TopNav() {
-  const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab } = useTabs();
+  const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab, openTab } = useTabs();
   const { data: session } = useSession();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -208,7 +208,11 @@ export function TopNav() {
           <button className="p-1.5 hover:bg-[#c8ccd1] rounded-full" title="Help">
             <HelpCircle className="w-4 h-4 text-[#5f6368]" />
           </button>
-          <button className="p-1.5 hover:bg-[#c8ccd1] rounded-full" title="Settings">
+          <button
+            className="p-1.5 hover:bg-[#c8ccd1] rounded-full"
+            title="Settings"
+            onClick={() => openTab("Settings", "/settings")}
+          >
             <Settings className="w-4 h-4 text-[#5f6368]" />
           </button>
 
