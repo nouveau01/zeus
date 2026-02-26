@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import {
   FileText,
   Save,
@@ -35,7 +36,6 @@ export default function ViolationsPage() {
   const { openTab } = useTabs();
 
   // Filters
-  const [fsCatalogue, setFsCatalogue] = useState("None");
   const [startDate, setStartDate] = useState("1/1/2025");
   const [endDate, setEndDate] = useState("12/31/2025");
   const [dateMode, setDateMode] = useState<"Week" | "Month" | "Quarter" | "Year">("Year");
@@ -228,16 +228,7 @@ export default function ViolationsPage() {
 
       {/* Filter Bar */}
       <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-3">
-        <div className="flex items-center gap-1">
-          <label className="text-[11px]">F&S Catalogue:</label>
-          <select
-            value={fsCatalogue}
-            onChange={(e) => setFsCatalogue(e.target.value)}
-            className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white min-w-[80px]"
-          >
-            <option value="None">None</option>
-          </select>
-        </div>
+        <SavedFiltersDropdown pageId="violations" onApply={() => {}} onClear={() => {}} />
         <span className="text-[11px]">*</span>
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Start</label>

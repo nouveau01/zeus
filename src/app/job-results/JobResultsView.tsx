@@ -16,6 +16,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 import { getJobs } from "@/lib/actions/jobs";
 
@@ -76,7 +77,6 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
 
   // Filters
-  const [catalogue, setCatalogue] = useState("None");
   const [activeTab, setActiveTab] = useState("All");
   const [showTotals, setShowTotals] = useState(false);
   const [sortField, setSortField] = useState<SortField>("jobNumber");
@@ -360,7 +360,6 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
     setActiveTab("All");
     setSortField("jobNumber");
     setSortDirection("asc");
-    setCatalogue("None");
     clearFilters();
     setOpenMenu(null);
   };
@@ -622,16 +621,7 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
 
       {/* Filter Row */}
       <div className="bg-white flex flex-wrap items-center gap-3 px-2 py-2 border-b border-[#d0d0d0]">
-        <div className="flex items-center gap-1">
-          <span className="text-[11px]">F&S Catalogue</span>
-          <select
-            value={catalogue}
-            onChange={(e) => setCatalogue(e.target.value)}
-            className="px-1 py-0.5 border border-[#a0a0a0] text-[11px] bg-white min-w-[60px]"
-          >
-            <option value="None">None</option>
-          </select>
-        </div>
+        <SavedFiltersDropdown pageId="job-results" onApply={(filters) => setActiveFilters(filters)} onClear={() => setActiveFilters({})} />
       </div>
 
       {/* Type Tabs */}
@@ -783,6 +773,7 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
         title="Job Results"
         fields={filterFields}
         initialFilters={activeFilters}
+        pageId="job-results"
       />
     </div>
   );

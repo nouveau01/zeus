@@ -11,14 +11,36 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  LogOut,
+  User,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { useSession, signOut } from "next-auth/react";
 
 export function TopNav() {
   const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab } = useTabs();
+  const { data: session } = useSession();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const user = session?.user as any;
+  const userInitials = user?.name
+    ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
 
   // Check if we need scroll arrows
   useEffect(() => {
@@ -190,9 +212,51 @@ export function TopNav() {
             <Settings className="w-4 h-4 text-[#5f6368]" />
           </button>
 
-          {/* User avatar */}
-          <div className="w-7 h-7 bg-[#1a73e8] rounded-full flex items-center justify-center text-white text-xs font-medium ml-1">
-            ZS
+          {/* User avatar & menu */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-medium ml-1 overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#1a73e8] focus:ring-offset-1"
+              title={user?.name || "User"}
+            >
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name || "User"} className="w-7 h-7 rounded-full object-cover" />
+              ) : (
+                <div className="w-7 h-7 bg-[#1a73e8] rounded-full flex items-center justify-center">
+                  {userInitials}
+                </div>
+              )}
+            </button>
+
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-[#dadce0] z-50 py-1">
+                <div className="px-4 py-3 border-b border-[#e0e0e0]">
+                  <div className="flex items-center gap-3">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="" className="w-9 h-9 rounded-full" />
+                    ) : (
+                      <div className="w-9 h-9 bg-[#1a73e8] rounded-full flex items-center justify-center text-white text-sm font-medium">
+                        {userInitials}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-[#202124] truncate">{user?.name || "User"}</div>
+                      <div className="text-xs text-[#5f6368] truncate">{user?.email || ""}</div>
+                      {user?.role && (
+                        <div className="text-[10px] text-[#1a73e8] font-medium mt-0.5">{user.role}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#202124] hover:bg-[#f1f3f4] transition-colors"
+                >
+                  <LogOut className="w-4 h-4 text-[#5f6368]" />
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

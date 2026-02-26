@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import {
   FileText,
   Save,
@@ -43,7 +44,6 @@ export default function SafetyTestsPage() {
   const { openTab } = useTabs();
 
   // Filters
-  const [fsCatalogue, setFsCatalogue] = useState("None");
   const [massUpdateStatus, setMassUpdateStatus] = useState("");
   const [startDate, setStartDate] = useState("10/1/2025");
   const [endDate, setEndDate] = useState("10/31/2025");
@@ -234,16 +234,7 @@ export default function SafetyTestsPage() {
 
       {/* Filter Bar */}
       <div className="bg-white flex items-center px-2 py-2 border-b border-[#808080] gap-4">
-        <div className="flex items-center gap-2">
-          <label className="text-[11px]">F&S Catalogue</label>
-          <select
-            value={fsCatalogue}
-            onChange={(e) => setFsCatalogue(e.target.value)}
-            className="px-2 py-1 border border-[#808080] text-[11px] bg-white min-w-[80px]"
-          >
-            <option value="None">None</option>
-          </select>
-        </div>
+        <SavedFiltersDropdown pageId="safety-tests" onApply={() => {}} onClear={() => {}} />
         <div className="flex items-center gap-2">
           <label className="text-[11px]">Mass Update Status</label>
           <select

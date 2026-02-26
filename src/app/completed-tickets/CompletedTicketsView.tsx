@@ -23,6 +23,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { getTickets } from "@/lib/actions/tickets";
 
 // Toolbar icons matching Accounts/Customers pattern
@@ -103,7 +104,6 @@ interface PageState {
   sortDirection: SortDirection;
   selectedRow: string | null;
   showTotals: boolean;
-  catalogue: string;
   mechanic: string;
   supervisor: string;
 }
@@ -141,7 +141,6 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
 
   // Filters - default to last 30 days
-  const [catalogue, setCatalogue] = useState("None");
   const [mechanic, setMechanic] = useState("All");
   const [reviewed, setReviewed] = useState("All");
   const [billed, setBilled] = useState("All");
@@ -208,7 +207,6 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
         setSortDirection(state.sortDirection || "desc");
         setSelectedRow(state.selectedRow || null);
         setShowTotals(state.showTotals || false);
-        setCatalogue(state.catalogue || "None");
         setMechanic(state.mechanic || "All");
         setSupervisor(state.supervisor || "All");
       }
@@ -228,7 +226,6 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
           sortDirection,
           selectedRow,
           showTotals,
-          catalogue,
           mechanic,
           supervisor,
         };
@@ -237,7 +234,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
         console.error("Error saving tickets state:", error);
       }
     }
-  }, [activeTab, sortField, sortDirection, selectedRow, showTotals, catalogue, mechanic, supervisor, isHydrated]);
+  }, [activeTab, sortField, sortDirection, selectedRow, showTotals, mechanic, supervisor, isHydrated]);
 
   useEffect(() => {
     if (isHydrated) {
@@ -515,16 +512,11 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
 
       {/* Filter Row */}
       <div className="bg-white flex flex-wrap items-center gap-3 px-2 py-2 border-b border-[#d0d0d0]">
-        <div className="flex items-center gap-1">
-          <span className="text-[11px]">F&S Catalogue</span>
-          <select
-            value={catalogue}
-            onChange={(e) => setCatalogue(e.target.value)}
-            className="px-1 py-0.5 border border-[#a0a0a0] text-[11px] bg-white min-w-[60px]"
-          >
-            <option value="None">None</option>
-          </select>
-        </div>
+        <SavedFiltersDropdown
+          pageId="completed-tickets"
+          onApply={() => {}}
+          onClear={() => {}}
+        />
 
         <div className="flex items-center gap-1">
           <span className="text-[11px]">Mechanic</span>

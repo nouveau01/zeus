@@ -34,7 +34,7 @@ model User {
   email     String   @unique
   password  String?                        // Hashed password for authentication
   name      String
-  role      String   @default("User")      // "Admin" or "User"
+  role      String   @default("User")      // "GodAdmin", "Admin", or "User"
   avatar    String?
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
@@ -45,8 +45,30 @@ model User {
   jobHistory     JobHistory[]
   activities     Activity[]
   files          File[]
+  savedFilters   SavedFilter[]
 
   @@map("users")
+}
+
+// ============================================
+// SAVED FILTERS
+// ============================================
+
+model SavedFilter {
+  id        String   @id @default(cuid())
+  name      String
+  pageId    String   @map("page_id")        // Which module this filter belongs to (e.g. "customers", "accounts")
+  filters   Json                              // The filter/sort configuration
+  isPublic  Boolean  @default(false) @map("is_public")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([pageId])
+  @@index([userId])
+  @@map("saved_filters")
 }
 
 // ============================================

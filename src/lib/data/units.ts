@@ -189,7 +189,11 @@ async function fetchUnitsFromPostgres(options: FetchUnitsOptions) {
     take: limit,
     orderBy: { unitNumber: "asc" },
     include: {
-      premises: true,
+      premises: {
+        include: {
+          customer: true,
+        },
+      },
     },
   });
 
@@ -209,10 +213,14 @@ async function fetchUnitsFromPostgres(options: FetchUnitsOptions) {
     isActive: u.isActive,
     remarks: u.remarks,
     premisesId: u.premisesId,
+    premisesLocId: u.premises?.locId || "",
+    premisesName: u.premises?.name || "",
     premisesTag: u.premises?.tag || "",
     premisesAddress: u.premises?.address || "",
     premisesCity: u.premises?.city || "",
     premisesState: u.premises?.state || "",
+    customerId: u.premises?.customerId || "",
+    customerName: u.premises?.customer?.name || "",
   }));
 }
 

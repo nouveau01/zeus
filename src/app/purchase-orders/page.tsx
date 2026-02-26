@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import {
   FileText,
   Pencil,
@@ -42,7 +43,6 @@ interface NewPOForm {
 
 export default function PurchaseOrdersPage() {
   const { openTab } = useTabs();
-  const [catalogue, setCatalogue] = useState("None");
   const [startDate, setStartDate] = useState("2026-01-01");
   const [endDate, setEndDate] = useState("2026-01-31");
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
@@ -341,19 +341,7 @@ export default function PurchaseOrdersPage() {
 
       {/* Filter Bar */}
       <div className="bg-white px-4 py-2 border-b border-[#d0d0d0] flex items-center gap-4">
-        {/* F&S Catalogue */}
-        <div className="flex items-center gap-2">
-          <label className="text-[12px]">F&S Catalogue</label>
-          <select
-            value={catalogue}
-            onChange={(e) => setCatalogue(e.target.value)}
-            className="px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white min-w-[100px]"
-          >
-            <option value="None">None</option>
-            <option value="Parts">Parts</option>
-            <option value="Labor">Labor</option>
-          </select>
-        </div>
+        <SavedFiltersDropdown pageId="purchase-orders" onApply={() => {}} onClear={() => {}} />
 
         {/* Date Range */}
         <div className="flex items-center gap-2">

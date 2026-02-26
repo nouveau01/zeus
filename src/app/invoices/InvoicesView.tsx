@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { AdminTools } from "@/components/AdminTools";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 
@@ -60,7 +61,6 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Filters - default to wide date range to show all invoices
-  const [catalogue, setCatalogue] = useState("None");
   const [startDate, setStartDate] = useState("1980-01-01");
   const [endDate, setEndDate] = useState("2030-12-31");
   const [activeType, setActiveType] = useState("All");
@@ -73,10 +73,9 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
     if (saved) {
       try {
         const state = JSON.parse(saved);
-        // Only restore activeType and catalogue, not date range
+        // Only restore activeType, not date range
         // This ensures invoices are always visible on load
         if (state.activeType) setActiveType(state.activeType);
-        if (state.catalogue) setCatalogue(state.catalogue);
       } catch (e) {
         console.error("Error loading saved state:", e);
       }
@@ -84,15 +83,15 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
     setFiltersLoaded(true);
   }, []);
 
-  // Only save type and catalogue to localStorage (not date range)
+  // Only save type to localStorage (not date range)
   useEffect(() => {
     if (filtersLoaded) {
       localStorage.setItem(
         "invoicesPageState",
-        JSON.stringify({ activeType, catalogue })
+        JSON.stringify({ activeType })
       );
     }
-  }, [activeType, catalogue, filtersLoaded]);
+  }, [activeType, filtersLoaded]);
 
   useEffect(() => {
     if (filtersLoaded) {
@@ -317,16 +316,11 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
 
       {/* Filter Row */}
       <div className="bg-white flex items-center gap-4 px-2 py-2 border-b border-[#d0d0d0]">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px]">F&S Catalogue</span>
-          <select
-            value={catalogue}
-            onChange={(e) => setCatalogue(e.target.value)}
-            className="px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white min-w-[100px]"
-          >
-            <option value="None">None</option>
-          </select>
-        </div>
+        <SavedFiltersDropdown
+          pageId="invoices"
+          onApply={() => {}}
+          onClear={() => {}}
+        />
 
         <div className="flex items-center gap-2">
           <span className="text-[11px]">Start</span>

@@ -21,6 +21,8 @@ export interface FilterDialogProps {
   title: string;
   fields: FilterField[];
   initialFilters?: Record<string, FilterValue>;
+  pageId?: string;
+  onFilterSaved?: () => void;
 }
 
 export function FilterDialog({
@@ -30,6 +32,8 @@ export function FilterDialog({
   title,
   fields,
   initialFilters = {},
+  pageId,
+  onFilterSaved,
 }: FilterDialogProps) {
   // Filter values state
   const [filterValues, setFilterValues] = useState<Record<string, FilterValue>>(() => {
@@ -51,6 +55,13 @@ export function FilterDialog({
 
   // Dialog tab state
   const [activeTab, setActiveTab] = useState<"filtering" | "sorting">("filtering");
+
+  // Save filter state
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveFilterName, setSaveFilterName] = useState("");
+  const [saveFilterPublic, setSaveFilterPublic] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // F3 Lookup state
   const [showLookup, setShowLookup] = useState(false);
@@ -93,6 +104,53 @@ export function FilterDialog({
     });
     onApply(activeFilters);
     onClose();
+  };
+
+  // Save filter
+  const handleSaveFilter = async () => {
+    if (!saveFilterName.trim() || !pageId) return;
+
+    setSaving(true);
+    try {
+      // Build the filter config to save
+      const activeFilters: Record<string, FilterValue> = {};
+      Object.entries(filterValues).forEach(([key, val]) => {
+        if (val.value.trim() !== "") {
+          activeFilters[key] = { ...val };
+        }
+      });
+
+      const res = await fetch("/api/saved-filters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: saveFilterName.trim(),
+          pageId,
+          filters: activeFilters,
+          isPublic: saveFilterPublic,
+        }),
+      });
+
+      if (res.ok) {
+        setShowSaveDialog(false);
+        setSaveFilterName("");
+        setSaveFilterPublic(false);
+        setSaveError(null);
+        onFilterSaved?.();
+        // Notify SavedFiltersDropdown to refresh
+        if (pageId) {
+          window.dispatchEvent(new Event(`savedFilters:${pageId}:refresh`));
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || "Failed to save filter");
+      }
+    } catch (error) {
+      console.error("Error saving filter:", error);
+      setSaveError("Error saving filter. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Open F3 lookup
@@ -204,9 +262,15 @@ export function FilterDialog({
             </button>
             <div className="w-px h-5 bg-[#808080] mx-1" />
             <button
-              className="w-6 h-6 flex items-center justify-center rounded opacity-50 cursor-not-allowed"
-              title="Save (Coming Soon)"
-              disabled
+              onClick={() => {
+                setSaveFilterName("");
+                setSaveFilterPublic(false);
+                setSaveError(null);
+                setShowSaveDialog(true);
+              }}
+              className={`w-6 h-6 flex items-center justify-center hover:bg-[#c0c0c0] rounded ${!pageId ? "opacity-50 cursor-not-allowed" : ""}`}
+              title="Save Filter"
+              disabled={!pageId}
             >
               <Save className="w-4 h-4 text-[#2980b9]" />
             </button>
@@ -378,6 +442,86 @@ export function FilterDialog({
           </div>
         </div>
       </div>
+
+      {/* Save Filter Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[60]">
+          <div
+            className="bg-[#ece9d8] border border-[#808080] shadow-lg flex flex-col"
+            style={{
+              width: "340px",
+              fontFamily: "Segoe UI, Tahoma, sans-serif",
+              fontSize: "11px",
+            }}
+          >
+            {/* Title Bar */}
+            <div className="bg-gradient-to-r from-[#0a246a] to-[#a6caf0] px-2 py-1 flex items-center justify-between">
+              <span className="text-white font-bold text-[12px]">
+                Save Filter
+              </span>
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                className="text-white hover:bg-[#c45c5c] px-1 rounded"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <label className="w-16 text-[11px]">Name:</label>
+                <input
+                  type="text"
+                  value={saveFilterName}
+                  onChange={(e) => setSaveFilterName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && saveFilterName.trim()) {
+                      handleSaveFilter();
+                    }
+                  }}
+                  className="flex-1 px-2 py-1 border border-[#808080] text-[11px] bg-white"
+                  placeholder="Filter name..."
+                  autoFocus
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="w-16 text-[11px]">Visibility:</label>
+                <label className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveFilterPublic}
+                    onChange={(e) => setSaveFilterPublic(e.target.checked)}
+                    className="w-3 h-3"
+                  />
+                  Public (visible to all users)
+                </label>
+              </div>
+            </div>
+
+            {saveError && (
+              <div className="mx-4 mb-2 px-3 py-2 bg-[#fff0f0] border border-[#e0a0a0] text-[11px] text-[#c00]">
+                {saveError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 px-4 pb-3">
+              <button
+                onClick={handleSaveFilter}
+                disabled={!saveFilterName.trim() || saving}
+                className="px-4 py-1 text-[11px] bg-[#e0e0e0] border border-[#808080] hover:bg-[#d0d0d0] min-w-[70px] disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                className="px-4 py-1 text-[11px] bg-[#e0e0e0] border border-[#808080] hover:bg-[#d0d0d0] min-w-[70px]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* F3 Lookup Popup */}
       {showLookup && (

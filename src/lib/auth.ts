@@ -1,52 +1,81 @@
 import { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
+import GoogleProvider from "next-auth/providers/google";
 import prisma from "@/lib/db";
+
+// Role hierarchy: GodAdmin > Admin > User
+// GodAdmin: Full platform control — user management, destructive actions, backend access
+// Admin: Module configuration, user management (cannot create/modify GodAdmin)
+// User: Standard access, no admin features
+export type UserRole = "GodAdmin" | "Admin" | "User";
+
+const ROLE_LEVEL: Record<string, number> = {
+  GodAdmin: 100,
+  Admin: 50,
+  User: 10,
+};
+
+export function hasRole(userRole: string, requiredRole: UserRole): boolean {
+  return (ROLE_LEVEL[userRole] || 0) >= (ROLE_LEVEL[requiredRole] || 0);
+}
+
+export function isGodAdmin(role: string): boolean {
+  return role === "GodAdmin";
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !user.password || !user.isActive) {
-          return null;
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
-      },
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        const email = user.email;
+        if (!email) return false;
+
+        // 1. Domain restriction — only @nouveau*.com emails allowed
+        const domain = email.split("@")[1]?.toLowerCase() || "";
+        if (!domain.startsWith("nouveau") || !domain.endsWith(".com")) {
+          return false;
+        }
+
+        // 2. Pre-created users only — must already exist in DB
+        const dbUser = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!dbUser) {
+          return false; // Not in the system — admin must add them first
+        }
+
+        // Update avatar if changed
+        if (dbUser.avatar !== user.image && user.image) {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { avatar: user.image },
+          });
+        }
+
+        if (!dbUser.isActive) {
+          return false; // Deactivated user can't sign in
+        }
+      }
+
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      // On sign-in, look up DB user for id, role, avatar
+      if (account) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email! },
+        });
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.role = dbUser.role;
+          token.avatar = dbUser.avatar;
+        }
       }
       return token;
     },
@@ -54,6 +83,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        (session.user as any).avatar = token.avatar;
       }
       return session;
     },

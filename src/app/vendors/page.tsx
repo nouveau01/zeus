@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import {
   FileText,
   Pencil,
@@ -35,7 +36,6 @@ const TABS = ["All", "Cost of Sales", "Overhead"];
 export default function VendorsPage() {
   const { openTab } = useTabs();
   const [activeTab, setActiveTab] = useState("All");
-  const [catalogue, setCatalogue] = useState("None");
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -353,19 +353,13 @@ export default function VendorsPage() {
         </button>
       </div>
 
-      {/* F&S Catalogue Filter */}
+      {/* Saved Filters */}
       <div className="bg-white px-4 py-2 border-b border-[#d0d0d0] flex items-center gap-2">
-        <label className="text-[12px]">F&S Catalogue</label>
-        <select
-          value={catalogue}
-          onChange={(e) => setCatalogue(e.target.value)}
-          className="px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white min-w-[150px]"
-        >
-          <option value="None">None</option>
-          <option value="Parts">Parts</option>
-          <option value="Labor">Labor</option>
-          <option value="Materials">Materials</option>
-        </select>
+        <SavedFiltersDropdown
+          pageId="vendors"
+          onApply={() => {}}
+          onClear={() => {}}
+        />
       </div>
 
       {/* Tabs */}

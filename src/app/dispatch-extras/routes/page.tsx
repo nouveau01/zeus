@@ -16,6 +16,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 
 interface RouteData {
@@ -536,12 +537,7 @@ export default function RoutesPage() {
 
       {/* Filter Row */}
       <div className="bg-white flex flex-wrap items-center gap-3 px-2 py-2 border-b border-[#d0d0d0]">
-        <div className="flex items-center gap-1">
-          <span className="text-[11px]">F&S Catalogue</span>
-          <select className="px-1 py-0.5 border border-[#a0a0a0] text-[11px] bg-white min-w-[60px]">
-            <option value="None">None</option>
-          </select>
-        </div>
+        <SavedFiltersDropdown pageId="routes" onApply={(filters) => setActiveFilters(filters)} onClear={() => setActiveFilters({})} />
       </div>
 
       {/* Grid Container */}
@@ -655,6 +651,7 @@ export default function RoutesPage() {
         title="Routes"
         fields={filterFields}
         initialFilters={activeFilters}
+        pageId="routes"
       />
     </div>
   );

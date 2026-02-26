@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import {
   FileText,
   Pencil,
@@ -44,7 +45,6 @@ interface NewUnitForm {
 
 export default function UnitsPage() {
   const { openTab } = useTabs();
-  const [catalogue, setCatalogue] = useState("None");
   const [filterType, setFilterType] = useState<"Category" | "Type" | "Building">("Category");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -75,7 +75,7 @@ export default function UnitsPage() {
       // Map response to our interface
       const mappedUnits: Unit[] = data.map((u: any) => ({
         id: u.id,
-        accountId: u.premisesId || "",
+        accountId: u.premisesName || u.premisesLocId || "",
         accountTag: u.premisesAddress || "",
         unitNumber: u.unit || "",
         type: u.elevatorType || "Elevator",
@@ -325,20 +325,9 @@ export default function UnitsPage() {
 
       {/* Filter Bar */}
       <div className="bg-white px-4 py-2 border-b border-[#d0d0d0]">
-        {/* F&S Catalogue and Radio Buttons */}
+        {/* Saved Filters and Radio Buttons */}
         <div className="flex items-center gap-6 mb-2">
-          <div className="flex items-center gap-2">
-            <label className="text-[12px]">F&S Catalogue</label>
-            <select
-              value={catalogue}
-              onChange={(e) => setCatalogue(e.target.value)}
-              className="px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white min-w-[100px]"
-            >
-              <option value="None">None</option>
-              <option value="Parts">Parts</option>
-              <option value="Labor">Labor</option>
-            </select>
-          </div>
+          <SavedFiltersDropdown pageId="units" onApply={() => {}} onClear={() => {}} />
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-1 text-[12px]">
               <input
@@ -393,7 +382,7 @@ export default function UnitsPage() {
         <table className="w-full border-collapse text-[12px]">
           <thead className="bg-[#f0f0f0] sticky top-0">
             <tr>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Account ID</th>
+              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Account Name</th>
               <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "18%" }}>Account Tag</th>
               <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Unit #</th>
               <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "8%" }}>Type</th>

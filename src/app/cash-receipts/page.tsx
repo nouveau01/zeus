@@ -16,6 +16,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 
 interface BankAccount {
   id: string;
@@ -43,8 +44,6 @@ export default function CashReceiptsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("all");
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
-  const [fsCatalogue, setFsCatalogue] = useState("None");
-
   // Date filters - default to current week
   const today = new Date();
   const weekStart = new Date(today);
@@ -61,7 +60,7 @@ export default function CashReceiptsPage() {
 
   useEffect(() => {
     fetchCashReceipts();
-  }, [startDate, endDate, selectedTab, fsCatalogue]);
+  }, [startDate, endDate, selectedTab]);
 
   const fetchBankAccounts = async () => {
     try {
@@ -82,8 +81,6 @@ export default function CashReceiptsPage() {
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
       if (selectedTab !== "all") params.append("bankAccountId", selectedTab);
-      if (fsCatalogue !== "None") params.append("fsCatalogue", fsCatalogue);
-
       const response = await fetch(`/api/cash-receipts?${params}`);
       if (response.ok) {
         const data = await response.json();
@@ -323,17 +320,7 @@ export default function CashReceiptsPage() {
 
       {/* Filter Row */}
       <div className="bg-white flex items-center px-3 py-2 border-b border-[#d0d0d0] gap-4">
-        {/* F&S Catalogue */}
-        <div className="flex items-center gap-2">
-          <label className="text-[12px]">F&S Catalogue</label>
-          <select
-            value={fsCatalogue}
-            onChange={(e) => setFsCatalogue(e.target.value)}
-            className="px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white min-w-[100px]"
-          >
-            <option value="None">None</option>
-          </select>
-        </div>
+        <SavedFiltersDropdown pageId="cash-receipts" onApply={() => {}} onClear={() => {}} />
 
         <div className="flex-1" />
 
