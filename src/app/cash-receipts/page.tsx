@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 
 interface BankAccount {
   id: string;
@@ -37,13 +38,24 @@ interface CashReceipt {
   };
 }
 
+// Column definitions
+const columns = [
+  { field: "date", label: "Date", width: 100, align: "left" as const },
+  { field: "ref", label: "Ref", width: 100, align: "left" as const },
+  { field: "description", label: "Description", width: 300, align: "left" as const },
+  { field: "bank", label: "Bank", width: 200, align: "left" as const },
+  { field: "amount", label: "Amount", width: 150, align: "right" as const },
+];
+
 export default function CashReceiptsPage() {
   const { openTab } = useTabs();
+  const { filteredColumns, filteredWidths: initialWidths } = useFilteredColumns("cash-receipts", columns);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [cashReceipts, setCashReceipts] = useState<CashReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("all");
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState<number[]>(initialWidths);
   // Date filters - default to current week
   const today = new Date();
   const weekStart = new Date(today);
@@ -394,32 +406,48 @@ export default function CashReceiptsPage() {
         <table className="w-full border-collapse text-[12px]">
           <thead className="bg-[#f0f0f0] sticky top-0">
             <tr>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Date</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Ref</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "30%" }}>Description</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "20%" }}>Bank</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "15%" }}>Amount</th>
+              {filteredColumns.map((col) => (
+                <th
+                  key={col.field}
+                  className={`px-2 py-1 font-medium border border-[#c0c0c0] ${col.align === "right" ? "text-right" : "text-left"}`}
+                  style={{ width: col.width }}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {displayReceipts.map((receipt, index) => (
-              <tr
-                key={receipt.id}
-                onClick={() => setSelectedRow(receipt.id)}
-                onDoubleClick={() => openTab(`Editing Deposit #${receipt.refNumber}`, `/cash-receipts/${receipt.id}`)}
-                className={`cursor-pointer ${
-                  selectedRow === receipt.id || (index === 0 && !selectedRow)
-                    ? "bg-white"
-                    : "hover:bg-[#f0f8ff]"
-                }`}
-              >
-                <td className="px-2 py-1 border border-[#e0e0e0]">{formatDate(receipt.date)}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{receipt.refNumber}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{receipt.description}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{receipt.bankAccount.name}</td>
-                <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(receipt.amount)}</td>
-              </tr>
-            ))}
+            {displayReceipts.map((receipt, index) => {
+              const cellValues: Record<string, React.ReactNode> = {
+                date: formatDate(receipt.date),
+                ref: receipt.refNumber,
+                description: receipt.description,
+                bank: receipt.bankAccount.name,
+                amount: formatCurrency(receipt.amount),
+              };
+              return (
+                <tr
+                  key={receipt.id}
+                  onClick={() => setSelectedRow(receipt.id)}
+                  onDoubleClick={() => openTab(`Editing Deposit #${receipt.refNumber}`, `/cash-receipts/${receipt.id}`)}
+                  className={`cursor-pointer ${
+                    selectedRow === receipt.id || (index === 0 && !selectedRow)
+                      ? "bg-white"
+                      : "hover:bg-[#f0f8ff]"
+                  }`}
+                >
+                  {filteredColumns.map((col) => (
+                    <td
+                      key={col.field}
+                      className={`px-2 py-1 border border-[#e0e0e0] ${col.align === "right" ? "text-right" : ""}`}
+                    >
+                      {cellValues[col.field]}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

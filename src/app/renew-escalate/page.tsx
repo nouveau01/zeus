@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   FileText,
   DollarSign,
@@ -11,6 +11,7 @@ import {
   HelpCircle,
   X,
 } from "lucide-react";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 
 interface Contract {
   id: string;
@@ -33,7 +34,49 @@ interface Contract {
   zip: string;
 }
 
+// Column definitions with group info for grouped headers
+const columns = [
+  { field: "accountId", label: "ID", width: 120, group: "Account", align: "left" as const },
+  { field: "accountTag", label: "Tag", width: 120, group: "Account", align: "left" as const },
+  { field: "type", label: "Ty", width: 50, group: "Contract", align: "center" as const },
+  { field: "billFreq", label: "Bill", width: 50, group: "Contract", align: "center" as const },
+  { field: "escType", label: "Esc", width: 50, group: "Contract", align: "center" as const },
+  { field: "lastEsc", label: "Last Esc", width: 100, group: "Dates", align: "center" as const },
+  { field: "nextDue", label: "Next Due", width: 100, group: "Dates", align: "center" as const },
+  { field: "prvYear", label: "Prv Year", width: 90, group: "Results", align: "right" as const },
+  { field: "total", label: "Total", width: 80, group: "Results", align: "right" as const },
+  { field: "currentAmount", label: "Current", width: 100, group: "Amounts", align: "right" as const },
+  { field: "newAmount", label: "New", width: 100, group: "Amounts", align: "right" as const },
+];
+
+// Group header styles
+const groupStyles: Record<string, string> = {
+  Account: "bg-[#000080] text-white",
+  Contract: "bg-[#808000] text-white",
+  Dates: "bg-[#808000] text-white",
+  Results: "bg-[#000080] text-white",
+  Amounts: "bg-[#c0a000] text-white",
+};
+
 export default function RenewEscalatePage() {
+  const { filteredColumns, filteredWidths: initialWidths } = useFilteredColumns("renew-escalate", columns);
+  const [columnWidths, setColumnWidths] = useState<number[]>(initialWidths);
+
+  // Build grouped headers from filtered columns
+  const groupHeaders = useMemo(() => {
+    const groups: { label: string; colSpan: number; style: string }[] = [];
+    let currentGroup = "";
+    for (const col of filteredColumns) {
+      if (col.group !== currentGroup) {
+        groups.push({ label: col.group, colSpan: 1, style: groupStyles[col.group] || "" });
+        currentGroup = col.group;
+      } else {
+        groups[groups.length - 1].colSpan++;
+      }
+    }
+    return groups;
+  }, [filteredColumns]);
+
   const currentDate = new Date();
   const [viewContractsPriorTo, setViewContractsPriorTo] = useState(currentDate.toISOString().split("T")[0]);
   const [renewalDate, setRenewalDate] = useState(currentDate.toISOString().split("T")[0]);
@@ -185,63 +228,65 @@ export default function RenewEscalatePage() {
           <thead className="sticky top-0">
             {/* Group Headers */}
             <tr>
-              <th colSpan={2} className="px-2 py-1 text-center font-medium bg-[#000080] text-white border border-[#c0c0c0]">
-                Account
-              </th>
-              <th colSpan={3} className="px-2 py-1 text-center font-medium bg-[#808000] text-white border border-[#c0c0c0]">
-                Contract
-              </th>
-              <th colSpan={2} className="px-2 py-1 text-center font-medium bg-[#808000] text-white border border-[#c0c0c0]">
-                Dates
-              </th>
-              <th colSpan={2} className="px-2 py-1 text-center font-medium bg-[#000080] text-white border border-[#c0c0c0]">
-                Results
-              </th>
-              <th colSpan={2} className="px-2 py-1 text-center font-medium bg-[#c0a000] text-white border border-[#c0c0c0]">
-                Amounts
-              </th>
+              {groupHeaders.map((group, i) => (
+                <th
+                  key={`${group.label}-${i}`}
+                  colSpan={group.colSpan}
+                  className={`px-2 py-1 text-center font-medium border border-[#c0c0c0] ${group.style}`}
+                >
+                  {group.label}
+                </th>
+              ))}
             </tr>
             {/* Column Headers */}
             <tr className="bg-[#f0f0f0]">
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>ID</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>Tag</th>
-              <th className="px-2 py-1 text-center font-medium border border-[#c0c0c0]" style={{ width: "5%" }}>Ty</th>
-              <th className="px-2 py-1 text-center font-medium border border-[#c0c0c0]" style={{ width: "5%" }}>Bill</th>
-              <th className="px-2 py-1 text-center font-medium border border-[#c0c0c0]" style={{ width: "5%" }}>Esc</th>
-              <th className="px-2 py-1 text-center font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Last Esc</th>
-              <th className="px-2 py-1 text-center font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Next Due</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "9%" }}>Prv Year</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "8%" }}>Total</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Current</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>New</th>
+              {filteredColumns.map((col) => (
+                <th
+                  key={col.field}
+                  className={`px-2 py-1 font-medium border border-[#c0c0c0] ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"}`}
+                  style={{ width: col.width }}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {contracts.map((contract) => (
-              <tr
-                key={contract.id}
-                onClick={() => handleRowClick(contract)}
-                className={`cursor-pointer ${
-                  selectedContract?.id === contract.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
-                }`}
-              >
-                <td className="px-2 py-1 border border-[#e0e0e0]">{contract.accountId}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{contract.accountTag}</td>
-                <td className="px-2 py-1 text-center border border-[#e0e0e0]">{contract.type}</td>
-                <td className="px-2 py-1 text-center border border-[#e0e0e0]">{contract.billFreq}</td>
-                <td className="px-2 py-1 text-center border border-[#e0e0e0]">{contract.escType}</td>
-                <td className="px-2 py-1 text-center border border-[#e0e0e0]">{formatDate(contract.lastEsc)}</td>
-                <td className="px-2 py-1 text-center border border-[#e0e0e0]">{formatDate(contract.nextDue)}</td>
-                <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatPercent(contract.prvYear)}</td>
-                <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatPercent(contract.total)}</td>
-                <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(contract.currentAmount)}</td>
-                <td className={`px-2 py-1 text-right border border-[#e0e0e0] ${
-                  selectedContract?.id !== contract.id ? "bg-[#00ffff] text-black" : ""
-                }`}>
-                  {formatCurrency(contract.newAmount)}
-                </td>
-              </tr>
-            ))}
+            {contracts.map((contract) => {
+              const cellValues: Record<string, React.ReactNode> = {
+                accountId: contract.accountId,
+                accountTag: contract.accountTag,
+                type: contract.type,
+                billFreq: contract.billFreq,
+                escType: contract.escType,
+                lastEsc: formatDate(contract.lastEsc),
+                nextDue: formatDate(contract.nextDue),
+                prvYear: formatPercent(contract.prvYear),
+                total: formatPercent(contract.total),
+                currentAmount: formatCurrency(contract.currentAmount),
+                newAmount: formatCurrency(contract.newAmount),
+              };
+              return (
+                <tr
+                  key={contract.id}
+                  onClick={() => handleRowClick(contract)}
+                  className={`cursor-pointer ${
+                    selectedContract?.id === contract.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
+                  }`}
+                >
+                  {filteredColumns.map((col) => (
+                    <td
+                      key={col.field}
+                      className={`px-2 py-1 border border-[#e0e0e0] ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${
+                        col.field === "newAmount" && selectedContract?.id !== contract.id ? "bg-[#00ffff] text-black" : ""
+                      }`}
+                    >
+                      {cellValues[col.field]}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

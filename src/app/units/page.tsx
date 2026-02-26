@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import {
   FileText,
@@ -66,6 +67,20 @@ export default function UnitsPage() {
   const categories = ["All", "CONSULTANT", "N/A", "Other", "Private", "Public", "Service"];
   const types = ["All", "Elevator", "Hydraulic", "Service"];
   const buildings = ["All", "Hospital", "Office / Commercial", "Store / Retail", "School", "Other"];
+
+  const columns = [
+    { field: "accountId", label: "Account Name", width: 10 },
+    { field: "accountTag", label: "Account Tag", width: 18 },
+    { field: "unitNumber", label: "Unit #", width: 10 },
+    { field: "type", label: "Type", width: 8 },
+    { field: "category", label: "Category", width: 10 },
+    { field: "building", label: "Building", width: 12 },
+    { field: "customerName", label: "Customer", width: 18 },
+    { field: "status", label: "Status", width: 7 },
+    { field: "stateNumber", label: "State #", width: 7 },
+  ];
+
+  const { filteredColumns } = useFilteredColumns("units", columns);
 
   // Fetch units - uses Server Action that pulls from SQL Server and mirrors to PostgreSQL
   const fetchUnits = async () => {
@@ -382,15 +397,9 @@ export default function UnitsPage() {
         <table className="w-full border-collapse text-[12px]">
           <thead className="bg-[#f0f0f0] sticky top-0">
             <tr>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Account Name</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "18%" }}>Account Tag</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Unit #</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "8%" }}>Type</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Category</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>Building</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "18%" }}>Customer</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "7%" }}>Status</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "7%" }}>State #</th>
+              {filteredColumns.map((col) => (
+                <th key={col.field} className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: `${col.width}%` }}>{col.label}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -403,49 +412,55 @@ export default function UnitsPage() {
                   selectedUnit?.id === unit.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
                 }`}
               >
-                <td
-                  className={`px-2 py-1 border border-[#e0e0e0] ${selectedUnit?.id !== unit.id && unit.premisesId ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
-                  onClick={(e) => {
-                    if (selectedUnit?.id !== unit.id && unit.premisesId) {
-                      e.stopPropagation();
-                      handleNavigateToAccount(unit);
-                    }
-                  }}
-                >
-                  {unit.accountId}
-                </td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{unit.accountTag}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{unit.unitNumber}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{unit.type}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{unit.category}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{unit.building}</td>
-                <td
-                  className={`px-2 py-1 border border-[#e0e0e0] ${selectedUnit?.id !== unit.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
-                  onClick={(e) => {
-                    if (selectedUnit?.id !== unit.id) {
-                      e.stopPropagation();
-                      handleNavigateToCustomer(unit.customerId, unit.customerName);
-                    }
-                  }}
-                >
-                  {unit.customerName}
-                </td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{unit.status}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{unit.stateNumber}</td>
+                {filteredColumns.map((col) => {
+                  if (col.field === "accountId") {
+                    return (
+                      <td
+                        key={col.field}
+                        className={`px-2 py-1 border border-[#e0e0e0] ${selectedUnit?.id !== unit.id && unit.premisesId ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
+                        onClick={(e) => {
+                          if (selectedUnit?.id !== unit.id && unit.premisesId) {
+                            e.stopPropagation();
+                            handleNavigateToAccount(unit);
+                          }
+                        }}
+                      >
+                        {unit.accountId}
+                      </td>
+                    );
+                  }
+                  if (col.field === "customerName") {
+                    return (
+                      <td
+                        key={col.field}
+                        className={`px-2 py-1 border border-[#e0e0e0] ${selectedUnit?.id !== unit.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
+                        onClick={(e) => {
+                          if (selectedUnit?.id !== unit.id) {
+                            e.stopPropagation();
+                            handleNavigateToCustomer(unit.customerId, unit.customerName);
+                          }
+                        }}
+                      >
+                        {unit.customerName}
+                      </td>
+                    );
+                  }
+                  return (
+                    <td key={col.field} className="px-2 py-1 border border-[#e0e0e0]">
+                      {unit[col.field as keyof Unit]}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
             {/* Totals Row - only shows when toggled on */}
             {showTotals && (
               <tr className="font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4]">
-                <td className="px-2 py-1 border border-[#d0d0d0]">TOTALS</td>
-                <td className="px-2 py-1 border border-[#d0d0d0]">{totals.count} units</td>
-                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
-                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
-                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
-                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
-                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
-                <td className="px-2 py-1 border border-[#d0d0d0]">{totals.activeCount} active</td>
-                <td className="px-2 py-1 border border-[#d0d0d0]"></td>
+                {filteredColumns.map((col, i) => (
+                  <td key={col.field} className="px-2 py-1 border border-[#d0d0d0]">
+                    {i === 0 ? "TOTALS" : col.field === "accountTag" ? `${totals.count} units` : col.field === "status" ? `${totals.activeCount} active` : ""}
+                  </td>
+                ))}
               </tr>
             )}
           </tbody>

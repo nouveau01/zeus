@@ -16,6 +16,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { usePermissions } from "@/context/PermissionsContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 import { getJobs } from "@/lib/actions/jobs";
@@ -72,6 +73,7 @@ interface JobResultsPageProps {
 
 export default function JobResultsView({ premisesId }: JobResultsPageProps) {
   const { openTab, closeTab, activeTabId } = useTabs();
+  const { isFieldAllowed } = usePermissions();
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
@@ -647,7 +649,7 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
         <div className="bg-[#f0f0f0] border-b border-[#c0c0c0] flex-shrink-0">
           <div className="flex text-[12px]">
             {columns.map((col, index) => (
-              <div
+              isFieldAllowed("job-results", col.field) && <div
                 key={col.field}
                 className="relative flex-shrink-0 border-r border-[#c0c0c0] last:border-r-0"
                 style={{ width: columnWidths[index] }}
@@ -691,22 +693,22 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
                     : "bg-white hover:bg-[#f0f8ff]"
                 }`}
               >
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>{job.externalId || ""}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{job.premises?.premisesId || ""}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}>{job.premises?.name || ""}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}>{job.jobDescription || job.jobName}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}>{job.type || ""}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[5] }}>{formatCurrency(job.revenueBilled)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[6] }}>{formatCurrency(job.materials)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[7] }}>{formatCurrency(job.labor)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[8] }}>{formatCurrency(job.committed)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[9] }}>{formatCurrency(job.totalCost)}</div>
-                <div className={`px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right ${job.profit < 0 && selectedRow !== job.id ? "text-red-600" : ""}`} style={{ width: columnWidths[10] }}>{formatCurrency(job.profit)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[11] }}>{formatPercent(job.ratio)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[12] }}>{formatCurrency(job.budget)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[13] }}>{formatCurrency(job.toBeBilled)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[14] }}>{formatPercent(job.billedPercent)}</div>
-                <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[15] }}>{job.premises?.address || ""}</div>
+                {isFieldAllowed("job-results", "jobNumber") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>{job.externalId || ""}</div>}
+                {isFieldAllowed("job-results", "accountId") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{job.premises?.premisesId || ""}</div>}
+                {isFieldAllowed("job-results", "tag") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}>{job.premises?.name || ""}</div>}
+                {isFieldAllowed("job-results", "description") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}>{job.jobDescription || job.jobName}</div>}
+                {isFieldAllowed("job-results", "type") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}>{job.type || ""}</div>}
+                {isFieldAllowed("job-results", "revenueBilled") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[5] }}>{formatCurrency(job.revenueBilled)}</div>}
+                {isFieldAllowed("job-results", "materials") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[6] }}>{formatCurrency(job.materials)}</div>}
+                {isFieldAllowed("job-results", "labor") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[7] }}>{formatCurrency(job.labor)}</div>}
+                {isFieldAllowed("job-results", "committed") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[8] }}>{formatCurrency(job.committed)}</div>}
+                {isFieldAllowed("job-results", "totalCost") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[9] }}>{formatCurrency(job.totalCost)}</div>}
+                {isFieldAllowed("job-results", "profit") && <div className={`px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right ${job.profit < 0 && selectedRow !== job.id ? "text-red-600" : ""}`} style={{ width: columnWidths[10] }}>{formatCurrency(job.profit)}</div>}
+                {isFieldAllowed("job-results", "ratio") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[11] }}>{formatPercent(job.ratio)}</div>}
+                {isFieldAllowed("job-results", "budget") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[12] }}>{formatCurrency(job.budget)}</div>}
+                {isFieldAllowed("job-results", "toBeBilled") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[13] }}>{formatCurrency(job.toBeBilled)}</div>}
+                {isFieldAllowed("job-results", "billedPercent") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[14] }}>{formatPercent(job.billedPercent)}</div>}
+                {isFieldAllowed("job-results", "address") && <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[15] }}>{job.premises?.address || ""}</div>}
               </div>
             ))
           )}
@@ -715,22 +717,22 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
         {/* Totals Row - only shows when toggled on */}
         {showTotals && (
           <div className="flex text-[12px] font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4] flex-shrink-0">
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>TOTALS</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{sortedJobs.length} jobs</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}></div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}></div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}></div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[5] }}>{formatCurrency(totals.revenueBilled)}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[6] }}>{formatCurrency(totals.materials)}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[7] }}>{formatCurrency(totals.labor)}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[8] }}>{formatCurrency(totals.committed)}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[9] }}>{formatCurrency(totals.totalCost)}</div>
-            <div className={`px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right ${totals.profit < 0 ? "text-red-600" : ""}`} style={{ width: columnWidths[10] }}>{formatCurrency(totals.profit)}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[11] }}></div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[12] }}>{formatCurrency(totals.budget)}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[13] }}>{formatCurrency(totals.toBeBilled)}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[14] }}></div>
-            <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[15] }}></div>
+            {isFieldAllowed("job-results", "jobNumber") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>TOTALS</div>}
+            {isFieldAllowed("job-results", "accountId") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{sortedJobs.length} jobs</div>}
+            {isFieldAllowed("job-results", "tag") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[2] }}></div>}
+            {isFieldAllowed("job-results", "description") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[3] }}></div>}
+            {isFieldAllowed("job-results", "type") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[4] }}></div>}
+            {isFieldAllowed("job-results", "revenueBilled") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[5] }}>{formatCurrency(totals.revenueBilled)}</div>}
+            {isFieldAllowed("job-results", "materials") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[6] }}>{formatCurrency(totals.materials)}</div>}
+            {isFieldAllowed("job-results", "labor") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[7] }}>{formatCurrency(totals.labor)}</div>}
+            {isFieldAllowed("job-results", "committed") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[8] }}>{formatCurrency(totals.committed)}</div>}
+            {isFieldAllowed("job-results", "totalCost") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[9] }}>{formatCurrency(totals.totalCost)}</div>}
+            {isFieldAllowed("job-results", "profit") && <div className={`px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right ${totals.profit < 0 ? "text-red-600" : ""}`} style={{ width: columnWidths[10] }}>{formatCurrency(totals.profit)}</div>}
+            {isFieldAllowed("job-results", "ratio") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[11] }}></div>}
+            {isFieldAllowed("job-results", "budget") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[12] }}>{formatCurrency(totals.budget)}</div>}
+            {isFieldAllowed("job-results", "toBeBilled") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[13] }}>{formatCurrency(totals.toBeBilled)}</div>}
+            {isFieldAllowed("job-results", "billedPercent") && <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[14] }}></div>}
+            {isFieldAllowed("job-results", "address") && <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[15] }}></div>}
           </div>
         )}
       </div>

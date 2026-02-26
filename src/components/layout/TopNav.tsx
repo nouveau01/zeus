@@ -13,34 +13,59 @@ import {
   ChevronRight,
   LogOut,
   User,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { useSession, signOut } from "next-auth/react";
+import { usePermissions } from "@/context/PermissionsContext";
 
 export function TopNav() {
   const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab, openTab } = useTabs();
   const { data: session } = useSession();
+  const { previewRole, setPreviewRole } = usePermissions();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showPreviewMenu, setShowPreviewMenu] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const previewMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close user menu when clicking outside
+  const user = session?.user as any;
+  const userInitials = user?.name
+    ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
+  const isGodAdmin = user?.role === "GodAdmin";
+
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setShowUserMenu(false);
+      }
+      if (previewMenuRef.current && !previewMenuRef.current.contains(e.target as Node)) {
+        setShowPreviewMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const user = session?.user as any;
-  const userInitials = user?.name
-    ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "?";
+  // Fetch available roles when GodAdmin opens preview menu
+  useEffect(() => {
+    if (isGodAdmin && showPreviewMenu && availableRoles.length === 0) {
+      fetch("/api/roles")
+        .then((r) => r.json())
+        .then((roles) => {
+          if (Array.isArray(roles)) {
+            setAvailableRoles(roles.filter((r: any) => r.name !== "GodAdmin"));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isGodAdmin, showPreviewMenu, availableRoles.length]);
 
   // Check if we need scroll arrows
   useEffect(() => {
@@ -216,6 +241,55 @@ export function TopNav() {
             <Settings className="w-4 h-4 text-[#5f6368]" />
           </button>
 
+          {/* Preview as Role - GodAdmin only */}
+          {isGodAdmin && (
+            <div className="relative" ref={previewMenuRef}>
+              <button
+                onClick={() => setShowPreviewMenu(!showPreviewMenu)}
+                className={`p-1.5 rounded-full ${previewRole ? "bg-[#fef3cd]" : "hover:bg-[#c8ccd1]"}`}
+                title={previewRole ? `Previewing as: ${previewRole}` : "Preview as Role"}
+              >
+                {previewRole ? (
+                  <EyeOff className="w-4 h-4 text-[#856404]" />
+                ) : (
+                  <Eye className="w-4 h-4 text-[#5f6368]" />
+                )}
+              </button>
+
+              {showPreviewMenu && (
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-[#dadce0] z-50 py-1">
+                  <div className="px-3 py-2 border-b border-[#e0e0e0] text-[11px] font-semibold text-[#333]">
+                    Preview as Role
+                  </div>
+                  {previewRole && (
+                    <button
+                      onClick={() => { setPreviewRole(null); setShowPreviewMenu(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#dc2626] hover:bg-[#f1f3f4]"
+                    >
+                      <EyeOff className="w-3.5 h-3.5" />
+                      Exit Preview
+                    </button>
+                  )}
+                  {availableRoles.map((role) => (
+                    <button
+                      key={role.id}
+                      onClick={() => { setPreviewRole(role.name); setShowPreviewMenu(false); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-[#f1f3f4] ${
+                        previewRole === role.name ? "bg-[#e8f0fe] text-[#1a73e8] font-medium" : "text-[#333]"
+                      }`}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      {role.name}
+                    </button>
+                  ))}
+                  {availableRoles.length === 0 && (
+                    <div className="px-3 py-2 text-[11px] text-[#999]">Loading roles...</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* User avatar & menu */}
           <div className="relative" ref={userMenuRef}>
             <button
@@ -267,6 +341,24 @@ export function TopNav() {
 
       {/* White content area border - seamlessly connects with active tab */}
       <div className="h-[1px] bg-white" />
+
+      {/* Preview mode banner */}
+      {previewRole && (
+        <div className="bg-[#fff3cd] border-b border-[#ffc107] px-4 py-1.5 flex items-center justify-between" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif" }}>
+          <div className="flex items-center gap-2 text-[12px] text-[#856404]">
+            <Eye className="w-4 h-4" />
+            <span>
+              <strong>Preview Mode:</strong> Viewing as <strong>{previewRole}</strong> role. Restrictions are active.
+            </span>
+          </div>
+          <button
+            onClick={() => setPreviewRole(null)}
+            className="px-3 py-0.5 text-[11px] bg-white border border-[#ffc107] text-[#856404] rounded hover:bg-[#fff8e1] font-medium"
+          >
+            Exit Preview
+          </button>
+        </div>
+      )}
     </header>
   );
 }

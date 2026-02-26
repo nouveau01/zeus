@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import {
   FileText,
@@ -46,6 +47,20 @@ export default function ViolationsPage() {
   const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showTotals, setShowTotals] = useState(false);
+
+  const columns = [
+    { field: "visibleId", label: "ID", width: 60 },
+    { field: "violation", label: "Violation", width: 100 },
+    { field: "date", label: "Date", width: 80 },
+    { field: "accountId", label: "Account ID", width: 100 },
+    { field: "tag", label: "Tag", width: 160 },
+    { field: "unit", label: "Unit", width: 60 },
+    { field: "stateNumber", label: "State#", width: 80 },
+    { field: "status", label: "Status", width: 100 },
+    { field: "supervisor", label: "Supervisor", width: 80 },
+  ];
+
+  const { filteredColumns } = useFilteredColumns("violations", columns);
 
   // Mock data
   useEffect(() => {
@@ -280,15 +295,9 @@ export default function ViolationsPage() {
               <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]" style={{ width: "30px" }}>
                 <input type="checkbox" />
               </th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">ID</th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Violation</th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Date</th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Account ID</th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Tag</th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Unit</th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">State#</th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Status</th>
-              <th className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">Supervisor</th>
+              {filteredColumns.map((col) => (
+                <th key={col.field} className="px-1 py-0.5 text-left font-medium border border-[#c0c0c0]">{col.label}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -311,15 +320,11 @@ export default function ViolationsPage() {
                     onClick={(e) => e.stopPropagation()}
                   />
                 </td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.visibleId}</td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.violation}</td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.date}</td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.accountId}</td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.tag}</td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.unit}</td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.stateNumber}</td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.status}</td>
-                <td className="px-1 py-0.5 border border-[#e0e0e0]">{violation.supervisor}</td>
+                {filteredColumns.map((col) => (
+                  <td key={col.field} className="px-1 py-0.5 border border-[#e0e0e0]">
+                    {violation[col.field as keyof Violation]}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

@@ -25,6 +25,7 @@ import {
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { getTickets } from "@/lib/actions/tickets";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 
 // Toolbar icons matching Accounts/Customers pattern
 const toolbarIcons = [
@@ -136,6 +137,7 @@ interface CompletedTicketsViewProps {
 
 export default function CompletedTicketsView({ premisesId }: CompletedTicketsViewProps) {
   const { openTab } = useTabs();
+  const { filteredColumns, filteredWidths: initialWidths } = useFilteredColumns("completed-tickets", columns);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
@@ -161,7 +163,7 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Column resize state
-  const [columnWidths, setColumnWidths] = useState<number[]>(columns.map(c => c.width));
+  const [columnWidths, setColumnWidths] = useState<number[]>(initialWidths);
   const [resizing, setResizing] = useState<{ index: number; startX: number; startWidth: number } | null>(null);
 
   // Column resize handlers
@@ -441,27 +443,27 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
     }
   };
 
-  // Get cell value for a ticket by column index
-  const getCellValue = (ticket: Ticket, colIndex: number) => {
-    switch (colIndex) {
-      case 0: return ticket.ticketNumber;
-      case 1: return ticket.workOrderNumber || ticket.ticketNumber;
-      case 2: return formatDate(ticket.date);
-      case 3: return ticket.type;
-      case 4: return ticket.category || "";
-      case 5: return ticket.accountId || "";
-      case 6: return ticket.premises?.address || "";
-      case 7: return ticket.mechCrew || "";
-      case 8: return { type: "checkbox", field: "bill", value: ticket.bill };
-      case 9: return { type: "checkbox", field: "reviewed", value: ticket.reviewed };
-      case 10: return { type: "checkbox", field: "pr", value: ticket.pr };
-      case 11: return { type: "checkbox", field: "vd", value: ticket.vd };
-      case 12: return { type: "checkbox", field: "inv", value: ticket.inv };
-      case 13: return Number(ticket.hours).toFixed(2);
-      case 14: return ticket.invoice?.invoiceNumber || "";
-      case 15: return ticket.job?.externalId || "";
-      case 16: return ticket.unitName || "";
-      case 17: return ticket.emailStatus || "No Email Sent";
+  // Get cell value for a ticket by field name
+  const getCellValue = (ticket: Ticket, field: SortField) => {
+    switch (field) {
+      case "ticketNumber": return ticket.ticketNumber;
+      case "workOrder": return ticket.workOrderNumber || ticket.ticketNumber;
+      case "date": return formatDate(ticket.date);
+      case "type": return ticket.type;
+      case "category": return ticket.category || "";
+      case "accountId": return ticket.accountId || "";
+      case "account": return ticket.premises?.address || "";
+      case "mechCrew": return ticket.mechCrew || "";
+      case "bill": return { type: "checkbox", field: "bill", value: ticket.bill };
+      case "reviewed": return { type: "checkbox", field: "reviewed", value: ticket.reviewed };
+      case "pr": return { type: "checkbox", field: "pr", value: ticket.pr };
+      case "vd": return { type: "checkbox", field: "vd", value: ticket.vd };
+      case "inv": return { type: "checkbox", field: "inv", value: ticket.inv };
+      case "hours": return Number(ticket.hours).toFixed(2);
+      case "invoice": return ticket.invoice?.invoiceNumber || "";
+      case "job": return ticket.job?.externalId || "";
+      case "unit": return ticket.unitName || "";
+      case "emailStatus": return ticket.emailStatus || "No Email Sent";
       default: return "";
     }
   };
@@ -636,17 +638,20 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
         {/* Column Headers */}
         <div className="bg-[#f0f0f0] border-b border-[#c0c0c0] flex-shrink-0 overflow-x-auto">
           <div className="flex text-[12px]" style={{ minWidth: "max-content" }}>
-            {columns.map((col, index) => (
+            {filteredColumns.map((col, index) => {
+              const isCheckboxCol = ["bill", "reviewed", "pr", "vd", "inv"].includes(col.field);
+              const isHoursCol = col.field === "hours";
+              return (
               <div
-                key={index}
+                key={col.field}
                 className="relative flex-shrink-0 border-r border-[#c0c0c0] last:border-r-0 overflow-hidden"
                 style={{ width: columnWidths[index], maxWidth: columnWidths[index] }}
               >
                 <div
-                  className={`px-2 py-1.5 font-medium text-[#333] select-none overflow-hidden whitespace-nowrap cursor-pointer hover:bg-[#e0e0e0] ${index >= 8 && index <= 12 ? "text-center" : ""} ${index === 13 ? "text-right" : ""}`}
+                  className={`px-2 py-1.5 font-medium text-[#333] select-none overflow-hidden whitespace-nowrap cursor-pointer hover:bg-[#e0e0e0] ${isCheckboxCol ? "text-center" : ""} ${isHoursCol ? "text-right" : ""}`}
                   onClick={() => handleSort(col.field)}
                 >
-                  <div className={`flex items-center gap-1 ${index >= 8 && index <= 12 ? "justify-center" : ""} ${index === 13 ? "justify-end" : ""}`}>
+                  <div className={`flex items-center gap-1 ${isCheckboxCol ? "justify-center" : ""} ${isHoursCol ? "justify-end" : ""}`}>
                     <span className="overflow-hidden text-ellipsis">{col.label}</span>
                     <SortIcon field={col.field} />
                   </div>
@@ -659,7 +664,8 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
                   <div className="absolute top-0 left-[4px] w-[1px] h-full bg-transparent group-hover:bg-[#0078d4]" />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -682,14 +688,15 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
                       : "bg-white hover:bg-[#f0f8ff]"
                   }`}
                 >
-                  {columns.map((col, colIndex) => {
-                    const cellValue = getCellValue(ticket, colIndex);
+                  {filteredColumns.map((col, colIndex) => {
+                    const cellValue = getCellValue(ticket, col.field);
+                    const isHoursCol = col.field === "hours";
 
                     // Checkbox columns
                     if (typeof cellValue === "object" && cellValue.type === "checkbox") {
                       return (
                         <div
-                          key={colIndex}
+                          key={col.field}
                           className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 text-center overflow-hidden"
                           style={{ width: columnWidths[colIndex], maxWidth: columnWidths[colIndex] }}
                         >
@@ -707,8 +714,8 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
                     // Regular columns
                     return (
                       <div
-                        key={colIndex}
-                        className={`px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden whitespace-nowrap text-ellipsis ${colIndex === 13 ? "text-right" : ""}`}
+                        key={col.field}
+                        className={`px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden whitespace-nowrap text-ellipsis ${isHoursCol ? "text-right" : ""}`}
                         style={{ width: columnWidths[colIndex], maxWidth: columnWidths[colIndex] }}
                       >
                         {cellValue as string | number}
@@ -724,15 +731,22 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
         {/* Totals Row */}
         {showTotals && (
           <div className="flex text-[12px] font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4] flex-shrink-0" style={{ minWidth: "max-content" }}>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden whitespace-nowrap" style={{ width: columnWidths[0], maxWidth: columnWidths[0] }}>TOTALS</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden whitespace-nowrap" style={{ width: columnWidths[1], maxWidth: columnWidths[1] }}>{totalTickets} tickets</div>
-            {columns.slice(2, 13).map((_, i) => (
-              <div key={i + 2} className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden" style={{ width: columnWidths[i + 2], maxWidth: columnWidths[i + 2] }}></div>
-            ))}
-            <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 text-right overflow-hidden whitespace-nowrap" style={{ width: columnWidths[13], maxWidth: columnWidths[13] }}>{totalHours.toFixed(2)}</div>
-            {columns.slice(14).map((_, i) => (
-              <div key={i + 14} className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden" style={{ width: columnWidths[i + 14], maxWidth: columnWidths[i + 14] }}></div>
-            ))}
+            {filteredColumns.map((col, index) => {
+              let content: React.ReactNode = "";
+              if (index === 0) content = "TOTALS";
+              else if (col.field === "workOrder") content = `${totalTickets} tickets`;
+              else if (col.field === "hours") content = totalHours.toFixed(2);
+
+              return (
+                <div
+                  key={col.field}
+                  className={`px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 overflow-hidden whitespace-nowrap ${col.field === "hours" ? "text-right" : ""}`}
+                  style={{ width: columnWidths[index], maxWidth: columnWidths[index] }}
+                >
+                  {content}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

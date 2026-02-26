@@ -13,6 +13,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 
 interface Customer {
   id: string;
@@ -46,8 +47,33 @@ interface OpenItem {
 
 const TABS = ["Accounts", "Main Contacts", "Cust Contacts", "Acct Contacts", "Notes"];
 
+// Accounts table columns
+const accountColumns = [
+  { field: "accountId", label: "ID", width: 120 },
+  { field: "tag", label: "Tag", width: 180 },
+  { field: "city", label: "City", width: 100 },
+  { field: "status", label: "Status", width: 80 },
+  { field: "balance", label: "Balance", width: 110, align: "right" as const },
+  { field: "days0_30", label: "0-30", width: 100, align: "right" as const },
+  { field: "days31_60", label: "31-60", width: 100, align: "right" as const },
+  { field: "days61_90", label: "61-90", width: 100, align: "right" as const },
+  { field: "days91Up", label: "91 & Up", width: 100, align: "right" as const },
+];
+
+// Open items table columns
+const openItemColumns = [
+  { field: "date", label: "Date", width: 100 },
+  { field: "type", label: "Type", width: 80 },
+  { field: "ref", label: "Ref", width: 80 },
+  { field: "desc", label: "Desc", width: 400 },
+  { field: "amount", label: "Amount", width: 120, align: "right" as const },
+  { field: "days", label: "Days", width: 80, align: "right" as const },
+];
+
 export default function CollectionsPage() {
   const { openTab } = useTabs();
+  const { filteredColumns: filteredAccountColumns } = useFilteredColumns("collections", accountColumns);
+  const { filteredColumns: filteredOpenItemColumns } = useFilteredColumns("collections", openItemColumns);
   const [searchBy, setSearchBy] = useState<"Customer" | "Account ID" | "Tag">("Account ID");
   const [selectedValue, setSelectedValue] = useState("1"); // Can be account id, tag, or customer id
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -375,37 +401,48 @@ export default function CollectionsPage() {
           <table className="w-full border-collapse text-[12px]">
             <thead className="bg-[#f0f0f0] sticky top-0">
               <tr>
-                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">ID</th>
-                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Tag</th>
-                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">City</th>
-                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Status</th>
-                <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]">Balance</th>
-                <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]">0-30</th>
-                <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]">31-60</th>
-                <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]">61-90</th>
-                <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]">91 & Up</th>
+                {filteredAccountColumns.map((col) => (
+                  <th
+                    key={col.field}
+                    className={`px-2 py-1 font-medium border border-[#c0c0c0] ${"align" in col && col.align === "right" ? "text-right" : "text-left"}`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {filteredAccounts.map((account) => (
-                <tr
-                  key={account.id}
-                  onClick={() => handleAccountRowClick(account)}
-                  className={`cursor-pointer ${
-                    selectedAccount?.id === account.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
-                  }`}
-                >
-                  <td className="px-2 py-1 border border-[#e0e0e0]">{account.accountId}</td>
-                  <td className="px-2 py-1 border border-[#e0e0e0]">{account.tag}</td>
-                  <td className="px-2 py-1 border border-[#e0e0e0]">{account.city}</td>
-                  <td className="px-2 py-1 border border-[#e0e0e0]">{account.status}</td>
-                  <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(account.balance)}</td>
-                  <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(account.days0_30)}</td>
-                  <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(account.days31_60)}</td>
-                  <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(account.days61_90)}</td>
-                  <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(account.days91Up)}</td>
-                </tr>
-              ))}
+              {filteredAccounts.map((account) => {
+                const cellValues: Record<string, React.ReactNode> = {
+                  accountId: account.accountId,
+                  tag: account.tag,
+                  city: account.city,
+                  status: account.status,
+                  balance: formatCurrency(account.balance),
+                  days0_30: formatCurrency(account.days0_30),
+                  days31_60: formatCurrency(account.days31_60),
+                  days61_90: formatCurrency(account.days61_90),
+                  days91Up: formatCurrency(account.days91Up),
+                };
+                return (
+                  <tr
+                    key={account.id}
+                    onClick={() => handleAccountRowClick(account)}
+                    className={`cursor-pointer ${
+                      selectedAccount?.id === account.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
+                    }`}
+                  >
+                    {filteredAccountColumns.map((col) => (
+                      <td
+                        key={col.field}
+                        className={`px-2 py-1 border border-[#e0e0e0] ${"align" in col && col.align === "right" ? "text-right" : ""}`}
+                      >
+                        {cellValues[col.field]}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -444,32 +481,47 @@ export default function CollectionsPage() {
               <table className="w-full border-collapse text-[12px]">
                 <thead className="bg-[#f0f0f0] sticky top-0">
                   <tr>
-                    <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Date</th>
-                    <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "8%" }}>Type</th>
-                    <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "8%" }}>Ref</th>
-                    <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "40%" }}>Desc</th>
-                    <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>Amount</th>
-                    <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "8%" }}>Days</th>
+                    {filteredOpenItemColumns.map((col) => (
+                      <th
+                        key={col.field}
+                        className={`px-2 py-1 font-medium border border-[#c0c0c0] ${"align" in col && col.align === "right" ? "text-right" : "text-left"}`}
+                      >
+                        {col.label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOpenItems.map((item) => (
-                    <tr
-                      key={item.id}
-                      onClick={() => setSelectedRow(item.id)}
-                      onDoubleClick={() => openTab(`Invoice ${item.ref}`, `/invoices/${item.id}`)}
-                      className={`cursor-pointer ${
-                        selectedRow === item.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
-                      }`}
-                    >
-                      <td className="px-2 py-1 border border-[#e0e0e0]">{formatDate(item.date)}</td>
-                      <td className="px-2 py-1 border border-[#e0e0e0]">{item.type}</td>
-                      <td className="px-2 py-1 border border-[#e0e0e0]">{item.ref}</td>
-                      <td className="px-2 py-1 border border-[#e0e0e0] truncate" style={{ maxWidth: "300px" }}>{item.desc}</td>
-                      <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(item.amount)}</td>
-                      <td className="px-2 py-1 text-right border border-[#e0e0e0]">{item.days}</td>
-                    </tr>
-                  ))}
+                  {filteredOpenItems.map((item) => {
+                    const cellValues: Record<string, React.ReactNode> = {
+                      date: formatDate(item.date),
+                      type: item.type,
+                      ref: item.ref,
+                      desc: item.desc,
+                      amount: formatCurrency(item.amount),
+                      days: item.days,
+                    };
+                    return (
+                      <tr
+                        key={item.id}
+                        onClick={() => setSelectedRow(item.id)}
+                        onDoubleClick={() => openTab(`Invoice ${item.ref}`, `/invoices/${item.id}`)}
+                        className={`cursor-pointer ${
+                          selectedRow === item.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
+                        }`}
+                      >
+                        {filteredOpenItemColumns.map((col) => (
+                          <td
+                            key={col.field}
+                            className={`px-2 py-1 border border-[#e0e0e0] ${"align" in col && col.align === "right" ? "text-right" : ""} ${col.field === "desc" ? "truncate" : ""}`}
+                            style={col.field === "desc" ? { maxWidth: "300px" } : undefined}
+                          >
+                            {cellValues[col.field]}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { usePermissions } from "@/context/PermissionsContext";
 
 export interface FieldConfig {
   fieldName: string;
@@ -26,6 +27,7 @@ interface UsePageConfigResult {
   isVisible: (fieldName: string) => boolean;
   getWidth: (fieldName: string) => number | undefined;
   getVisibleFields: () => FieldConfig[];
+  canAccess: boolean;
   isLoading: boolean;
   refreshConfig: () => Promise<void>;
   updateFields: (newFields: FieldConfig[]) => void;
@@ -38,6 +40,7 @@ export function usePageConfig(
 ): UsePageConfigResult {
   const [fields, setFields] = useState<FieldConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { canAccessPage, isFieldAllowed, isLoading: permissionsLoading } = usePermissions();
 
   // Initialize with defaults
   const initializeFields = useCallback(() => {
@@ -126,13 +129,16 @@ export function usePageConfig(
     [fields, defaultFields]
   );
 
-  // Check if a field is visible
+  // Check if a field is visible (respects both page config AND role permissions)
   const isVisible = useCallback(
     (fieldName: string): boolean => {
       const field = fields.find((f) => f.fieldName === fieldName);
-      return field?.visible ?? true;
+      const visibleByConfig = field?.visible ?? true;
+      // Also check role permissions — if role says hidden, it's hidden
+      const allowedByRole = isFieldAllowed(pageId, fieldName);
+      return visibleByConfig && allowedByRole;
     },
-    [fields]
+    [fields, isFieldAllowed, pageId]
   );
 
   // Get width for a field
@@ -144,10 +150,12 @@ export function usePageConfig(
     [fields]
   );
 
-  // Get all visible fields sorted by order
+  // Get all visible fields sorted by order (respects role permissions)
   const getVisibleFields = useCallback((): FieldConfig[] => {
-    return fields.filter((f) => f.visible).sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [fields]);
+    return fields
+      .filter((f) => f.visible && isFieldAllowed(pageId, f.fieldName))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [fields, isFieldAllowed, pageId]);
 
   // Update fields locally (used during edit mode)
   const updateFields = useCallback((newFields: FieldConfig[]) => {
@@ -169,7 +177,8 @@ export function usePageConfig(
     isVisible,
     getWidth,
     getVisibleFields,
-    isLoading,
+    canAccess: canAccessPage(pageId),
+    isLoading: isLoading || permissionsLoading,
     refreshConfig: fetchConfig,
     updateFields,
     updateFieldLabel,

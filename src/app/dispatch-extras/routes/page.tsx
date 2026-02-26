@@ -16,6 +16,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 
@@ -80,9 +81,26 @@ export default function RoutesPage() {
   // Filter dialog state
   const [showFilterDialog, setShowFilterDialog] = useState(false);
 
+  const columns: { field: string; label: string; width: number }[] = [
+    { field: "name", label: "Name", width: 200 },
+    { field: "mechanic", label: "Mech", width: 160 },
+    { field: "accountCount", label: "Loc", width: 80 },
+    { field: "unitCount", label: "Elev", width: 80 },
+    { field: "hours", label: "Hour", width: 80 },
+    { field: "projectedRevenue", label: "Amount", width: 120 },
+    { field: "remarks", label: "Remarks", width: 300 },
+  ];
+
+  const { filteredColumns, filteredWidths } = useFilteredColumns("routes", columns);
+
   // Column resize state
   const [columnWidths, setColumnWidths] = useState<number[]>([200, 160, 80, 80, 80, 120, 300]);
   const [resizing, setResizing] = useState<{ index: number; startX: number; startWidth: number } | null>(null);
+
+  // Sync columnWidths when filtered columns change
+  useEffect(() => {
+    setColumnWidths(filteredWidths);
+  }, [filteredWidths]);
 
   // Filter fields for Routes
   const filterFields: FilterField[] = [
@@ -382,16 +400,6 @@ export default function RoutesPage() {
     );
   };
 
-  const columns = [
-    { field: "name" as SortField, label: "Name" },
-    { field: "mechanic" as SortField, label: "Mech" },
-    { field: "accountCount" as SortField, label: "Loc" },
-    { field: "unitCount" as SortField, label: "Elev" },
-    { field: "hours" as SortField, label: "Hour" },
-    { field: "projectedRevenue" as SortField, label: "Amount" },
-    { field: "remarks" as SortField, label: "Remarks" },
-  ];
-
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center bg-white">
@@ -545,7 +553,7 @@ export default function RoutesPage() {
         {/* Column Headers */}
         <div className="bg-[#f0f0f0] border-b border-[#c0c0c0] flex-shrink-0">
           <div className="flex text-[12px]">
-            {columns.map((col, index) => (
+            {filteredColumns.map((col, index) => (
               <div
                 key={col.field}
                 className="relative flex-shrink-0 border-r border-[#c0c0c0] last:border-r-0"
@@ -553,11 +561,11 @@ export default function RoutesPage() {
               >
                 <div
                   className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none text-center truncate"
-                  onClick={() => handleSort(col.field)}
+                  onClick={() => handleSort(col.field as SortField)}
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span className="truncate">{col.label}</span>
-                    <SortIcon field={col.field} />
+                    <SortIcon field={col.field as SortField} />
                   </div>
                 </div>
                 {/* Resize handle - wider clickable area with thin visual indicator */}
@@ -587,13 +595,25 @@ export default function RoutesPage() {
                     : "bg-white hover:bg-[#f0f8ff]"
                 }`}
               >
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>{route.name}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{route.mechanic}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-center" style={{ width: columnWidths[2] }}>{route.accountCount}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-center" style={{ width: columnWidths[3] }}>{route.unitCount}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-center" style={{ width: columnWidths[4] }}>{route.hours.toFixed(2)}</div>
-                <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[5] }}>{formatCurrency(route.projectedRevenue)}</div>
-                <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[6] }} title={route.remarks || ""}>{route.remarks || ""}</div>
+                {filteredColumns.map((col, index) => {
+                  const align = ["accountCount", "unitCount", "hours"].includes(col.field) ? " text-center" : col.field === "projectedRevenue" ? " text-right" : "";
+                  const isLast = index === filteredColumns.length - 1;
+                  let value: React.ReactNode;
+                  if (col.field === "hours") value = route.hours.toFixed(2);
+                  else if (col.field === "projectedRevenue") value = formatCurrency(route.projectedRevenue);
+                  else if (col.field === "remarks") value = route.remarks || "";
+                  else value = route[col.field as keyof RouteData];
+                  return (
+                    <div
+                      key={col.field}
+                      className={`px-2 py-1 ${!isLast ? "border-r border-[#d0d0d0]" : ""} truncate flex-shrink-0${align}`}
+                      style={{ width: columnWidths[index] }}
+                      title={col.field === "remarks" ? (route.remarks || "") : undefined}
+                    >
+                      {value}
+                    </div>
+                  );
+                })}
               </div>
             ))
           )}
@@ -602,13 +622,26 @@ export default function RoutesPage() {
         {/* Totals Row - only shows when toggled on */}
         {showTotals && (
           <div className="flex text-[12px] font-semibold bg-[#f5f5f5] border-t-2 border-[#0078d4] flex-shrink-0">
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[0] }}>TOTALS</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0" style={{ width: columnWidths[1] }}>{filteredTotals.totalRoutes} routes</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-center" style={{ width: columnWidths[2] }}>{filteredTotals.totalAccounts}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-center" style={{ width: columnWidths[3] }}>{filteredTotals.totalUnits}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-center" style={{ width: columnWidths[4] }}>{filteredTotals.totalHours.toFixed(2)}</div>
-            <div className="px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 text-right" style={{ width: columnWidths[5] }}>{formatCurrency(filteredTotals.totalProjected)}</div>
-            <div className="px-2 py-1 truncate flex-shrink-0" style={{ width: columnWidths[6] }}></div>
+            {filteredColumns.map((col, index) => {
+              const align = ["accountCount", "unitCount", "hours"].includes(col.field) ? " text-center" : col.field === "projectedRevenue" ? " text-right" : "";
+              const isLast = index === filteredColumns.length - 1;
+              let value: React.ReactNode = "";
+              if (index === 0) value = "TOTALS";
+              else if (col.field === "mechanic") value = `${filteredTotals.totalRoutes} routes`;
+              else if (col.field === "accountCount") value = filteredTotals.totalAccounts;
+              else if (col.field === "unitCount") value = filteredTotals.totalUnits;
+              else if (col.field === "hours") value = filteredTotals.totalHours.toFixed(2);
+              else if (col.field === "projectedRevenue") value = formatCurrency(filteredTotals.totalProjected);
+              return (
+                <div
+                  key={col.field}
+                  className={`px-2 py-1 ${!isLast ? "border-r border-[#d0d0d0]" : ""} truncate flex-shrink-0${align}`}
+                  style={{ width: columnWidths[index] }}
+                >
+                  {value}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

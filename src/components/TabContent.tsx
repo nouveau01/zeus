@@ -1,6 +1,8 @@
 "use client";
 
 import { useTabs } from "@/context/TabContext";
+import { usePermissions } from "@/context/PermissionsContext";
+import { ShieldX } from "lucide-react";
 import CustomersPage from "@/app/customers/page";
 import CustomerDetail from "@/app/customers/[id]/CustomerDetail";
 import AccountsPage from "@/app/accounts/page";
@@ -44,8 +46,61 @@ import JobTemplatesPage from "@/app/job-templates/page";
 import AIReportsView from "@/app/ai-reports/AIReportsView";
 import SettingsPage from "@/app/settings/page";
 
+// Map routes to module pageIds for permission checks
+// Detail routes (e.g. /customers/123) inherit from their parent module
+function getPageIdFromRoute(route: string): string | null {
+  // Strip query params for matching
+  const path = route.split("?")[0];
+
+  // Direct route mappings
+  const routeMap: Record<string, string> = {
+    "/customers": "customers",
+    "/accounts": "accounts",
+    "/invoices": "invoices",
+    "/cash-receipts": "cash-receipts",
+    "/collections": "collections",
+    "/renew-escalate": "renew-escalate",
+    "/vendors": "vendors",
+    "/purchase-orders": "purchase-orders",
+    "/purchase-journal": "purchase-journal",
+    "/dispatch": "dispatch",
+    "/completed-tickets": "completed-tickets",
+    "/units": "units",
+    "/dispatch-extras/routes": "routes",
+    "/dispatch-extras/violations": "violations",
+    "/dispatch-extras/safety-tests": "safety-tests",
+    "/job-maintenance": "job-maintenance",
+    "/job-results": "job-results",
+    "/estimates": "estimates",
+    "/bid-results": "bid-results",
+    "/quotes": "quotes",
+  };
+
+  if (routeMap[path]) return routeMap[path];
+
+  // Detail route patterns — inherit from parent module
+  if (path.startsWith("/customers/")) return "customers";
+  if (path.startsWith("/accounts/")) return "accounts";
+  if (path.startsWith("/invoices/")) return "invoices";
+  if (path.startsWith("/cash-receipts/")) return "cash-receipts";
+  if (path.startsWith("/vendors/")) return "vendors";
+  if (path.startsWith("/purchase-orders/")) return "purchase-orders";
+  if (path.startsWith("/purchase-journal/")) return "purchase-journal";
+  if (path.startsWith("/completed-tickets/")) return "completed-tickets";
+  if (path.startsWith("/units/")) return "units";
+  if (path.startsWith("/dispatch-extras/violations/")) return "violations";
+  if (path.startsWith("/dispatch-extras/safety-tests/")) return "safety-tests";
+  if (path.startsWith("/job-maintenance/")) return "job-maintenance";
+  if (path.startsWith("/job-results/")) return "job-results";
+  if (path.startsWith("/estimates/")) return "estimates";
+  if (path.startsWith("/quotes/")) return "quotes";
+
+  return null; // No permission check needed (settings, ai-reports, etc.)
+}
+
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
+  const { canAccessPage, isLoading: permissionsLoading } = usePermissions();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
@@ -65,6 +120,24 @@ export function TabContent() {
           </h2>
           <p className="text-[#606060] text-sm">
             Select a module from the sidebar to get started
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check page-level access permission
+  const pageId = getPageIdFromRoute(activeTab.route);
+  if (pageId && !permissionsLoading && !canAccessPage(pageId)) {
+    return (
+      <div className="flex-1 h-full bg-[#c0c0c0] flex items-center justify-center">
+        <div className="bg-white border-2 border-[#808080] shadow-md p-6 max-w-sm text-center" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif" }}>
+          <div className="w-12 h-12 bg-[#fee2e2] rounded-full flex items-center justify-center mx-auto mb-3">
+            <ShieldX className="w-6 h-6 text-[#dc2626]" />
+          </div>
+          <h2 className="text-[14px] font-semibold text-[#333] mb-2">Access Denied</h2>
+          <p className="text-[12px] text-[#666]">
+            Your role does not have permission to access this module. Contact your administrator to request access.
           </p>
         </div>
       </div>

@@ -22,6 +22,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
+import { usePermissions } from "@/context/PermissionsContext";
 
 interface Estimate {
   id: string;
@@ -66,6 +67,7 @@ const toolbarIcons = [
 
 export default function EstimatesPage() {
   const { openTab } = useTabs();
+  const { isFieldAllowed } = usePermissions();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
@@ -306,7 +308,7 @@ export default function EstimatesPage() {
         <table className="w-full border-collapse table-fixed">
           <thead>
             <tr className="bg-[#f0f0f0] text-[12px] text-left">
-              <th
+              {isFieldAllowed("estimates", "estimateNumber") && <th
                 className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
                 style={{ width: "12%" }}
                 onClick={() => handleSort("estimateNumber")}
@@ -315,8 +317,8 @@ export default function EstimatesPage() {
                   Estimate #
                   <SortIcon field="estimateNumber" />
                 </div>
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("estimates", "customerName") && <th
                 className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
                 style={{ width: "15%" }}
                 onClick={() => handleSort("customerName")}
@@ -325,8 +327,8 @@ export default function EstimatesPage() {
                   Customer
                   <SortIcon field="customerName" />
                 </div>
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("estimates", "accountName") && <th
                 className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
                 style={{ width: "13%" }}
                 onClick={() => handleSort("accountName")}
@@ -335,14 +337,14 @@ export default function EstimatesPage() {
                   Account
                   <SortIcon field="accountName" />
                 </div>
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("estimates", "description") && <th
                 className="px-2 py-1.5 font-medium text-[#333] border border-[#c0c0c0]"
                 style={{ width: "20%" }}
               >
                 Description
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("estimates", "amount") && <th
                 className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-right"
                 style={{ width: "10%" }}
                 onClick={() => handleSort("amount")}
@@ -351,8 +353,8 @@ export default function EstimatesPage() {
                   Amount
                   <SortIcon field="amount" />
                 </div>
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("estimates", "status") && <th
                 className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0] text-center"
                 style={{ width: "8%" }}
                 onClick={() => handleSort("status")}
@@ -361,8 +363,8 @@ export default function EstimatesPage() {
                   Status
                   <SortIcon field="status" />
                 </div>
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("estimates", "createdDate") && <th
                 className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
                 style={{ width: "9%" }}
                 onClick={() => handleSort("createdDate")}
@@ -371,8 +373,8 @@ export default function EstimatesPage() {
                   Created
                   <SortIcon field="createdDate" />
                 </div>
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("estimates", "expirationDate") && <th
                 className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
                 style={{ width: "9%" }}
                 onClick={() => handleSort("expirationDate")}
@@ -381,8 +383,8 @@ export default function EstimatesPage() {
                   Expires
                   <SortIcon field="expirationDate" />
                 </div>
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("estimates", "probability") && <th
                 className="px-2 py-1.5 font-medium text-[#333] cursor-pointer hover:bg-[#e0e0e0] select-none border border-[#c0c0c0]"
                 style={{ width: "4%" }}
                 onClick={() => handleSort("salesperson")}
@@ -391,7 +393,7 @@ export default function EstimatesPage() {
                 <div className="flex items-center gap-1">
                   %
                 </div>
-              </th>
+              </th>}
             </tr>
           </thead>
         </table>
@@ -420,43 +422,43 @@ export default function EstimatesPage() {
                         : "bg-white hover:bg-[#f0f8ff]"
                     }`}
                   >
-                    <td className="px-2 py-1 border border-[#d0d0d0] font-medium" style={{ width: "12%" }}>
+                    {isFieldAllowed("estimates", "estimateNumber") && <td className="px-2 py-1 border border-[#d0d0d0] font-medium" style={{ width: "12%" }}>
                       {estimate.estimateNumber}
-                    </td>
-                    <td
+                    </td>}
+                    {isFieldAllowed("estimates", "customerName") && <td
                       className={`px-2 py-1 border border-[#d0d0d0] ${selectedRow !== estimate.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
                       style={{ width: "15%" }}
                       onClick={(e) => selectedRow !== estimate.id && handleCustomerClick(estimate, e)}
                     >
                       {estimate.customerName}
-                    </td>
-                    <td
+                    </td>}
+                    {isFieldAllowed("estimates", "accountName") && <td
                       className={`px-2 py-1 border border-[#d0d0d0] ${selectedRow !== estimate.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
                       style={{ width: "13%" }}
                       onClick={(e) => selectedRow !== estimate.id && handleAccountClick(estimate, e)}
                     >
                       {estimate.accountName}
-                    </td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] truncate" style={{ width: "20%" }} title={estimate.description}>
+                    </td>}
+                    {isFieldAllowed("estimates", "description") && <td className="px-2 py-1 border border-[#d0d0d0] truncate" style={{ width: "20%" }} title={estimate.description}>
                       {estimate.description}
-                    </td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] text-right" style={{ width: "10%" }}>
+                    </td>}
+                    {isFieldAllowed("estimates", "amount") && <td className="px-2 py-1 border border-[#d0d0d0] text-right" style={{ width: "10%" }}>
                       {formatCurrency(estimate.amount)}
-                    </td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] text-center" style={{ width: "8%" }}>
+                    </td>}
+                    {isFieldAllowed("estimates", "status") && <td className="px-2 py-1 border border-[#d0d0d0] text-center" style={{ width: "8%" }}>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${selectedRow === estimate.id ? "bg-white/20" : getStatusColor(estimate.status)}`}>
                         {estimate.status}
                       </span>
-                    </td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "9%" }}>
+                    </td>}
+                    {isFieldAllowed("estimates", "createdDate") && <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "9%" }}>
                       {estimate.createdDate}
-                    </td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "9%" }}>
+                    </td>}
+                    {isFieldAllowed("estimates", "expirationDate") && <td className="px-2 py-1 border border-[#d0d0d0]" style={{ width: "9%" }}>
                       {estimate.expirationDate}
-                    </td>
-                    <td className="px-2 py-1 border border-[#d0d0d0] text-center" style={{ width: "4%" }}>
+                    </td>}
+                    {isFieldAllowed("estimates", "probability") && <td className="px-2 py-1 border border-[#d0d0d0] text-center" style={{ width: "4%" }}>
                       {estimate.probability}
-                    </td>
+                    </td>}
                   </tr>
                 ))
               )}

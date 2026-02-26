@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTabs } from "@/context/TabContext";
+import { usePermissions } from "@/context/PermissionsContext";
 
 interface QuoteLineItem {
   id: string;
@@ -252,6 +253,7 @@ type StatusFilter = "All" | "Draft" | "Sent" | "Accepted" | "Rejected" | "Expire
 
 export default function QuotesPage() {
   const { openTab } = useTabs();
+  const { isFieldAllowed } = usePermissions();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<"createdDate" | "total" | "quoteNumber">("createdDate");
@@ -473,42 +475,42 @@ export default function QuotesPage() {
         <table className="w-full text-[11px] border-collapse">
           <thead className="bg-[#d4d0c8] sticky top-0">
             <tr>
-              <th
+              {isFieldAllowed("quotes", "quoteNumber") && <th
                 className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal cursor-pointer hover:bg-[#c0c0c0]"
                 onClick={() => handleSort("quoteNumber")}
               >
                 Quote # {sortField === "quoteNumber" && (sortDirection === "asc" ? "▲" : "▼")}
-              </th>
-              <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+              </th>}
+              {isFieldAllowed("quotes", "customerName") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                 Customer
-              </th>
-              <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+              </th>}
+              {isFieldAllowed("quotes", "subject") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                 Subject
-              </th>
-              <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+              </th>}
+              {isFieldAllowed("quotes", "contactName") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                 Contact
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("quotes", "total") && <th
                 className="text-right px-2 py-1.5 border-b border-r border-[#808080] font-normal cursor-pointer hover:bg-[#c0c0c0]"
                 onClick={() => handleSort("total")}
               >
                 Total {sortField === "total" && (sortDirection === "asc" ? "▲" : "▼")}
-              </th>
-              <th
+              </th>}
+              {isFieldAllowed("quotes", "createdDate") && <th
                 className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal cursor-pointer hover:bg-[#c0c0c0]"
                 onClick={() => handleSort("createdDate")}
               >
                 Created {sortField === "createdDate" && (sortDirection === "asc" ? "▲" : "▼")}
-              </th>
-              <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+              </th>}
+              {isFieldAllowed("quotes", "expirationDate") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                 Expires
-              </th>
-              <th className="text-center px-2 py-1.5 border-b border-r border-[#808080] font-normal w-24">
+              </th>}
+              {isFieldAllowed("quotes", "status") && <th className="text-center px-2 py-1.5 border-b border-r border-[#808080] font-normal w-24">
                 Status
-              </th>
-              <th className="text-left px-2 py-1.5 border-b border-[#808080] font-normal">
+              </th>}
+              {isFieldAllowed("quotes", "salesRep") && <th className="text-left px-2 py-1.5 border-b border-[#808080] font-normal">
                 Sales Rep
-              </th>
+              </th>}
             </tr>
           </thead>
           <tbody>
@@ -530,39 +532,39 @@ export default function QuotesPage() {
                   } hover:bg-[#e8f4fc] cursor-pointer`}
                   onDoubleClick={() => openTab(`Quote ${quote.quoteNumber}`, `/quotes/${quote.id}`)}
                 >
-                  <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
+                  {isFieldAllowed("quotes", "quoteNumber") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
                     <button
                       onClick={() => openTab(`Quote ${quote.quoteNumber}`, `/quotes/${quote.id}`)}
                       className="text-[#0066cc] hover:underline"
                     >
                       {quote.quoteNumber}
                     </button>
-                  </td>
-                  <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
+                  </td>}
+                  {isFieldAllowed("quotes", "customerName") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
                     <button
                       onClick={() => openTab(quote.customerName, `/customers/${quote.customerId}`)}
                       className="text-[#0066cc] hover:underline"
                     >
                       {quote.customerName}
                     </button>
-                  </td>
-                  <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">{quote.subject}</td>
-                  <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">{quote.contactName}</td>
-                  <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-right">
+                  </td>}
+                  {isFieldAllowed("quotes", "subject") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">{quote.subject}</td>}
+                  {isFieldAllowed("quotes", "contactName") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">{quote.contactName}</td>}
+                  {isFieldAllowed("quotes", "total") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-right">
                     {formatCurrency(quote.total)}
-                  </td>
-                  <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
+                  </td>}
+                  {isFieldAllowed("quotes", "createdDate") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
                     {formatDate(quote.createdDate)}
-                  </td>
-                  <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
+                  </td>}
+                  {isFieldAllowed("quotes", "expirationDate") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
                     {formatDate(quote.expirationDate)}
-                  </td>
-                  <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-center">
+                  </td>}
+                  {isFieldAllowed("quotes", "status") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-center">
                     <span className={`px-2 py-0.5 rounded text-[10px] ${getStatusColor(quote.status)}`}>
                       {quote.status}
                     </span>
-                  </td>
-                  <td className="px-2 py-1 border-b border-[#e0e0e0]">{quote.salesRep}</td>
+                  </td>}
+                  {isFieldAllowed("quotes", "salesRep") && <td className="px-2 py-1 border-b border-[#e0e0e0]">{quote.salesRep}</td>}
                 </tr>
               ))
             )}

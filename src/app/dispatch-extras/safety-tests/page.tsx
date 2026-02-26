@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import {
   FileText,
@@ -54,6 +55,25 @@ export default function SafetyTestsPage() {
   const [filteredTests, setFilteredTests] = useState<SafetyTest[]>([]);
   const [selectedTest, setSelectedTest] = useState<SafetyTest | null>(null);
   const [showTotals, setShowTotals] = useState(false);
+
+  const columns = [
+    { field: "status", label: "Status", width: 100 },
+    { field: "customerName", label: "Customer", width: 140 },
+    { field: "accountTag", label: "Account", width: 100 },
+    { field: "accountId", label: "ID", width: 80 },
+    { field: "unit", label: "Unit", width: 60 },
+    { field: "stateNumber", label: "State#", width: 70 },
+    { field: "testType", label: "Test", width: 80 },
+    { field: "lastDate", label: "Last", width: 80 },
+    { field: "nextDate", label: "Next", width: 80 },
+    { field: "charge", label: "Charge", width: 50 },
+    { field: "ticketNumber", label: "Tkt#", width: 70 },
+    { field: "ticketStatus", label: "Tkt Status", width: 80 },
+    { field: "worker", label: "Worker", width: 70 },
+    { field: "scheduleDate", label: "Schedule", width: 80 },
+  ];
+
+  const { filteredColumns } = useFilteredColumns("safety-tests", columns);
 
   // Mock data
   useEffect(() => {
@@ -300,20 +320,14 @@ export default function SafetyTestsPage() {
           <thead className="bg-[#f0f0f0] sticky top-0">
             <tr>
               <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "20px" }}></th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Status</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Customer</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Account</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">ID</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Unit</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">State#</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Test</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Last</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Next</th>
-              <th className="px-2 py-1 text-center font-medium border border-[#c0c0c0]">Charge</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Tkt#</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Tkt Status</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Worker</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]">Schedule</th>
+              {filteredColumns.map((col) => (
+                <th
+                  key={col.field}
+                  className={`px-2 py-1 ${col.field === "charge" ? "text-center" : "text-left"} font-medium border border-[#c0c0c0]`}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -327,37 +341,41 @@ export default function SafetyTestsPage() {
                 <td className="px-2 py-1 border border-[#e0e0e0]">
                   {selectedTest?.id === test.id && "▶"}
                 </td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.status}</td>
-                <td
-                  className={`px-2 py-1 border border-[#e0e0e0] ${selectedTest?.id !== test.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
-                  onClick={(e) => {
-                    if (selectedTest?.id !== test.id) {
-                      e.stopPropagation();
-                      handleNavigateToCustomer(test.customerId, test.customerName);
-                    }
-                  }}
-                >
-                  {test.customerName}
-                </td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.accountTag}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.accountId}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.unit}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.stateNumber}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.testType}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.lastDate}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.nextDate}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0] text-center">
-                  <input
-                    type="checkbox"
-                    checked={test.charge}
-                    onChange={() => {}}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.ticketNumber}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.ticketStatus}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.worker}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{test.scheduleDate}</td>
+                {filteredColumns.map((col) => {
+                  if (col.field === "customerName") {
+                    return (
+                      <td
+                        key={col.field}
+                        className={`px-2 py-1 border border-[#e0e0e0] ${selectedTest?.id !== test.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
+                        onClick={(e) => {
+                          if (selectedTest?.id !== test.id) {
+                            e.stopPropagation();
+                            handleNavigateToCustomer(test.customerId, test.customerName);
+                          }
+                        }}
+                      >
+                        {test.customerName}
+                      </td>
+                    );
+                  }
+                  if (col.field === "charge") {
+                    return (
+                      <td key={col.field} className="px-2 py-1 border border-[#e0e0e0] text-center">
+                        <input
+                          type="checkbox"
+                          checked={test.charge}
+                          onChange={() => {}}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </td>
+                    );
+                  }
+                  return (
+                    <td key={col.field} className="px-2 py-1 border border-[#e0e0e0]">
+                      {test[col.field as keyof SafetyTest]}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

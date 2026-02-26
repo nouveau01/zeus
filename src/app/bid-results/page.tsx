@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTabs } from "@/context/TabContext";
+import { usePermissions } from "@/context/PermissionsContext";
 
 interface CompetitorBid {
   company: string;
@@ -236,6 +237,7 @@ type StatusFilter = "All" | "Won" | "Lost" | "Pending";
 
 export default function BidResultsPage() {
   const { openTab } = useTabs();
+  const { isFieldAllowed } = usePermissions();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<"bidDate" | "resultDate" | "ourBidAmount">("bidDate");
@@ -442,42 +444,42 @@ export default function BidResultsPage() {
           <table className="w-full text-[11px] border-collapse">
             <thead className="bg-[#d4d0c8] sticky top-0">
               <tr>
-                <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+                {isFieldAllowed("bid-results", "estimateNumber") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                   Estimate #
-                </th>
-                <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+                </th>}
+                {isFieldAllowed("bid-results", "customerName") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                   Customer
-                </th>
-                <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+                </th>}
+                {isFieldAllowed("bid-results", "projectName") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                   Project
-                </th>
-                <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+                </th>}
+                {isFieldAllowed("bid-results", "type") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                   Type
-                </th>
-                <th
+                </th>}
+                {isFieldAllowed("bid-results", "ourBidAmount") && <th
                   className="text-right px-2 py-1.5 border-b border-r border-[#808080] font-normal cursor-pointer hover:bg-[#c0c0c0]"
                   onClick={() => handleSort("ourBidAmount")}
                 >
                   Our Bid {sortField === "ourBidAmount" && (sortDirection === "asc" ? "▲" : "▼")}
-                </th>
-                <th
+                </th>}
+                {isFieldAllowed("bid-results", "bidDate") && <th
                   className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal cursor-pointer hover:bg-[#c0c0c0]"
                   onClick={() => handleSort("bidDate")}
                 >
                   Bid Date {sortField === "bidDate" && (sortDirection === "asc" ? "▲" : "▼")}
-                </th>
-                <th className="text-center px-2 py-1.5 border-b border-r border-[#808080] font-normal w-20">
+                </th>}
+                {isFieldAllowed("bid-results", "status") && <th className="text-center px-2 py-1.5 border-b border-r border-[#808080] font-normal w-20">
                   Status
-                </th>
-                <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+                </th>}
+                {isFieldAllowed("bid-results", "winningBidder") && <th className="text-left px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                   Winner
-                </th>
-                <th className="text-right px-2 py-1.5 border-b border-r border-[#808080] font-normal">
+                </th>}
+                {isFieldAllowed("bid-results", "winningAmount") && <th className="text-right px-2 py-1.5 border-b border-r border-[#808080] font-normal">
                   Win Amount
-                </th>
-                <th className="text-left px-2 py-1.5 border-b border-[#808080] font-normal">
+                </th>}
+                {isFieldAllowed("bid-results", "jobNumber") && <th className="text-left px-2 py-1.5 border-b border-[#808080] font-normal">
                   Job #
-                </th>
+                </th>}
               </tr>
             </thead>
             <tbody>
@@ -504,7 +506,7 @@ export default function BidResultsPage() {
                           : "bg-white hover:bg-[#e8f4fc]"
                       }`}
                     >
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
+                      {isFieldAllowed("bid-results", "estimateNumber") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -514,8 +516,8 @@ export default function BidResultsPage() {
                         >
                           {bid.estimateNumber}
                         </button>
-                      </td>
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
+                      </td>}
+                      {isFieldAllowed("bid-results", "customerName") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -525,27 +527,27 @@ export default function BidResultsPage() {
                         >
                           {bid.customerName}
                         </button>
-                      </td>
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">{bid.projectName}</td>
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">{bid.type}</td>
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-right">
+                      </td>}
+                      {isFieldAllowed("bid-results", "projectName") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">{bid.projectName}</td>}
+                      {isFieldAllowed("bid-results", "type") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">{bid.type}</td>}
+                      {isFieldAllowed("bid-results", "ourBidAmount") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-right">
                         {formatCurrency(bid.ourBidAmount)}
-                      </td>
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
+                      </td>}
+                      {isFieldAllowed("bid-results", "bidDate") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
                         {formatDate(bid.bidDate)}
-                      </td>
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-center">
+                      </td>}
+                      {isFieldAllowed("bid-results", "status") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-center">
                         <span className={`px-2 py-0.5 rounded text-[10px] ${getStatusColor(bid.status)}`}>
                           {bid.status}
                         </span>
-                      </td>
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
+                      </td>}
+                      {isFieldAllowed("bid-results", "winningBidder") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0]">
                         {bid.winningBidder || "-"}
-                      </td>
-                      <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-right">
+                      </td>}
+                      {isFieldAllowed("bid-results", "winningAmount") && <td className="px-2 py-1 border-b border-r border-[#e0e0e0] text-right">
                         {bid.winningAmount ? formatCurrency(bid.winningAmount) : "-"}
-                      </td>
-                      <td className="px-2 py-1 border-b border-[#e0e0e0]">
+                      </td>}
+                      {isFieldAllowed("bid-results", "jobNumber") && <td className="px-2 py-1 border-b border-[#e0e0e0]">
                         {bid.jobNumber ? (
                           <button
                             onClick={(e) => {
@@ -559,7 +561,7 @@ export default function BidResultsPage() {
                         ) : (
                           "-"
                         )}
-                      </td>
+                      </td>}
                     </tr>
                   );
                 })

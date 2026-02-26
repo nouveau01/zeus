@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import {
   FileText,
   Pencil,
@@ -42,8 +43,20 @@ interface NewEntryForm {
   poNumber: string;
 }
 
+const columns = [
+  { field: "date", label: "Date", width: 9, align: "left" as const },
+  { field: "ref", label: "Ref", width: 12, align: "left" as const },
+  { field: "desc", label: "Desc", width: 24, align: "left" as const },
+  { field: "vendorName", label: "Vendor", width: 22, align: "left" as const },
+  { field: "status", label: "Status", width: 7, align: "left" as const },
+  { field: "amount", label: "Amount", width: 10, align: "right" as const },
+  { field: "remaining", label: "Remaining", width: 10, align: "right" as const },
+  { field: "poNumber", label: "PO #", width: 9, align: "left" as const },
+];
+
 export default function PurchaseJournalPage() {
   const { openTab } = useTabs();
+  const { filteredColumns } = useFilteredColumns("purchase-journal", columns);
   // Date filters
   const [postingStartDate, setPostingStartDate] = useState("2026-01-18");
   const [postingEndDate, setPostingEndDate] = useState("2026-01-24");
@@ -437,14 +450,15 @@ export default function PurchaseJournalPage() {
         <table className="w-full border-collapse text-[12px]">
           <thead className="bg-[#f0f0f0] sticky top-0">
             <tr>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "9%" }}>Date</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>Ref</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "24%" }}>Desc</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "22%" }}>Vendor</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "7%" }}>Status</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Amount</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Remaining</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "9%" }}>PO #</th>
+              {filteredColumns.map((col) => (
+                <th
+                  key={col.field}
+                  className={`px-2 py-1 text-${col.align} font-medium border border-[#c0c0c0]`}
+                  style={{ width: `${col.width}%` }}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -457,34 +471,56 @@ export default function PurchaseJournalPage() {
                   selectedEntry?.id === entry.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
                 }`}
               >
-                <td className="px-2 py-1 border border-[#e0e0e0]">{formatDate(entry.date)}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{entry.ref}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{entry.desc}</td>
-                <td
-                  className={`px-2 py-1 border border-[#e0e0e0] ${selectedEntry?.id !== entry.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
-                  onClick={(e) => {
-                    if (selectedEntry?.id !== entry.id) {
-                      e.stopPropagation();
-                      openTab(entry.vendorName, `/vendors/${entry.vendorId}`);
-                    }
-                  }}
-                >
-                  {entry.vendorName}
-                </td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{entry.status}</td>
-                <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(entry.amount)}</td>
-                <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(entry.remaining)}</td>
-                <td
-                  className={`px-2 py-1 border border-[#e0e0e0] ${entry.poNumber !== "0" && selectedEntry?.id !== entry.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
-                  onClick={(e) => {
-                    if (entry.poNumber !== "0" && selectedEntry?.id !== entry.id) {
-                      e.stopPropagation();
-                      openTab(`PO# ${entry.poNumber}`, `/purchase-orders/${entry.poNumber}`);
-                    }
-                  }}
-                >
-                  {entry.poNumber}
-                </td>
+                {filteredColumns.map((col) => {
+                  // Vendor column: clickable link to vendor page
+                  if (col.field === "vendorName") {
+                    return (
+                      <td
+                        key={col.field}
+                        className={`px-2 py-1 border border-[#e0e0e0] ${selectedEntry?.id !== entry.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
+                        onClick={(e) => {
+                          if (selectedEntry?.id !== entry.id) {
+                            e.stopPropagation();
+                            openTab(entry.vendorName, `/vendors/${entry.vendorId}`);
+                          }
+                        }}
+                      >
+                        {entry.vendorName}
+                      </td>
+                    );
+                  }
+                  // PO # column: clickable link to PO page
+                  if (col.field === "poNumber") {
+                    return (
+                      <td
+                        key={col.field}
+                        className={`px-2 py-1 border border-[#e0e0e0] ${entry.poNumber !== "0" && selectedEntry?.id !== entry.id ? "text-[#0000ff] cursor-pointer hover:underline" : ""}`}
+                        onClick={(e) => {
+                          if (entry.poNumber !== "0" && selectedEntry?.id !== entry.id) {
+                            e.stopPropagation();
+                            openTab(`PO# ${entry.poNumber}`, `/purchase-orders/${entry.poNumber}`);
+                          }
+                        }}
+                      >
+                        {entry.poNumber}
+                      </td>
+                    );
+                  }
+                  // Standard columns
+                  let cellValue: React.ReactNode;
+                  if (col.field === "date") cellValue = formatDate(entry.date);
+                  else if (col.field === "amount") cellValue = formatCurrency(entry.amount);
+                  else if (col.field === "remaining") cellValue = formatCurrency(entry.remaining);
+                  else cellValue = entry[col.field as keyof JournalEntry] as string;
+                  return (
+                    <td
+                      key={col.field}
+                      className={`px-2 py-1 border border-[#e0e0e0] ${col.align === "right" ? "text-right" : ""}`}
+                    >
+                      {cellValue}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

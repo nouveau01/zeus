@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import {
   FileText,
   Pencil,
@@ -33,8 +34,17 @@ interface Vendor {
 
 const TABS = ["All", "Cost of Sales", "Overhead"];
 
+const columns = [
+  { field: "vendorId", label: "ID #", width: 15, align: "left" as const },
+  { field: "name", label: "Name", width: 40, align: "left" as const },
+  { field: "status", label: "Status", width: 12, align: "left" as const },
+  { field: "type", label: "Type", width: 18, align: "left" as const },
+  { field: "balance", label: "Balance", width: 15, align: "right" as const },
+];
+
 export default function VendorsPage() {
   const { openTab } = useTabs();
+  const { filteredColumns } = useFilteredColumns("vendors", columns);
   const [activeTab, setActiveTab] = useState("All");
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
@@ -386,11 +396,15 @@ export default function VendorsPage() {
         <table className="w-full border-collapse text-[12px]">
           <thead className="bg-[#f0f0f0] sticky top-0">
             <tr>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "15%" }}>ID #</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "40%" }}>Name</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>Status</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "18%" }}>Type</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "15%" }}>Balance</th>
+              {filteredColumns.map((col) => (
+                <th
+                  key={col.field}
+                  className={`px-2 py-1 text-${col.align} font-medium border border-[#c0c0c0]`}
+                  style={{ width: `${col.width}%` }}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -403,11 +417,16 @@ export default function VendorsPage() {
                   selectedVendor?.id === vendor.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
                 }`}
               >
-                <td className="px-2 py-1 border border-[#e0e0e0]">{vendor.vendorId}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{vendor.name}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{vendor.status}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{vendor.type}</td>
-                <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(vendor.balance)}</td>
+                {filteredColumns.map((col) => (
+                  <td
+                    key={col.field}
+                    className={`px-2 py-1 border border-[#e0e0e0] ${col.align === "right" ? "text-right" : ""}`}
+                  >
+                    {col.field === "balance"
+                      ? formatCurrency(vendor[col.field as keyof Vendor] as number)
+                      : (vendor[col.field as keyof Vendor] as string)}
+                  </td>
+                ))}
               </tr>
             ))}
             {/* Totals Row - only shows when toggled on */}

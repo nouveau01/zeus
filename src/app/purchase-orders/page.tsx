@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
+import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import {
   FileText,
   Pencil,
@@ -41,8 +42,19 @@ interface NewPOForm {
   jobId: string;
 }
 
+const columns = [
+  { field: "poNumber", label: "PO #", width: 10, align: "left" as const },
+  { field: "date", label: "Date", width: 10, align: "left" as const },
+  { field: "desc", label: "Desc", width: 12, align: "left" as const },
+  { field: "vendorName", label: "Vendor", width: 30, align: "left" as const },
+  { field: "status", label: "Status", width: 10, align: "left" as const },
+  { field: "approved", label: "Approved", width: 10, align: "left" as const },
+  { field: "amount", label: "Amount", width: 12, align: "right" as const },
+];
+
 export default function PurchaseOrdersPage() {
   const { openTab } = useTabs();
+  const { filteredColumns } = useFilteredColumns("purchase-orders", columns);
   const [startDate, setStartDate] = useState("2026-01-01");
   const [endDate, setEndDate] = useState("2026-01-31");
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
@@ -385,13 +397,15 @@ export default function PurchaseOrdersPage() {
         <table className="w-full border-collapse text-[12px]">
           <thead className="bg-[#f0f0f0] sticky top-0">
             <tr>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>PO #</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Date</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>Desc</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "30%" }}>Vendor</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Status</th>
-              <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Approved</th>
-              <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>Amount</th>
+              {filteredColumns.map((col) => (
+                <th
+                  key={col.field}
+                  className={`px-2 py-1 text-${col.align} font-medium border border-[#c0c0c0]`}
+                  style={{ width: `${col.width}%` }}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -404,13 +418,21 @@ export default function PurchaseOrdersPage() {
                   selectedPO?.id === po.id ? "bg-[#316ac5] text-white" : "hover:bg-[#f0f8ff]"
                 }`}
               >
-                <td className="px-2 py-1 border border-[#e0e0e0]">{po.poNumber}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{formatDate(po.date)}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{po.desc}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{po.vendorName}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{po.status}</td>
-                <td className="px-2 py-1 border border-[#e0e0e0]">{po.approved ? "Yes" : ""}</td>
-                <td className="px-2 py-1 text-right border border-[#e0e0e0]">{formatCurrency(po.amount)}</td>
+                {filteredColumns.map((col) => {
+                  let cellValue: React.ReactNode;
+                  if (col.field === "date") cellValue = formatDate(po.date);
+                  else if (col.field === "approved") cellValue = po.approved ? "Yes" : "";
+                  else if (col.field === "amount") cellValue = formatCurrency(po.amount);
+                  else cellValue = po[col.field as keyof PurchaseOrder] as string;
+                  return (
+                    <td
+                      key={col.field}
+                      className={`px-2 py-1 border border-[#e0e0e0] ${col.align === "right" ? "text-right" : ""}`}
+                    >
+                      {cellValue}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
