@@ -51,6 +51,38 @@ model User {
 }
 
 // ============================================
+// ROLES & PERMISSIONS
+// ============================================
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique                    // e.g. "Technician", "Dispatcher", "Accountant"
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system") // true for GodAdmin, Admin, User — can't delete
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id        String   @id @default(cuid())
+  roleId    String   @map("role_id")
+  pageId    String   @map("page_id")              // Module name (e.g. "customers", "invoices")
+  canAccess Boolean  @default(true) @map("can_access") // Can access this module at all
+  fields    Json     @default("{}")                // { "fieldName": true/false } — field-level visibility
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, pageId])
+  @@map("role_permissions")
+}
+
+// ============================================
 // SAVED FILTERS
 // ============================================
 

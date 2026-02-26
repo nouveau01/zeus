@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { UserManagementPanel } from "@/components/settings/UserManagementPanel";
+import { RolesPermissionsPanel } from "@/components/settings/RolesPermissionsPanel";
 
 interface SettingsSection {
   id: string;
@@ -52,7 +53,7 @@ export default function SettingsPage() {
       case "users":
         return <UserManagementPanel />;
       case "roles":
-        return <ComingSoon title="Roles & Permissions" description="Configure granular permissions for each role. Control access to modules, actions, and data." />;
+        return <RolesPermissionsPanel />;
       case "appearance":
         return <ComingSoon title="Appearance" description="Customize the platform theme, colors, and layout preferences." />;
       case "notifications":
