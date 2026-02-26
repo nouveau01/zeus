@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
         premises: {
           select: {
             id: true,
+            locId: true,
             premisesId: true,
             address: true,
             city: true,
@@ -172,6 +173,7 @@ export async function POST(request: NextRequest) {
         premises: {
           select: {
             id: true,
+            locId: true,
             premisesId: true,
             address: true,
             city: true,

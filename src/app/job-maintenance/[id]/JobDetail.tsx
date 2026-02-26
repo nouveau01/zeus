@@ -125,6 +125,8 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   const [savingFromHook, setSavingFromHook] = useState(false);
   const [accounts, setAccounts] = useState<Array<{ id: string; name: string | null; address: string; customerId: string; customer?: { name: string } }>>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  const [accountUnits, setAccountUnits] = useState<Array<{ id: string; label: string }>>([]);
+  const [selectedUnitId, setSelectedUnitId] = useState<string>("");
 
   useEffect(() => {
     if (!isNew) {
@@ -144,6 +146,27 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
     } catch (error) {
       console.error("Error fetching accounts:", error);
     }
+  };
+
+  const fetchUnitsForAccount = async (premisesInternalId: string) => {
+    if (!premisesInternalId) {
+      setAccountUnits([]);
+      setSelectedUnitId("");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/search?type=units&premisesId=${encodeURIComponent(premisesInternalId)}&q=`);
+      if (res.ok) {
+        const units = await res.json();
+        setAccountUnits(units.map((u: any) => ({ id: u.id, label: u.label })));
+      } else {
+        setAccountUnits([]);
+      }
+    } catch (error) {
+      console.error("Error fetching units for account:", error);
+      setAccountUnits([]);
+    }
+    setSelectedUnitId("");
   };
 
   const fetchJob = async () => {
@@ -391,7 +414,10 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
               {isNew ? (
                 <select
                   value={selectedAccountId}
-                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedAccountId(e.target.value);
+                    fetchUnitsForAccount(e.target.value);
+                  }}
                   className={`${selectClass} w-[220px] ${!selectedAccountId ? "border-red-500" : ""}`}
                   required
                 >
@@ -413,10 +439,16 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
             </div>
             <div className="flex items-center gap-2">
               <label className={`${labelClass} text-[#0000ff]`}>Unit</label>
-              <select className={`${selectClass} w-[220px]`}>
+              <select
+                value={selectedUnitId}
+                onChange={(e) => setSelectedUnitId(e.target.value)}
+                className={`${selectClass} w-[220px]`}
+                disabled={!selectedAccountId && isNew}
+              >
                 <option value="">Select Unit...</option>
-                <option value="FLORINA 1">FLORINA 1</option>
-                <option value="FLORINA 2">FLORINA 2</option>
+                {accountUnits.map((u) => (
+                  <option key={u.id} value={u.id}>{u.label}</option>
+                ))}
               </select>
             </div>
             <div className="flex items-center gap-2">

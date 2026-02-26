@@ -90,8 +90,8 @@ export default function UnitsPage() {
       // Map response to our interface
       const mappedUnits: Unit[] = data.map((u: any) => ({
         id: u.id,
-        accountId: u.premisesName || u.premisesLocId || "",
-        accountTag: u.premisesAddress || "",
+        accountId: u.accountDisplayId || u.premisesName || u.premisesLocId || u.premisesTag || "",
+        accountTag: u.premisesTag || u.premisesName || u.premisesAddress || "",
         unitNumber: u.unit || "",
         type: u.elevatorType || "Elevator",
         category: u.cat || "CONSULTANT",

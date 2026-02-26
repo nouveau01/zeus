@@ -181,9 +181,9 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
         status: job.status,
         type: job.type,
         date: job.jobDate,
-        premises: job.premisesId ? {
+        premises: (job.premisesId || job.accountDisplayId) ? {
           id: job.premisesId,
-          premisesId: job.premisesId,
+          premisesId: job.accountDisplayId || job.premisesTag || "",
           name: job.premisesTag,
           address: job.premisesAddress,
         } : null,

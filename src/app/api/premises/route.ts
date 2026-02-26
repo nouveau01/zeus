@@ -50,10 +50,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Address is required" }, { status: 400 });
     }
 
-    if (!customerId) {
-      return NextResponse.json({ error: "Customer ID is required" }, { status: 400 });
-    }
-
     const premises = await prisma.premises.create({
       data: {
         premisesId: premisesId || null,
@@ -65,7 +61,7 @@ export async function POST(request: NextRequest) {
         type: type || "Non-Contract",
         isActive: isActive ?? true,
         balance: balance || 0,
-        customerId,
+        customerId: customerId || undefined,
       },
       include: {
         customer: {
@@ -84,7 +80,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error creating premises:", error);
     if (error.code === "P2002") {
-      return NextResponse.json({ error: "Premises ID already exists" }, { status: 400 });
+      return NextResponse.json({ error: "Account ID already exists" }, { status: 400 });
     }
     return NextResponse.json({ error: "Failed to create premises" }, { status: 500 });
   }

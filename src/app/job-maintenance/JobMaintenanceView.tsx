@@ -256,10 +256,10 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         date: job.jobDate,
         dueDate: job.closedDate,
         template: null,
-        premises: job.premisesId ? {
+        premises: (job.premisesId || job.accountDisplayId) ? {
           id: job.premisesId,
-          premisesId: job.premisesId,
-          locId: job.premisesId,
+          premisesId: job.accountDisplayId || job.premisesTag || "",
+          locId: job.accountDisplayId || "",
           name: job.premisesTag,
           address: job.premisesAddress || "",
         } : null,
@@ -557,7 +557,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         if (selectedRow) {
           const job = jobs.find(j => String(j.id) === selectedRow);
           if (job?.premises) {
-            openTab(`Account ${job.premises.premisesId || job.premises.id}`, `/accounts/${job.premises.id}`);
+            openTab(`Account ${job.premises.premisesId || job.premises.name || ""}`, `/accounts/${job.premises.id}`);
           } else {
             alert("This job has no associated account.");
           }
@@ -570,7 +570,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         if (selectedRow) {
           const job = jobs.find(j => String(j.id) === selectedRow);
           if (job?.premises) {
-            openTab(`Building ${job.premises.premisesId || job.premises.id}`, `/accounts/${job.premises.id}`);
+            openTab(`Building ${job.premises.premisesId || job.premises.name || ""}`, `/accounts/${job.premises.id}`);
           } else {
             alert("This job has no associated building.");
           }

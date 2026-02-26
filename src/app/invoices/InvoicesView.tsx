@@ -32,6 +32,7 @@ interface Invoice {
   emailStatus: string | null;
   premises: {
     id: string;
+    locId?: string | null;
     premisesId: string | null;
     address: string;
     city: string | null;
@@ -173,7 +174,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
     const term = searchTerm.toLowerCase();
     return (
       inv.invoiceNumber.toString().includes(term) ||
-      inv.premises?.premisesId?.toLowerCase().includes(term) ||
+      (inv.premises?.locId || inv.premises?.premisesId || "").toLowerCase().includes(term) ||
       inv.premises?.address?.toLowerCase().includes(term) ||
       inv.job?.externalId?.toLowerCase().includes(term)
     );
@@ -423,7 +424,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
                       <td className="px-2 py-1 border border-[#d0d0d0]">{formatDate(invoice.date)}</td>
                       <td className="px-2 py-1 border border-[#d0d0d0]">{invoice.type}</td>
                       <td className="px-2 py-1 border border-[#d0d0d0]">{invoice.job?.externalId || ""}</td>
-                      <td className="px-2 py-1 border border-[#d0d0d0]">{invoice.premises?.premisesId || ""}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{invoice.premises?.locId || invoice.premises?.premisesId || ""}</td>
                       <td className="px-2 py-1 border border-[#d0d0d0]">
                         {invoice.premises?.address}
                         {invoice.premises?.city ? ` - ${invoice.premises.city}` : ""}

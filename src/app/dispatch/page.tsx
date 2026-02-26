@@ -8,6 +8,7 @@ import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import { getTickets, getCallHistory } from "@/lib/actions/tickets";
 import { getInvoices } from "@/lib/actions/invoices";
 import { AutocompleteInput, AutocompleteResult } from "@/components/AutocompleteInput";
+import { DynamicSelect } from "@/components/ui/DynamicSelect";
 import {
   FileText,
   Save,
@@ -69,6 +70,7 @@ interface Ticket {
   worker: string;
   city: string;
   state: string;
+  premisesInternalId: string; // internal Loc ID for navigation
   customerId: string;
   customerName: string;
   jobId: string;
@@ -231,6 +233,10 @@ export default function DispatchPage() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isNewTicket, setIsNewTicket] = useState(false);
+
+  // Units and jobs for the selected account (for dropdowns)
+  const [accountUnits, setAccountUnits] = useState<{ id: string; label: string }[]>([]);
+  const [accountJobs, setAccountJobs] = useState<{ id: string; label: string }[]>([]);
 
   // Custom fields
   const [ticketCustom, setTicketCustom] = useState({
@@ -399,7 +405,7 @@ export default function DispatchPage() {
           accountTag: `${t.premises?.tag || t.accountId || ""}~ - ${t.premises?.address || ""}`,
           address: t.premises?.address || "",
           unit: t.unitName || "",
-          unitId: t.unitId || "",
+          unitId: t.unitId?.toString() || "",
           description: t.description || "",
           status: t.status as "Open" | "Assigned" | "En Route" | "On Site" | "Completed" | "Closed",
           callDate: t.date ? new Date(t.date).toLocaleDateString() : "",
@@ -408,6 +414,7 @@ export default function DispatchPage() {
           worker: t.mechCrew || "",
           city: t.premises?.city || "",
           state: t.premises?.state || "",
+          premisesInternalId: t.premises?.id || t.premisesId || "",
           customerId: t.premises?.customer?.id || "",
           customerName: t.premises?.customer?.name || "",
           jobId: t.jobId?.toString() || "",
@@ -563,6 +570,14 @@ export default function DispatchPage() {
     };
     setTicketDetail(detail);
 
+    // Fetch units and jobs for this account
+    if (apiTicket?.premises?.id) {
+      fetchAccountUnitsAndJobs(apiTicket.premises.id);
+    } else {
+      setAccountUnits([]);
+      setAccountJobs([]);
+    }
+
     // Clear other workers for now (would need separate API)
     setOtherWorkers([]);
 
@@ -641,6 +656,34 @@ export default function DispatchPage() {
     }
   };
 
+  // Fetch units and jobs for a given account (by internal Loc ID)
+  const fetchAccountUnitsAndJobs = async (premisesInternalId: string) => {
+    try {
+      const [unitsRes, jobsRes] = await Promise.all([
+        fetch(`/api/search?type=units&premisesId=${encodeURIComponent(premisesInternalId)}&q=`),
+        fetch(`/api/search?type=jobs&premisesId=${encodeURIComponent(premisesInternalId)}&q=`),
+      ]);
+
+      if (unitsRes.ok) {
+        const units = await unitsRes.json();
+        setAccountUnits(units.map((u: any) => ({ id: u.id, label: u.label })));
+      } else {
+        setAccountUnits([]);
+      }
+
+      if (jobsRes.ok) {
+        const jobs = await jobsRes.json();
+        setAccountJobs(jobs.map((j: any) => ({ id: j.id, label: j.label })));
+      } else {
+        setAccountJobs([]);
+      }
+    } catch (error) {
+      console.error("Error fetching account units/jobs:", error);
+      setAccountUnits([]);
+      setAccountJobs([]);
+    }
+  };
+
   const handleTicketSelect = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     loadTicketDetail(ticket);
@@ -648,25 +691,25 @@ export default function DispatchPage() {
 
   // Navigation handlers
   const handleNavigateToAccount = () => {
-    if (ticketDetail) {
-      openTab(ticketDetail.accountTag, `/accounts/${ticketDetail.accountId}`);
+    if (selectedTicket?.premisesInternalId) {
+      openTab(ticketDetail?.accountTag || selectedTicket.accountId, `/accounts/${selectedTicket.premisesInternalId}`);
     }
   };
 
   const handleNavigateToUnit = () => {
-    if (ticketDetail && ticketDetail.unitId) {
-      openTab(`Unit ${ticketDetail.unitNumber}`, `/units/${ticketDetail.unitId}`);
+    if (selectedTicket?.unitId) {
+      openTab(`Unit ${ticketDetail?.unitNumber || selectedTicket.unit}`, `/units/${selectedTicket.unitId}`);
     }
   };
 
   const handleNavigateToJob = () => {
-    if (ticketDetail && ticketDetail.jobId) {
-      openTab(`Job ${ticketDetail.jobNumber}`, `/job-maintenance/${ticketDetail.jobId}`);
+    if (selectedTicket?.jobId) {
+      openTab(`Job ${selectedTicket.jobNumber}`, `/job-maintenance/${selectedTicket.jobId}`);
     }
   };
 
   const handleNavigateToCustomer = () => {
-    if (selectedTicket) {
+    if (selectedTicket?.customerId) {
       openTab(selectedTicket.customerName, `/customers/${selectedTicket.customerId}`);
     }
   };
@@ -683,6 +726,7 @@ export default function DispatchPage() {
   // Autocomplete selection handlers — populate related fields from selected record
   const handleAccountSelect = (result: AutocompleteResult) => {
     const a = result.data;
+    const internalId = a.id || "";
     setTicketDetail(prev => prev ? {
       ...prev,
       accountTag: a.name || "",
@@ -698,10 +742,27 @@ export default function DispatchPage() {
       route: a.route?.toString() || "",
       zone: a.zone?.toString() || "",
       territory: a.terr || "",
+      // Clear unit/job since account changed
+      unitNumber: "",
+      unitId: undefined,
+      jobId: "",
+      jobNumber: "",
       // Also fill customer info from the account's owner
       customerName: a.customer?.name || prev.customerName,
-      customerId: a.customerId || prev.customerId,
     } : prev);
+
+    // Also update the selected ticket's internal ID for navigation
+    if (selectedTicket) {
+      setSelectedTicket(prev => prev ? { ...prev, premisesInternalId: internalId, customerId: a.customerId || prev.customerId } : prev);
+    }
+
+    // Fetch units and jobs for this account
+    if (internalId) {
+      fetchAccountUnitsAndJobs(internalId);
+    } else {
+      setAccountUnits([]);
+      setAccountJobs([]);
+    }
   };
 
   const handleUnitSelect = (result: AutocompleteResult) => {
@@ -1138,33 +1199,67 @@ export default function DispatchPage() {
       <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-3 flex-wrap">
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Scheme</label>
-          <select value={scheme} onChange={(e) => setScheme(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white min-w-[70px]">
-            {schemes.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <DynamicSelect
+            pageId="dispatch"
+            fieldName="scheme"
+            value={scheme}
+            onChange={setScheme}
+            fallbackOptions={schemes}
+            includeEmpty={false}
+            className="min-w-[70px]"
+          />
         </div>
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Status:</label>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white min-w-[60px]">
-            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <DynamicSelect
+            pageId="dispatch"
+            fieldName="status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            includeAll
+            includeEmpty={false}
+            fallbackOptions={statuses.filter(s => s !== "All")}
+            className="min-w-[60px]"
+          />
         </div>
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Worker:</label>
-          <select value={workerFilter} onChange={(e) => setWorkerFilter(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white min-w-[60px]">
-            {workers.map(w => <option key={w} value={w}>{w}</option>)}
-          </select>
+          <DynamicSelect
+            pageId="dispatch"
+            fieldName="worker"
+            value={workerFilter}
+            onChange={setWorkerFilter}
+            includeAll
+            includeEmpty={false}
+            fallbackOptions={workers.filter(w => w !== "All")}
+            className="min-w-[60px]"
+          />
         </div>
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Type:</label>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white min-w-[60px]">
-            {types.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <DynamicSelect
+            pageId="dispatch"
+            fieldName="type"
+            value={typeFilter}
+            onChange={setTypeFilter}
+            includeAll
+            includeEmpty={false}
+            fallbackOptions={types.filter(t => t !== "All")}
+            className="min-w-[60px]"
+          />
         </div>
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Zone:</label>
-          <select value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white min-w-[60px]">
-            {zones.map(z => <option key={z} value={z}>{z}</option>)}
-          </select>
+          <DynamicSelect
+            pageId="dispatch"
+            fieldName="zone"
+            value={zoneFilter}
+            onChange={setZoneFilter}
+            includeAll
+            includeEmpty={false}
+            fallbackOptions={zones.filter(z => z !== "All")}
+            className="min-w-[60px]"
+          />
         </div>
         <div className="flex items-center gap-1">
           <label className="flex items-center gap-1 text-[11px]">
@@ -1484,7 +1579,7 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">W/O #</label>
-                    <input type="text" value={ticketDetail.woNumber} onChange={(e) => updateDetail("woNumber", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-[#ffffe1] w-[80px]" />
+                    <input type="text" value={ticketDetail.woNumber} onChange={(e) => updateDetail("woNumber", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Date</label>
@@ -1496,11 +1591,14 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Caller</label>
-                    <select value={ticketDetail.caller} onChange={(e) => updateDetail("caller", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]">
-                      <option value=""></option>
-                      <option value="New">New</option>
-                      <option value="Who">Who</option>
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="caller"
+                      value={ticketDetail.caller}
+                      onChange={(val) => updateDetail("caller", val)}
+                      fallbackOptions={["New", "Who"]}
+                      className="flex-1 w-[80px]"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Phone #</label>
@@ -1515,17 +1613,21 @@ export default function DispatchPage() {
                   </button>
                   <div className="flex items-center gap-1 mt-1">
                     <label className="w-14 text-[11px]">Source</label>
-                    <select value={ticketDetail.source} onChange={(e) => updateDetail("source", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]">
-                      <option value=""></option>
-                      {sources.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="source"
+                      value={ticketDetail.source}
+                      onChange={(val) => updateDetail("source", val)}
+                      fallbackOptions={sources}
+                      className="flex-1 w-[80px]"
+                    />
                   </div>
                 </div>
 
                 {/* Middle Column - Account Info */}
                 <div className="flex flex-col gap-1 min-w-[220px]">
                   <div className="flex items-center gap-1">
-                    <label className="w-14 text-[11px] text-[#ffcc00] bg-[#000080] px-1">Account</label>
+                    <label className="w-14 text-[11px]">Account</label>
                     {isNewTicket ? (
                       <AutocompleteInput
                         value={ticketDetail.accountTag}
@@ -1559,12 +1661,14 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">State</label>
-                    <select value={ticketDetail.accountState} onChange={(e) => updateDetail("accountState", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[50px]">
-                      <option value=""></option>
-                      <option value="NY">NY</option>
-                      <option value="NJ">NJ</option>
-                      <option value="CT">CT</option>
-                    </select>
+                    <DynamicSelect
+                      pageId="_global"
+                      fieldName="state"
+                      value={ticketDetail.accountState}
+                      onChange={(val) => updateDetail("accountState", val)}
+                      fallbackOptions={["NY", "NJ", "CT"]}
+                      className="w-[50px]"
+                    />
                     <label className="text-[11px] ml-1">Zip</label>
                     <input type="text" value={ticketDetail.accountZip} onChange={(e) => updateDetail("accountZip", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
                   </div>
@@ -1595,71 +1699,96 @@ export default function DispatchPage() {
                 <div className="flex flex-col gap-1 min-w-[200px]">
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Category</label>
-                    <select value={ticketDetail.category} onChange={(e) => updateDetail("category", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="category"
+                      value={ticketDetail.category}
+                      onChange={(val) => updateDetail("category", val)}
+                      fallbackOptions={categories}
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Level</label>
-                    <select value={ticketDetail.level} onChange={(e) => updateDetail("level", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      {levels.map(l => <option key={l} value={l}>{l}</option>)}
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="level"
+                      value={ticketDetail.level}
+                      onChange={(val) => updateDetail("level", val)}
+                      fallbackOptions={levels}
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
-                    <label className="w-14 text-[11px] text-[#0000ff]">Unit</label>
-                    {isNewTicket ? (
-                      <AutocompleteInput
-                        value={ticketDetail.unitNumber}
-                        onChange={(val) => updateDetail("unitNumber", val)}
-                        onSelect={handleUnitSelect}
-                        searchType="units"
-                        filterParams={ticketDetail.accountId ? { premisesId: ticketDetail.accountId } : undefined}
-                        placeholder="Search units..."
-                      />
-                    ) : (
-                      <>
-                        <span
-                          onClick={handleNavigateToUnit}
-                          className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
-                        >
-                          {ticketDetail.unitNumber}
-                        </span>
-                        {ticketDetail.unitNumber && (
-                          <span className="text-[11px] ml-2">Route: {ticketDetail.route || ""}</span>
-                        )}
-                      </>
+                    <label className="w-14 text-[11px]">Unit</label>
+                    <select
+                      value={ticketDetail.unitId || ""}
+                      onChange={(e) => {
+                        const unitId = e.target.value;
+                        const unit = accountUnits.find(u => u.id === unitId);
+                        setTicketDetail(prev => prev ? { ...prev, unitId: unitId || undefined, unitNumber: unit?.label || "" } : prev);
+                        if (selectedTicket) {
+                          setSelectedTicket(prev => prev ? { ...prev, unitId: unitId, unit: unit?.label || "" } : prev);
+                        }
+                      }}
+                      className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white"
+                    >
+                      <option value=""></option>
+                      {accountUnits.map(u => (
+                        <option key={u.id} value={u.id}>{u.label}</option>
+                      ))}
+                    </select>
+                    {ticketDetail.unitId && (
+                      <span
+                        onClick={handleNavigateToUnit}
+                        className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
+                        title="Open unit"
+                      >
+                        Go
+                      </span>
+                    )}
+                    {ticketDetail.unitNumber && (
+                      <span className="text-[11px] ml-1">Route: {ticketDetail.route || ""}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Nature</label>
-                    <select value={ticketDetail.nature} onChange={(e) => updateDetail("nature", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      {natures.map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="nature"
+                      value={ticketDetail.nature}
+                      onChange={(val) => updateDetail("nature", val)}
+                      fallbackOptions={natures}
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
-                    <label className="w-14 text-[11px] text-[#0000ff]">Job</label>
-                    {isNewTicket ? (
-                      <AutocompleteInput
-                        value={ticketDetail.jobNumber}
-                        onChange={(val) => updateDetail("jobNumber", val)}
-                        onSelect={handleJobSelect}
-                        searchType="jobs"
-                        filterParams={ticketDetail.accountId ? { premisesId: ticketDetail.accountId } : undefined}
-                        placeholder="Search jobs..."
-                      />
-                    ) : (
-                      <>
-                        <span
-                          onClick={handleNavigateToJob}
-                          className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
-                        >
-                          {ticketDetail.jobNumber}
-                        </span>
-                        <button className="px-1 border border-[#808080] bg-white text-[11px] ml-1">...</button>
-                      </>
+                    <label className="w-14 text-[11px]">Job</label>
+                    <select
+                      value={ticketDetail.jobId || ""}
+                      onChange={(e) => {
+                        const jobId = e.target.value;
+                        const job = accountJobs.find(j => j.id === jobId);
+                        setTicketDetail(prev => prev ? { ...prev, jobId: jobId, jobNumber: job?.label || "" } : prev);
+                        if (selectedTicket) {
+                          setSelectedTicket(prev => prev ? { ...prev, jobId: jobId, jobNumber: job?.label || "" } : prev);
+                        }
+                      }}
+                      className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white"
+                    >
+                      <option value=""></option>
+                      {accountJobs.map(j => (
+                        <option key={j.id} value={j.id}>{j.label}</option>
+                      ))}
+                    </select>
+                    {ticketDetail.jobId && (
+                      <span
+                        onClick={handleNavigateToJob}
+                        className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
+                        title="Open job"
+                      >
+                        Go
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
@@ -1668,10 +1797,13 @@ export default function DispatchPage() {
                       Test
                     </label>
                     <label className="text-[11px] ml-2">Mech</label>
-                    <select value={ticketDetail.testMech} onChange={(e) => updateDetail("testMech", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      <option value="Mechanic">Mechanic</option>
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="worker"
+                      value={ticketDetail.testMech}
+                      onChange={(val) => updateDetail("testMech", val)}
+                      fallbackOptions={workers.filter(w => w !== "All")}
+                    />
                   </div>
                   <div className="flex flex-col gap-0.5 mt-1">
                     <label className="flex items-center gap-1 text-[11px]">
@@ -1742,18 +1874,25 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-12 text-[11px]">Time</label>
-                    <select className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      <option value="En Route">En Route</option>
-                      <option value="On Site">On Site</option>
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="schedTimeStatus"
+                      value={ticketDetail.schedTime || ""}
+                      onChange={(val) => updateDetail("schedTime", val)}
+                      fallbackOptions={["En Route", "On Site"]}
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-12 text-[11px]">Mech</label>
-                    <select value={ticketDetail.schedMech} onChange={(e) => updateDetail("schedMech", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      {workers.filter(w => w !== "All").map(w => <option key={w} value={w}>{w}</option>)}
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="worker"
+                      value={ticketDetail.schedMech}
+                      onChange={(val) => updateDetail("schedMech", val)}
+                      fallbackOptions={workers.filter(w => w !== "All")}
+                      className="flex-1"
+                    />
                     <label className="text-[11px]">Completed</label>
                     <input type="text" value={ticketDetail.completedTime} onChange={(e) => updateDetail("completedTime", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
                   </div>
@@ -1827,11 +1966,14 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">State</label>
-                    <select value={ticketDetail.customerState} onChange={(e) => updateDetail("customerState", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[50px]">
-                      <option value=""></option>
-                      <option value="NY">NY</option>
-                      <option value="NJ">NJ</option>
-                    </select>
+                    <DynamicSelect
+                      pageId="_global"
+                      fieldName="state"
+                      value={ticketDetail.customerState}
+                      onChange={(val) => updateDetail("customerState", val)}
+                      fallbackOptions={["NY", "NJ", "CT"]}
+                      className="w-[50px]"
+                    />
                     <label className="text-[11px]">Zip</label>
                     <input type="text" value={ticketDetail.customerZip} onChange={(e) => updateDetail("customerZip", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
                   </div>
@@ -1867,24 +2009,36 @@ export default function DispatchPage() {
                 <div className="flex flex-col gap-1 min-w-[150px]">
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Customer Type</label>
-                    <select value={ticketDetail.customerType} onChange={(e) => updateDetail("customerType", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      <option value="General">General</option>
-                    </select>
+                    <DynamicSelect
+                      pageId="customers"
+                      fieldName="type"
+                      value={ticketDetail.customerType}
+                      onChange={(val) => updateDetail("customerType", val)}
+                      fallbackOptions={["General"]}
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Account Type</label>
-                    <select value={ticketDetail.accountType} onChange={(e) => updateDetail("accountType", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      <option value="S">S</option>
-                    </select>
+                    <DynamicSelect
+                      pageId="accounts"
+                      fieldName="type"
+                      value={ticketDetail.accountType}
+                      onChange={(val) => updateDetail("accountType", val)}
+                      fallbackOptions={["S", "H", "MOD", "Resident Mech.", "Non-Contract"]}
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Zone</label>
-                    <select value={ticketDetail.zone} onChange={(e) => updateDetail("zone", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      {zones.filter(z => z !== "All").map(z => <option key={z} value={z}>{z}</option>)}
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="zone"
+                      value={ticketDetail.zone}
+                      onChange={(val) => updateDetail("zone", val)}
+                      fallbackOptions={zones.filter(z => z !== "All")}
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Route</label>
@@ -1892,10 +2046,14 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]">Territory</label>
-                    <select value={ticketDetail.territory} onChange={(e) => updateDetail("territory", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white">
-                      <option value=""></option>
-                      <option value="RS">RS</option>
-                    </select>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="territory"
+                      value={ticketDetail.territory}
+                      onChange={(val) => updateDetail("territory", val)}
+                      fallbackOptions={["RS"]}
+                      className="flex-1"
+                    />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-20 text-[11px]"># Locs/Units</label>

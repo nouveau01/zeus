@@ -412,7 +412,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             className="px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
           >
             <option value={invoice.premises?.id || ""}>
-              {invoice.premises?.premisesId || invoice.premises?.address || "Select Account"}
+              {invoice.premises?.locId || invoice.premises?.premisesId || invoice.premises?.address || "Select Account"}
             </option>
           </select>
 

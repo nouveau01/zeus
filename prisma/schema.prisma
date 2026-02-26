@@ -329,8 +329,8 @@ model Premises {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  customerId  String   @map("customer_id")          // Loc.Owner → Owner.ID
-  customer    Customer @relation(fields: [customerId], references: [id])
+  customerId  String?  @map("customer_id")          // Loc.Owner → Owner.ID
+  customer    Customer? @relation(fields: [customerId], references: [id])
   jobs        Job[]
   units       Unit[]
   invoices    Invoice[]
@@ -2017,4 +2017,58 @@ model PageSectionConfig {
 
   @@unique([pageId, sectionName])
   @@map("page_section_configs")
+}
+
+// ============================================
+// PICKLIST VALUES (Dynamic Dropdown Options)
+// ============================================
+// Stores all select/dropdown options per module per field.
+// Replaces hardcoded arrays throughout the app.
+// Use pageId="_global" for shared picklists (US States, countries, etc.)
+
+model PicklistValue {
+  id          String   @id @default(cuid())
+
+  pageId      String   @map("page_id")
+  fieldName   String   @map("field_name")
+  value       String
+  label       String
+  sortOrder   Int      @default(0) @map("sort_order")
+  isDefault   Boolean  @default(false) @map("is_default")
+  isActive    Boolean  @default(true) @map("is_active")
+  color       String?
+  icon        String?
+  metadata    Json?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([pageId, fieldName, value])
+  @@index([pageId, fieldName])
+  @@map("picklist_values")
+}
+
+// ============================================
+// STATUS WORKFLOW (Configurable Status Transitions)
+// ============================================
+// Defines valid status transitions per module.
+// fromStatus="_initial" means this status is available when creating a new record.
+
+model StatusWorkflow {
+  id            String   @id @default(cuid())
+
+  pageId        String   @map("page_id")
+  fromStatus    String   @map("from_status")
+  toStatus      String   @map("to_status")
+  sortOrder     Int      @default(0) @map("sort_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  requiresRole  String?  @map("requires_role")
+  requiresNote  Boolean  @default(false) @map("requires_note")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([pageId, fromStatus, toStatus])
+  @@index([pageId, fromStatus])
+  @@map("status_workflows")
 }

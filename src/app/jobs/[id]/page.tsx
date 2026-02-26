@@ -414,7 +414,7 @@ export default function JobDetailPage() {
     { label: "Job Description", value: job.jobDescription, fieldKey: "jobDescription" },
     { label: "Customer", value: job.customer?.name, fieldKey: "customerId", type: "link", href: `/customers/${job.customer?.id}`, editable: false },
     { label: "Date", value: job.date, fieldKey: "date", type: "date" },
-    { label: "Premises", value: job.premises?.address, fieldKey: "premisesId", type: "link", href: `/premises/${job.premises?.id}`, editable: false },
+    { label: "Account", value: job.premises?.address, fieldKey: "premisesId", type: "link", href: `/premises/${job.premises?.id}`, editable: false },
     { label: "Custom Date", value: job.customDate, fieldKey: "customDate", type: "date" },
     { label: "Unit", value: job.unit?.unitNumber, fieldKey: "unitId", editable: false },
     { label: "Due Date", value: job.dueDate, fieldKey: "dueDate", type: "date" },
@@ -638,7 +638,7 @@ export default function JobDetailPage() {
         <HighlightsPanel
           fields={[
             { label: "Customer", value: job.customer?.name || null, isLink: true, href: `/customers/${job.customer?.id}` },
-            { label: "Premises", value: job.premises?.address || null, isLink: true, href: `/premises/${job.premises?.id}` },
+            { label: "Account", value: job.premises?.address || null, isLink: true, href: `/premises/${job.premises?.id}` },
             { label: "Contract Type", value: job.contractType },
           ]}
         />

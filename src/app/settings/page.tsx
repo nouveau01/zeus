@@ -11,10 +11,14 @@ import {
   Globe,
   ChevronRight,
   Settings,
+  List,
+  GitBranch,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { UserManagementPanel } from "@/components/settings/UserManagementPanel";
 import { RolesPermissionsPanel } from "@/components/settings/RolesPermissionsPanel";
+import { PicklistEditorPanel } from "@/components/settings/PicklistEditorPanel";
+import { StatusWorkflowEditorPanel } from "@/components/settings/StatusWorkflowEditorPanel";
 
 interface SettingsSection {
   id: string;
@@ -26,6 +30,8 @@ interface SettingsSection {
 const sections: SettingsSection[] = [
   { id: "users", label: "User Management", icon: Users, minRole: "Admin" },
   { id: "roles", label: "Roles & Permissions", icon: Shield, minRole: "Admin" },
+  { id: "picklists", label: "Picklist Values", icon: List, minRole: "Admin" },
+  { id: "workflows", label: "Status Workflows", icon: GitBranch, minRole: "Admin" },
   { id: "appearance", label: "Appearance", icon: Palette, minRole: "Admin" },
   { id: "notifications", label: "Notifications", icon: Bell, minRole: "Admin" },
   { id: "database", label: "Database", icon: Database, minRole: "Admin" },
@@ -54,6 +60,10 @@ export default function SettingsPage() {
         return <UserManagementPanel />;
       case "roles":
         return <RolesPermissionsPanel />;
+      case "picklists":
+        return <PicklistEditorPanel />;
+      case "workflows":
+        return <StatusWorkflowEditorPanel />;
       case "appearance":
         return <ComingSoon title="Appearance" description="Customize the platform theme, colors, and layout preferences." />;
       case "notifications":

@@ -97,10 +97,11 @@ export async function fetchInvoices(params: FetchInvoicesParams = {}) {
         poNumber: inv.PO || null,
         terms: inv.Terms || null,
         customerId: inv.Owner?.toString() || null,
-        premisesId: inv.Loc?.toString() || null,
+        premisesId: loc?.ID || inv.Loc?.toString() || null,
         premisesTag: loc?.Tag || "",
         premises: loc ? {
           id: loc.Loc.toString(),
+          premisesId: loc.ID || loc.Loc.toString(),
           tag: loc.Tag || "",
           address: locRol?.Address || loc.Address || "",
         } : null,
@@ -127,7 +128,7 @@ async function fetchInvoicesFromPostgres(params: FetchInvoicesParams = {}) {
     orderBy: { date: "desc" },
     include: {
       customer: { select: { name: true } },
-      premises: { select: { tag: true } },
+      premises: { select: { id: true, premisesId: true, locId: true, tag: true, name: true, address: true, city: true } },
     },
   });
 
@@ -140,8 +141,14 @@ async function fetchInvoicesFromPostgres(params: FetchInvoicesParams = {}) {
     description: inv.description || "",
     customerId: inv.customerId,
     customerName: inv.customer?.name || "",
-    premisesId: inv.premisesId,
+    premisesId: inv.premises?.premisesId || inv.premises?.locId || inv.premisesId || "",
     premisesTag: inv.premises?.tag || "",
+    premises: inv.premises ? {
+      id: inv.premises.id,
+      premisesId: inv.premises.premisesId || inv.premises.locId || "",
+      tag: inv.premises.tag || "",
+      address: inv.premises.address || "",
+    } : null,
     createdAt: inv.createdAt,
     updatedAt: inv.updatedAt,
   }));

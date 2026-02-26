@@ -124,7 +124,7 @@ export default function JobsPage() {
                 <tr>
                   <th>Job Name</th>
                   <th>Customer</th>
-                  <th>Premises</th>
+                  <th>Account</th>
                   <th>Status</th>
                   <th>Type</th>
                   <th>Contract Type</th>
