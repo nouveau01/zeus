@@ -77,25 +77,71 @@ export default function EstimatesPage() {
   const [showTotals, setShowTotals] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Mock data
+  // Load mock estimates using real customer/account data from the DB
   useEffect(() => {
-    const mockEstimates: Estimate[] = [
-      { id: "1", estimateNumber: "EST-2025-0142", customerId: "1", customerName: "195 B OWNER LLC", accountId: "195BROAD", accountName: "195 Broadway", description: "Elevator modernization - Car 1 & 2", amount: 185000, status: "Sent", createdDate: "01/15/2025", expirationDate: "02/15/2025", salesperson: "John Smith", probability: 75 },
-      { id: "2", estimateNumber: "EST-2025-0141", customerId: "2", customerName: "708 THIRD AVENUE ASSOC", accountId: "7083RDAVE", accountName: "708 3rd Avenue", description: "Annual maintenance contract renewal", amount: 48000, status: "Accepted", createdDate: "01/14/2025", expirationDate: "02/14/2025", salesperson: "Mike Johnson", probability: 100 },
-      { id: "3", estimateNumber: "EST-2025-0140", customerId: "3", customerName: "EMPIRE STATE REALTY", accountId: "ONEGCP", accountName: "One Grand Central Place", description: "Emergency phone upgrade - all units", amount: 32500, status: "Draft", createdDate: "01/13/2025", expirationDate: "02/13/2025", salesperson: "John Smith", probability: 50 },
-      { id: "4", estimateNumber: "EST-2025-0139", customerId: "4", customerName: "COLLIERS INTERNATIONAL", accountId: "150JFKPARK", accountName: "150 JFK Parkway", description: "Hydraulic cylinder replacement", amount: 67800, status: "Sent", createdDate: "01/12/2025", expirationDate: "02/12/2025", salesperson: "Sarah Davis", probability: 60 },
-      { id: "5", estimateNumber: "EST-2025-0138", customerId: "5", customerName: "SOMERSET DEVELOPMENT", accountId: "101CRAWFI", accountName: "101 Crawford St", description: "New elevator installation", amount: 425000, status: "Sent", createdDate: "01/10/2025", expirationDate: "03/10/2025", salesperson: "Mike Johnson", probability: 40 },
-      { id: "6", estimateNumber: "EST-2025-0137", customerId: "6", customerName: "WP PLAZA OWNER LLC", accountId: "1NORTHBRI", accountName: "1 North Bridge", description: "Control system upgrade", amount: 89500, status: "Rejected", createdDate: "01/08/2025", expirationDate: "02/08/2025", salesperson: "John Smith", probability: 0 },
-      { id: "7", estimateNumber: "EST-2025-0136", customerId: "7", customerName: "NEW ROC ASSOCIATES", accountId: "29-33LECOU", accountName: "29-33 LeCount Place", description: "Door operator replacement x4", amount: 28400, status: "Accepted", createdDate: "01/05/2025", expirationDate: "02/05/2025", salesperson: "Sarah Davis", probability: 100 },
-      { id: "8", estimateNumber: "EST-2024-0892", customerId: "8", customerName: "MUSSO PROPERTIES LLC", accountId: "135THIRDA", accountName: "135 Third Avenue", description: "Safety test and inspection prep", amount: 4500, status: "Expired", createdDate: "12/15/2024", expirationDate: "01/15/2025", salesperson: "John Smith", probability: 0 },
-      { id: "9", estimateNumber: "EST-2024-0891", customerId: "9", customerName: "MIRA GARAY", accountId: "60E79THST", accountName: "60 East 79th St", description: "Cab interior renovation", amount: 18500, status: "Draft", createdDate: "12/12/2024", expirationDate: "01/12/2025", salesperson: "Mike Johnson", probability: 30 },
-      { id: "10", estimateNumber: "EST-2024-0890", customerId: "10", customerName: "ONE GATEWAY CENTER", accountId: "11-43RAYMC", accountName: "11-43 Raymond Plaza", description: "Machine room cooling system", amount: 15200, status: "Sent", createdDate: "12/10/2024", expirationDate: "01/10/2025", salesperson: "Sarah Davis", probability: 65 },
-    ];
+    async function loadEstimates() {
+      try {
+        // Fetch real customers and accounts so click-through works
+        const [custRes, acctRes] = await Promise.all([
+          fetch("/api/search?type=customers&limit=20"),
+          fetch("/api/search?type=accounts&limit=20"),
+        ]);
+        const custRaw = custRes.ok ? await custRes.json() : [];
+        const acctRaw = acctRes.ok ? await acctRes.json() : [];
+        // Search API returns { id, label, data } format
+        const customers = custRaw.map((c: any) => ({ id: c.id, name: c.label || c.data?.name || "Unknown" }));
+        const accounts = acctRaw.map((a: any) => ({ id: a.id, name: a.data?.name || a.label || "Unknown", premisesId: a.label }));
 
-    setTimeout(() => {
-      setEstimates(mockEstimates);
-      setLoading(false);
-    }, 300);
+        // Build estimates from real data
+        const descriptions = [
+          "Elevator modernization - Car 1 & 2", "Annual maintenance contract renewal",
+          "Emergency phone upgrade - all units", "Hydraulic cylinder replacement",
+          "New elevator installation", "Control system upgrade",
+          "Door operator replacement x4", "Safety test and inspection prep",
+          "Cab interior renovation", "Machine room cooling system",
+        ];
+        const statuses = ["Sent", "Accepted", "Draft", "Sent", "Sent", "Rejected", "Accepted", "Expired", "Draft", "Sent"];
+        const amounts = [185000, 48000, 32500, 67800, 425000, 89500, 28400, 4500, 18500, 15200];
+        const probs = [75, 100, 50, 60, 40, 0, 100, 0, 30, 65];
+        const salespersons = ["John Smith", "Mike Johnson", "Sarah Davis"];
+
+        const mockEstimates: Estimate[] = [];
+        const count = Math.min(10, Math.max(customers.length, accounts.length, 10));
+
+        for (let i = 0; i < count; i++) {
+          const cust = customers[i % customers.length];
+          const acct = accounts[i % accounts.length];
+          const daysAgo = 40 + i * 3;
+          const created = new Date();
+          created.setDate(created.getDate() - daysAgo);
+          const expires = new Date(created);
+          expires.setDate(expires.getDate() + 30);
+
+          mockEstimates.push({
+            id: `est-${i + 1}`,
+            estimateNumber: `EST-2025-${(142 - i).toString().padStart(4, "0")}`,
+            customerId: cust?.id || `${i + 1}`,
+            customerName: cust?.name || `Customer ${i + 1}`,
+            accountId: acct?.id || `${i + 1}`,
+            accountName: acct?.name || acct?.premisesId || `Account ${i + 1}`,
+            description: descriptions[i % descriptions.length],
+            amount: amounts[i % amounts.length],
+            status: statuses[i % statuses.length],
+            createdDate: `${(created.getMonth() + 1).toString().padStart(2, "0")}/${created.getDate().toString().padStart(2, "0")}/${created.getFullYear()}`,
+            expirationDate: `${(expires.getMonth() + 1).toString().padStart(2, "0")}/${expires.getDate().toString().padStart(2, "0")}/${expires.getFullYear()}`,
+            salesperson: salespersons[i % salespersons.length],
+            probability: probs[i % probs.length],
+          });
+        }
+
+        setEstimates(mockEstimates);
+      } catch (err) {
+        console.error("Failed to load estimates data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadEstimates();
   }, []);
 
   const handleDoubleClick = (estimate: Estimate) => {
