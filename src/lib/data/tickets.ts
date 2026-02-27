@@ -324,11 +324,14 @@ async function fetchTicketsFromPostgres(options: FetchTicketsOptions) {
     where.type = type;
   }
   if (startDate) {
-    where.date = { ...where.date, gte: new Date(startDate) };
+    // Parse as local time (YYYY-MM-DD → midnight local), not UTC
+    const [y, m, d] = startDate.split("-").map(Number);
+    where.date = { ...where.date, gte: new Date(y, m - 1, d) };
   }
   if (endDate) {
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // Parse as local time and set to end of day
+    const [y, m, d] = endDate.split("-").map(Number);
+    const end = new Date(y, m - 1, d, 23, 59, 59, 999);
     where.date = { ...where.date, lte: end };
   }
   if (premisesId) {

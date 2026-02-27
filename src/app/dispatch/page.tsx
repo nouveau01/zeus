@@ -199,7 +199,7 @@ export default function DispatchPage() {
   const [printOnSave, setPrintOnSave] = useState(false);
 
   // Date range helper
-  const formatDate = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  const formatDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [dateMode, setDateMode] = useState<"All" | "Day" | "Week" | "Month" | "Quarter" | "Year">("All");
@@ -366,17 +366,9 @@ export default function DispatchPage() {
       // Dispatch screen always queries open tickets table (TicketO) — completed live in Completed Tickets tab
       const status: "Open" | "Completed" | "All" = "Open";
 
-      let formattedStartDate: string | undefined;
-      let formattedEndDate: string | undefined;
-
-      if (startDate) {
-        const [month, day, year] = startDate.split("/");
-        formattedStartDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-      }
-      if (endDate) {
-        const [month, day, year] = endDate.split("/");
-        formattedEndDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-      }
+      // type="date" inputs already give YYYY-MM-DD format
+      const formattedStartDate = startDate || undefined;
+      const formattedEndDate = endDate || undefined;
 
       // Use Server Action instead of API fetch - data is pulled from SQL Server and mirrored to PostgreSQL
       const data = await getTickets({
@@ -1280,11 +1272,11 @@ export default function DispatchPage() {
       <div className="bg-white flex items-center px-2 py-1 border-b border-[#808080] gap-2 flex-wrap">
         <div className="flex items-center gap-1">
           <label className="text-[11px]">Start</label>
-          <input type="text" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[120px]" />
         </div>
         <div className="flex items-center gap-1">
           <label className="text-[11px]">End</label>
-          <input type="text" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[120px]" />
         </div>
         <div className="flex items-center gap-0.5">
           {(["All", "Day", "Week", "Month", "Quarter", "Year"] as const).map(mode => (
