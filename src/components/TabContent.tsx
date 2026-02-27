@@ -65,6 +65,7 @@ function getPageIdFromRoute(route: string): string | null {
     "/purchase-journal": "purchase-journal",
     "/dispatch": "dispatch",
     "/completed-tickets": "completed-tickets",
+    "/open-tickets": "completed-tickets",
     "/units": "units",
     "/dispatch-extras/routes": "routes",
     "/dispatch-extras/violations": "violations",
@@ -195,6 +196,14 @@ export function TabContent() {
     const url = new URL(activeTab.route, "http://localhost");
     const premisesId = url.searchParams.get("premisesId");
     return <CompletedTicketsView premisesId={premisesId} />;
+  }
+
+  // Check for open-tickets route with optional premisesId filter
+  // This handles /open-tickets and /open-tickets?premisesId=xxx
+  if (activeTab.route === "/open-tickets" || activeTab.route.startsWith("/open-tickets?")) {
+    const url = new URL(activeTab.route, "http://localhost");
+    const premisesId = url.searchParams.get("premisesId");
+    return <CompletedTicketsView premisesId={premisesId} defaultStatus="Open" />;
   }
 
   // Check for completed ticket detail route pattern: /completed-tickets/[id]

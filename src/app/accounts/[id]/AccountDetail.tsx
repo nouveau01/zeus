@@ -957,19 +957,34 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           >
             Completed Tickets
           </button>
-          <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
+          <button
+            onClick={() => account && openTab(`Open Tickets - ${account.name || account.premisesId}`, `/open-tickets?premisesId=${account.id}`)}
+            className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
+          >
             Open Tickets
           </button>
-          <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
+          <button
+            onClick={() => openTab("Quotes", "/quotes")}
+            className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
+          >
             Quotes
           </button>
-          <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
+          <button
+            onClick={() => openTab("Estimates", "/estimates")}
+            className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
+          >
             Estimates
           </button>
-          <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
+          <button
+            onClick={() => openTab("Violations", "/dispatch-extras/violations")}
+            className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
+          >
             Violations
           </button>
-          <button className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium">
+          <button
+            onClick={() => openTab("Safety Tests", "/dispatch-extras/safety-tests")}
+            className="text-left px-2 py-0.5 text-[12px] text-[#0066cc] hover:underline font-medium"
+          >
             Safety Tests
           </button>
         </div>

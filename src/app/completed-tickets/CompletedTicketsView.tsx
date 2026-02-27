@@ -133,9 +133,10 @@ const columns: { field: SortField; label: string; width: number }[] = [
 
 interface CompletedTicketsViewProps {
   premisesId?: string | null;
+  defaultStatus?: "Completed" | "Open" | "All";
 }
 
-export default function CompletedTicketsView({ premisesId }: CompletedTicketsViewProps) {
+export default function CompletedTicketsView({ premisesId, defaultStatus = "Completed" }: CompletedTicketsViewProps) {
   const { openTab } = useTabs();
   const { filteredColumns, filteredWidths: initialWidths } = useFilteredColumns("completed-tickets", columns);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -242,13 +243,13 @@ export default function CompletedTicketsView({ premisesId }: CompletedTicketsVie
     if (isHydrated) {
       fetchTickets();
     }
-  }, [startDate, endDate, activeTab, mechanic, supervisor, reviewed, billed, payroll, isHydrated, premisesId]);
+  }, [startDate, endDate, activeTab, mechanic, supervisor, reviewed, billed, payroll, isHydrated, premisesId, defaultStatus]);
 
   const fetchTickets = async () => {
     setLoading(true);
     try {
       const data = await getTickets({
-        status: "Completed",
+        status: defaultStatus === "All" ? undefined : defaultStatus,
         type: activeTab !== "All" ? activeTab : undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
