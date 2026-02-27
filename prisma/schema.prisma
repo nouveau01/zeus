@@ -2142,5 +2142,86 @@ model EmailTemplate {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  sequenceSteps SequenceStep[] // Steps that reference this template
+
   @@map("email_templates")
+}
+
+// ─── Email Sequences ──────────────────────────────────────────────
+
+model Sequence {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?  @db.Text
+  status        String   @default("draft") // draft, active, paused, archived
+  type          String?  // sales, service, ar, onboarding
+  exitOnReply   Boolean  @default(true) @map("exit_on_reply")
+  exitOnBounce  Boolean  @default(true) @map("exit_on_bounce")
+
+  createdBy     String?  @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  steps         SequenceStep[]
+  enrollments   SequenceEnrollment[]
+
+  @@map("sequences")
+}
+
+model SequenceStep {
+  id          String   @id @default(cuid())
+  sequenceId  String   @map("sequence_id")
+  stepOrder   Int      @map("step_order")
+  delayDays   Int      @default(0) @map("delay_days")
+  subject     String   @default("")
+  bodyHtml    String   @default("") @map("body_html") @db.Text
+  templateId  String?  @map("template_id")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sequence    Sequence       @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  template    EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  executions  SequenceStepExecution[]
+
+  @@map("sequence_steps")
+}
+
+model SequenceEnrollment {
+  id              String    @id @default(cuid())
+  sequenceId      String    @map("sequence_id")
+  contactEmail    String    @map("contact_email")
+  contactName     String?   @map("contact_name")
+  premisesId      String?   @map("premises_id")
+  status          String    @default("active") // active, paused, completed, bounced, replied, failed
+  currentStep     Int       @default(1) @map("current_step")
+
+  enrolledAt      DateTime  @default(now()) @map("enrolled_at")
+  enrolledBy      String?   @map("enrolled_by")
+  completedAt     DateTime? @map("completed_at")
+  exitReason      String?   @map("exit_reason")
+
+  sequence        Sequence  @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  executions      SequenceStepExecution[]
+
+  @@unique([sequenceId, contactEmail])
+  @@map("sequence_enrollments")
+}
+
+model SequenceStepExecution {
+  id            String    @id @default(cuid())
+  enrollmentId  String    @map("enrollment_id")
+  stepId        String    @map("step_id")
+  status        String    @default("scheduled") // scheduled, sent, failed, skipped
+  scheduledAt   DateTime  @map("scheduled_at")
+  sentAt        DateTime? @map("sent_at")
+  errorMessage  String?   @map("error_message") @db.Text
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  enrollment    SequenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  step          SequenceStep       @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@map("sequence_step_executions")
 }

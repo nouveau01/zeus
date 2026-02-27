@@ -45,6 +45,7 @@ import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
 import JobTemplatesPage from "@/app/job-templates/page";
 import AIReportsView from "@/app/ai-reports/AIReportsView";
 import EmailTemplatesView from "@/app/automation/emails/EmailTemplatesView";
+import EmailSequencesView from "@/app/automation/sequences/EmailSequencesView";
 import SettingsPage from "@/app/settings/page";
 
 // Map routes to module pageIds for permission checks
@@ -479,6 +480,9 @@ export function TabContent() {
   // Check for automation routes
   if (activeTab.route === "/automation/email-templates") {
     return <EmailTemplatesView />;
+  }
+  if (activeTab.route === "/automation/email-sequences") {
+    return <EmailSequencesView />;
   }
 
   // Check for settings route
