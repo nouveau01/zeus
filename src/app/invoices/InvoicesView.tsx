@@ -6,6 +6,7 @@ import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { AdminTools } from "@/components/AdminTools";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import { useOffices } from "@/context/OfficesContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 // Default field configuration for Invoices
 const INVOICES_DEFAULT_FIELDS = createDefaultFields({
@@ -54,6 +55,7 @@ interface InvoicesPageProps {
 export default function InvoicesView({ premisesId }: InvoicesPageProps) {
   const { openTab } = useTabs();
   const { selectedOfficeIds, allSelected, officeFilterParam } = useOffices();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
 
   // Page configuration for admin customization
   const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("invoices", INVOICES_DEFAULT_FIELDS);
@@ -229,18 +231,18 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
           onClick={async () => {
             if (!selectedId) return;
             const invoice = invoices.find(i => i.id === selectedId);
-            if (invoice && confirm(`Delete invoice #${invoice.invoiceNumber}?`)) {
+            if (invoice && (await xpConfirm(`Delete invoice #${invoice.invoiceNumber}?`))) {
               try {
                 const res = await fetch(`/api/invoices/${selectedId}`, { method: "DELETE" });
                 if (res.ok) {
                   setSelectedId(null);
                   fetchInvoices();
                 } else {
-                  alert("Failed to delete invoice");
+                  await xpAlert("Failed to delete invoice");
                 }
               } catch (e) {
                 console.error(e);
-                alert("Error deleting invoice");
+                await xpAlert("Error deleting invoice");
               }
             }
           }}
@@ -463,6 +465,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
           <span>Totals Off</span>
         </div>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

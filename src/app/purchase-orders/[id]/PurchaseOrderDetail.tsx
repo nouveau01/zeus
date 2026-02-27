@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -114,6 +115,7 @@ const mockVendors: Vendor[] = [
 
 export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDetailProps) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
   const [printOnSave, setPrintOnSave] = useState(false);
@@ -262,7 +264,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
   };
 
   // Get Job Address
-  const handleGetJobAddress = () => {
+  const handleGetJobAddress = async () => {
     if (jobId && mockJobs[jobId]) {
       const job = mockJobs[jobId];
       setShipToName(job.name);
@@ -272,7 +274,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
       setShipToZip(job.zip);
       setHasChanges(true);
     } else {
-      alert("No job associated with this PO or job address not found");
+      await xpAlert("No job associated with this PO or job address not found");
     }
   };
 
@@ -289,26 +291,26 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
   };
 
   // Save handler
-  const handleSave = () => {
+  const handleSave = async () => {
     setHasChanges(false);
     if (printOnSave) {
-      alert("PO saved and sent to printer");
+      await xpAlert("PO saved and sent to printer");
     } else {
-      alert("PO saved successfully");
+      await xpAlert("PO saved successfully");
     }
   };
 
   // Undo handler
-  const handleUndo = () => {
-    if (confirm("Discard all changes?")) {
+  const handleUndo = async () => {
+    if (await xpConfirm("Discard all changes?")) {
       setHasChanges(false);
       // Would reload original data here
     }
   };
 
   // Close PO handler
-  const handleClosePO = () => {
-    if (confirm("Close this Purchase Order?")) {
+  const handleClosePO = async () => {
+    if (await xpConfirm("Close this Purchase Order?")) {
       setStatus("Closed");
       setHasChanges(true);
     }
@@ -1056,6 +1058,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
         onCancel={handleDialogCancel}
         saving={savingFromHook}
       />
+      <XPDialogComponent />
     </div>
   );
 }

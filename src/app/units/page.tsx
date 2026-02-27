@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Pencil,
@@ -48,6 +49,7 @@ interface NewUnitForm {
 export default function UnitsPage() {
   const { openTab } = useTabs();
   const { selectedOfficeIds, allSelected } = useOffices();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [filterType, setFilterType] = useState<"Category" | "Type" | "Building">("Category");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -195,7 +197,7 @@ export default function UnitsPage() {
 
   const handleCreateUnit = async () => {
     if (!newUnit.accountId || !newUnit.unitNumber) {
-      alert("Please enter Account ID and Unit Number");
+      await xpAlert("Please enter Account ID and Unit Number");
       return;
     }
 
@@ -229,11 +231,11 @@ export default function UnitsPage() {
         fetchUnits(); // Refresh the list
         openTab(`Unit ${created.unitNumber}`, `/units/${created.id}`);
       } else {
-        alert("Failed to create unit");
+        await xpAlert("Failed to create unit");
       }
     } catch (error) {
       console.error("Error creating unit:", error);
-      alert("Error creating unit");
+      await xpAlert("Error creating unit");
     }
   };
 
@@ -262,11 +264,11 @@ export default function UnitsPage() {
           setSelectedUnit(null);
           fetchUnits(); // Refresh the list
         } else {
-          alert("Failed to delete unit");
+          await xpAlert("Failed to delete unit");
         }
       } catch (error) {
         console.error("Error deleting unit:", error);
-        alert("Error deleting unit");
+        await xpAlert("Error deleting unit");
       }
     }
   };
@@ -618,6 +620,7 @@ export default function UnitsPage() {
           </div>
         </div>
       )}
+      <XPDialogComponent />
     </div>
   );
 }

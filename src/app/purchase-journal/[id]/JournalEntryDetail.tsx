@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -61,6 +62,7 @@ const mockVendors = [
 
 export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDetailProps) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
@@ -104,13 +106,13 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
   };
 
   // Handlers
-  const handleSave = () => {
+  const handleSave = async () => {
     setHasChanges(false);
-    alert("AP Invoice saved successfully");
+    await xpAlert("AP Invoice saved successfully");
   };
 
-  const handleUndo = () => {
-    if (confirm("Discard all changes?")) {
+  const handleUndo = async () => {
+    if (await xpConfirm("Discard all changes?")) {
       setHasChanges(false);
     }
   };
@@ -712,6 +714,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
         <span className="px-4 border-l border-[#808080]">{formatCurrency(jobTotal)}</span>
         <span className="px-4 border-l border-[#808080]">{formatCurrency(invTotal)}</span>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { AdminTools } from "@/components/AdminTools";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import { getJobs } from "@/lib/actions/jobs";
 import { useOffices } from "@/context/OfficesContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 // Default field configuration for Job Maintenance
 const JOBS_DEFAULT_FIELDS = createDefaultFields({
@@ -97,6 +98,7 @@ interface JobMaintenancePageProps {
 export default function JobMaintenanceView({ premisesId }: JobMaintenancePageProps) {
   const { openTab, closeTab, activeTabId } = useTabs();
   const { selectedOfficeIds, allSelected } = useOffices();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
 
   // Page configuration for admin customization
   const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("jobs", JOBS_DEFAULT_FIELDS);
@@ -446,9 +448,9 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
     setOpenMenu(null);
   };
 
-  const handleSettings = () => {
+  const handleSettings = async () => {
     // TODO: Open settings dialog
-    alert("Settings - Coming soon");
+    await xpAlert("Settings - Coming soon");
     setOpenMenu(null);
   };
 
@@ -487,44 +489,44 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
           const job = jobs.find(j => String(j.id) === selectedRow);
           if (job) openTab(`Job ${job.externalId || job.id}`, `/job-maintenance/${job.id}`);
         } else {
-          alert("Please select a job to edit");
+          await xpAlert("Please select a job to edit");
         }
         break;
       case "delete":
         if (selectedRow) {
           const job = jobs.find(j => String(j.id) === selectedRow);
-          if (job && confirm(`Delete job "${job.externalId || job.jobName}"?`)) {
+          if (job && (await xpConfirm(`Delete job "${job.externalId || job.jobName}"?`))) {
             try {
               const res = await fetch(`/api/jobs/${selectedRow}`, { method: "DELETE" });
               if (res.ok) { setSelectedRow(null); fetchJobs(); }
             } catch (e) { console.error(e); }
           }
         } else {
-          alert("Please select a job to delete");
+          await xpAlert("Please select a job to delete");
         }
         break;
       case "replicate":
         if (selectedRow) {
           const job = jobs.find(j => String(j.id) === selectedRow);
-          if (job && confirm(`Create a copy of job "${job.externalId || job.jobName}"?`)) {
+          if (job && (await xpConfirm(`Create a copy of job "${job.externalId || job.jobName}"?`))) {
             try {
               const res = await fetch(`/api/jobs/${selectedRow}/replicate`, { method: "POST" });
               if (res.ok) {
                 const newJob = await res.json();
                 fetchJobs();
                 setSelectedRow(newJob.id);
-                alert(`Job duplicated. New job ID: ${newJob.externalId || newJob.id}`);
+                await xpAlert(`Job duplicated. New job ID: ${newJob.externalId || newJob.id}`);
               } else {
                 const error = await res.json();
-                alert(`Failed to replicate job: ${error.error || "Unknown error"}`);
+                await xpAlert(`Failed to replicate job: ${error.error || "Unknown error"}`);
               }
             } catch (e) {
               console.error(e);
-              alert("Failed to replicate job");
+              await xpAlert("Failed to replicate job");
             }
           }
         } else {
-          alert("Please select a job to replicate");
+          await xpAlert("Please select a job to replicate");
         }
         break;
       case "approve":
@@ -532,8 +534,8 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
           const job = jobs.find(j => String(j.id) === selectedRow);
           if (job) {
             if (job.status === "Approved") {
-              alert("This job is already approved.");
-            } else if (confirm(`Approve job "${job.externalId || job.jobName}"?`)) {
+              await xpAlert("This job is already approved.");
+            } else if (await xpConfirm(`Approve job "${job.externalId || job.jobName}"?`)) {
               try {
                 const res = await fetch(`/api/jobs/${selectedRow}`, {
                   method: "PATCH",
@@ -542,18 +544,18 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
                 });
                 if (res.ok) {
                   fetchJobs();
-                  alert("Job approved successfully.");
+                  await xpAlert("Job approved successfully.");
                 } else {
-                  alert("Failed to approve job.");
+                  await xpAlert("Failed to approve job.");
                 }
               } catch (e) {
                 console.error(e);
-                alert("Failed to approve job.");
+                await xpAlert("Failed to approve job.");
               }
             }
           }
         } else {
-          alert("Please select a job to approve");
+          await xpAlert("Please select a job to approve");
         }
         break;
       case "accounts":
@@ -562,7 +564,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
           if (job?.premises) {
             openTab(`Account ${job.premises.premisesId || job.premises.name || ""}`, `/accounts/${job.premises.id}`);
           } else {
-            alert("This job has no associated account.");
+            await xpAlert("This job has no associated account.");
           }
         } else {
           // Open accounts list
@@ -575,7 +577,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
           if (job?.premises) {
             openTab(`Building ${job.premises.premisesId || job.premises.name || ""}`, `/accounts/${job.premises.id}`);
           } else {
-            alert("This job has no associated building.");
+            await xpAlert("This job has no associated building.");
           }
         } else {
           // Open accounts list (buildings are premises)
@@ -588,7 +590,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
           if (job) {
             const isLocked = job.status === "Locked";
             const action = isLocked ? "unlock" : "lock";
-            if (confirm(`${isLocked ? "Unlock" : "Lock"} job "${job.externalId || job.jobName}"?`)) {
+            if (await xpConfirm(`${isLocked ? "Unlock" : "Lock"} job "${job.externalId || job.jobName}"?`)) {
               try {
                 const res = await fetch(`/api/jobs/${selectedRow}`, {
                   method: "PATCH",
@@ -597,25 +599,25 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
                 });
                 if (res.ok) {
                   fetchJobs();
-                  alert(`Job ${action}ed successfully.`);
+                  await xpAlert(`Job ${action}ed successfully.`);
                 } else {
-                  alert(`Failed to ${action} job.`);
+                  await xpAlert(`Failed to ${action} job.`);
                 }
               } catch (e) {
                 console.error(e);
-                alert(`Failed to ${action} job.`);
+                await xpAlert(`Failed to ${action} job.`);
               }
             }
           }
         } else {
-          alert("Please select a job to lock/unlock");
+          await xpAlert("Please select a job to lock/unlock");
         }
         break;
       case "home":
         openTab("Home", "/");
         break;
       case "help":
-        alert("Job Maintenance Help\n\n" +
+        await xpAlert("Job Maintenance Help\n\n" +
           "• Double-click a job to open it\n" +
           "• Use Filter & Sort to find specific jobs\n" +
           "• Press F3 in filter fields with * to see available values\n" +
@@ -951,6 +953,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         initialFilters={activeFilters}
         pageId="job-maintenance"
       />
+      <XPDialogComponent />
     </div>
   );
 }

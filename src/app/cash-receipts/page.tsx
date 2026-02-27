@@ -18,6 +18,7 @@ import {
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface BankAccount {
   id: string;
@@ -50,6 +51,7 @@ const columns = [
 export default function CashReceiptsPage() {
   const { openTab } = useTabs();
   const { filteredColumns, filteredWidths: initialWidths } = useFilteredColumns("cash-receipts", columns);
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [cashReceipts, setCashReceipts] = useState<CashReceipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,7 +200,7 @@ export default function CashReceiptsPage() {
   const handleDeleteDeposit = async () => {
     if (selectedRow) {
       const receipt = displayReceipts.find(r => r.id === selectedRow);
-      if (receipt && confirm(`Are you sure you want to delete deposit #${receipt.refNumber}?`)) {
+      if (receipt && (await xpConfirm(`Are you sure you want to delete deposit #${receipt.refNumber}?`))) {
         try {
           const response = await fetch(`/api/cash-receipts/${selectedRow}`, { method: "DELETE" });
           if (response.ok) {
@@ -464,6 +466,7 @@ export default function CashReceiptsPage() {
         <span className="px-2 border-l border-[#c0c0c0]">{displayCount} deposits</span>
         <span className="px-2 border-l border-[#c0c0c0] font-medium">{formatCurrency(displayTotal)}</span>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

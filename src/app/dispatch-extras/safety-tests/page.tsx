@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -43,6 +44,7 @@ interface SafetyTest {
 
 export default function SafetyTestsPage() {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
 
   // Filters
   const [massUpdateStatus, setMassUpdateStatus] = useState("");
@@ -132,9 +134,9 @@ export default function SafetyTestsPage() {
     }
   };
 
-  const handleDeleteTest = () => {
+  const handleDeleteTest = async () => {
     if (selectedTest) {
-      if (confirm(`Are you sure you want to delete this safety test for ${selectedTest.customerName}?`)) {
+      if (await xpConfirm(`Are you sure you want to delete this safety test for ${selectedTest.customerName}?`)) {
         const updated = tests.filter(t => t.id !== selectedTest.id);
         setTests(updated);
         setFilteredTests(updated);
@@ -395,6 +397,7 @@ export default function SafetyTestsPage() {
             : "Totals Off"}
         </button>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

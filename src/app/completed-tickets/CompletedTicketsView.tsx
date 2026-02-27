@@ -27,6 +27,7 @@ import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { getTickets } from "@/lib/actions/tickets";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { useOffices } from "@/context/OfficesContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 // Toolbar icons matching Accounts/Customers pattern
 const toolbarIcons = [
@@ -140,6 +141,7 @@ interface CompletedTicketsViewProps {
 export default function CompletedTicketsView({ premisesId, defaultStatus = "Completed" }: CompletedTicketsViewProps) {
   const { openTab } = useTabs();
   const { selectedOfficeIds, allSelected } = useOffices();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const { filteredColumns, filteredWidths: initialWidths } = useFilteredColumns("completed-tickets", columns);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -501,7 +503,7 @@ export default function CompletedTicketsView({ premisesId, defaultStatus = "Comp
                   if (ticket) openTab(`Ticket #${ticket.ticketNumber}`, `/completed-tickets/${ticket.id}`);
                 } else if (item.action === "delete" && selectedRow) {
                   const ticket = tickets.find(t => t.id === selectedRow);
-                  if (ticket && confirm(`Delete ticket #${ticket.ticketNumber}?`)) {
+                  if (ticket && (await xpConfirm(`Delete ticket #${ticket.ticketNumber}?`))) {
                     try {
                       const res = await fetch(`/api/tickets/${selectedRow}`, { method: "DELETE" });
                       if (res.ok) { setSelectedRow(null); fetchTickets(); }
@@ -778,6 +780,7 @@ export default function CompletedTicketsView({ premisesId, defaultStatus = "Comp
           Totals {showTotals ? "On" : "Off"}
         </button>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

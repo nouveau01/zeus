@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -35,6 +36,7 @@ interface Violation {
 
 export default function ViolationsPage() {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
 
   // Filters
   const [startDate, setStartDate] = useState("1/1/2025");
@@ -146,9 +148,9 @@ export default function ViolationsPage() {
     }
   };
 
-  const handleDeleteViolation = () => {
+  const handleDeleteViolation = async () => {
     if (selectedViolation) {
-      if (confirm(`Are you sure you want to delete violation ${selectedViolation.visibleId}?`)) {
+      if (await xpConfirm(`Are you sure you want to delete violation ${selectedViolation.visibleId}?`)) {
         const updated = violations.filter(v => v.id !== selectedViolation.id);
         setViolations(updated);
         setFilteredViolations(updated);
@@ -344,6 +346,7 @@ export default function ViolationsPage() {
             : "Totals Off"}
         </button>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

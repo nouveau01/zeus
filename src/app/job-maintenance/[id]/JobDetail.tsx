@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -88,6 +89,7 @@ const TABS = ["TFM Custom", "Specifications", "Job Budgets", "Custom/Remarks", "
 
 export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const isNew = jobId === "new";
   const [job, setJob] = useState<Job | null>(isNew ? {
     id: "",
@@ -243,11 +245,11 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
     try {
       if (isNew) {
         if (!selectedAccountId) {
-          alert("Please select an account");
+          await xpAlert("Please select an account");
           return;
         }
         if (!formData.jobName?.trim()) {
-          alert("Job name is required");
+          await xpAlert("Job name is required");
           return;
         }
         const response = await fetch("/api/jobs", {
@@ -262,7 +264,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
           openTab(`Job ${created.externalId || created.id}`, `/job-maintenance/${created.id}`);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to create job");
+          await xpAlert(error.error || "Failed to create job");
         }
       } else {
         const response = await fetch(`/api/jobs/${jobId}`, {
@@ -277,12 +279,12 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
           setHasChanges(false);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to save job");
+          await xpAlert(error.error || "Failed to save job");
         }
       }
     } catch (error) {
       console.error("Error saving job:", error);
-      alert("Failed to save job");
+      await xpAlert("Failed to save job");
     }
   };
 
@@ -956,6 +958,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
         onCancel={handleDialogCancel}
         saving={savingFromHook}
       />
+      <XPDialogComponent />
     </div>
   );
 }

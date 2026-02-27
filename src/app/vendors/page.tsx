@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Pencil,
@@ -44,6 +45,7 @@ const columns = [
 
 export default function VendorsPage() {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const { filteredColumns } = useFilteredColumns("vendors", columns);
   const [activeTab, setActiveTab] = useState("All");
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -131,7 +133,7 @@ export default function VendorsPage() {
 
   const handleCreateVendor = async () => {
     if (!newVendor.vendorId || !newVendor.name) {
-      alert("Please fill in Vendor ID and Name");
+      await xpAlert("Please fill in Vendor ID and Name");
       return;
     }
 
@@ -159,18 +161,18 @@ export default function VendorsPage() {
         fetchVendors();
         openTab(`Editing Vendor '${newVendor.name}'`, `/vendors/${created.id}`);
       } else {
-        alert("Failed to create vendor");
+        await xpAlert("Failed to create vendor");
       }
     } catch (error) {
       console.error("Error creating vendor:", error);
-      alert("Error creating vendor");
+      await xpAlert("Error creating vendor");
     }
   };
 
   const handleDeleteVendor = async () => {
     if (!selectedVendor) return;
 
-    if (confirm(`Are you sure you want to delete vendor "${selectedVendor.name}"?`)) {
+    if (await xpConfirm(`Are you sure you want to delete vendor "${selectedVendor.name}"?`)) {
       try {
         const response = await fetch(`/api/vendors/${selectedVendor.id}`, {
           method: "DELETE",
@@ -179,11 +181,11 @@ export default function VendorsPage() {
           setSelectedVendor(null);
           fetchVendors();
         } else {
-          alert("Failed to delete vendor");
+          await xpAlert("Failed to delete vendor");
         }
       } catch (error) {
         console.error("Error deleting vendor:", error);
-        alert("Error deleting vendor");
+        await xpAlert("Error deleting vendor");
       }
     }
   };
@@ -460,6 +462,7 @@ export default function VendorsPage() {
           </button>
         </div>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

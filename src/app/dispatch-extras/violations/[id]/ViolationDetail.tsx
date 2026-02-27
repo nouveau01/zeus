@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -78,6 +79,7 @@ interface ViolationDetailProps {
 
 export default function ViolationDetail({ violationId, onClose }: ViolationDetailProps) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [hasChanges, setHasChanges] = useState(false);
 
   const [violation, setViolation] = useState<ViolationData>({
@@ -198,10 +200,10 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
     }
   }, [violation, originalViolation]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setOriginalViolation({ ...violation });
     setHasChanges(false);
-    alert("Violation saved successfully!");
+    await xpAlert("Violation saved successfully!");
   };
 
   const handleUndo = () => {
@@ -727,6 +729,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
         <span className="flex-1" />
         {hasChanges && <span className="text-[#c00] mr-4">Unsaved changes</span>}
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

@@ -260,6 +260,11 @@ export async function fetchAccountById(accountId: string) {
       }
     }
 
+    // Get units (Elev) for this location
+    const elevs: any[] = await sqlserver.$queryRawUnsafe(
+      `SELECT * FROM Elev WHERE Loc = ${loc.Loc}`
+    );
+
     return {
       id: loc.Loc.toString(),
       premisesId: loc.ID || loc.Loc.toString(),
@@ -282,6 +287,8 @@ export async function fetchAccountById(accountId: string) {
       maint: loc.Maint,
       billing: loc.Billing,
       remarks: loc.Remarks || rol?.Remarks || null,
+      colRemarks: loc.ColRemarks || null,
+      salesRemarks: loc.SalesRemarks || null,
       custom1: loc.Custom1,
       custom2: loc.Custom2,
       custom3: loc.Custom3,
@@ -294,6 +301,20 @@ export async function fetchAccountById(accountId: string) {
         id: owner.ID.toString(),
         name: ownerRol?.Name || "",
       } : { id: "", name: "" },
+      units: elevs.map(e => ({
+        id: e.Elev?.toString() || "",
+        unitNumber: e.ID || "",
+        unitType: e.Type || null,
+        cat: e.Cat || null,
+        serial: e.Serial || null,
+        manufacturer: e.Manuf || null,
+        status: e.Status === 1 ? "Active" : "Inactive",
+        description: e.Desc || null,
+      })),
+      _count: {
+        units: elevs.length,
+        jobs: 0,
+      },
     };
   } catch (error) {
     console.error("Error fetching account by ID from SQL Server:", error);

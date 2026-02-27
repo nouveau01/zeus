@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -44,6 +45,7 @@ const TYPE_TABS = ["All", "Maintenance", "Modernization", "Repair", "Other", "NE
 
 export default function JobTemplatesPage() {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,9 +87,9 @@ export default function JobTemplatesPage() {
     return template.type?.name === activeType;
   });
 
-  const handleSelectTemplate = (template: JobTemplate) => {
+  const handleSelectTemplate = async (template: JobTemplate) => {
     if (hasChanges) {
-      if (!confirm("You have unsaved changes. Do you want to discard them?")) {
+      if (!(await xpConfirm("You have unsaved changes. Do you want to discard them?"))) {
         return;
       }
     }
@@ -97,9 +99,9 @@ export default function JobTemplatesPage() {
     setIsEditing(false);
   };
 
-  const handleNewTemplate = () => {
+  const handleNewTemplate = async () => {
     if (hasChanges) {
-      if (!confirm("You have unsaved changes. Do you want to discard them?")) {
+      if (!(await xpConfirm("You have unsaved changes. Do you want to discard them?"))) {
         return;
       }
     }
@@ -125,7 +127,7 @@ export default function JobTemplatesPage() {
 
   const handleSave = async () => {
     if (!formData.name?.trim()) {
-      alert("Name is required");
+      await xpAlert("Name is required");
       return;
     }
     try {
@@ -141,7 +143,7 @@ export default function JobTemplatesPage() {
           setIsEditing(false);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to save template");
+          await xpAlert(error.error || "Failed to save template");
         }
       } else {
         const response = await fetch("/api/job-templates", {
@@ -157,18 +159,18 @@ export default function JobTemplatesPage() {
           setIsEditing(false);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to create template");
+          await xpAlert(error.error || "Failed to create template");
         }
       }
     } catch (error) {
       console.error("Error saving template:", error);
-      alert("Failed to save template");
+      await xpAlert("Failed to save template");
     }
   };
 
   const handleDelete = async () => {
     if (!selectedTemplate?.id) return;
-    if (!confirm(`Are you sure you want to delete "${selectedTemplate.name}"?`)) return;
+    if (!(await xpConfirm(`Are you sure you want to delete "${selectedTemplate.name}"?`))) return;
     try {
       const response = await fetch(`/api/job-templates/${selectedTemplate.id}`, {
         method: "DELETE",
@@ -180,18 +182,18 @@ export default function JobTemplatesPage() {
         setHasChanges(false);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to delete template");
+        await xpAlert(error.error || "Failed to delete template");
       }
     } catch (error) {
       console.error("Error deleting template:", error);
-      alert("Failed to delete template");
+      await xpAlert("Failed to delete template");
     }
   };
 
   const handleDeleteOld = async () => {
     if (!selectedTemplate?.id) return;
 
-    if (!confirm(`Are you sure you want to delete "${selectedTemplate.name}"?`)) {
+    if (!(await xpConfirm(`Are you sure you want to delete "${selectedTemplate.name}"?`))) {
       return;
     }
 
@@ -207,7 +209,7 @@ export default function JobTemplatesPage() {
       }
     } catch (error) {
       console.error("Error deleting template:", error);
-      alert("Error deleting template");
+      await xpAlert("Error deleting template");
     }
   };
 
@@ -492,6 +494,7 @@ export default function JobTemplatesPage() {
           <span>Totals Off</span>
         </div>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

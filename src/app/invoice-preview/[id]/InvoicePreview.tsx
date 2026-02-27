@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { PDFViewer } from "@react-pdf/renderer";
 import InvoicePDF from "@/components/pdf/InvoicePDF";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface InvoiceItem {
   id: string;
@@ -43,6 +44,7 @@ interface InvoicePreviewProps {
 }
 
 export default function InvoicePreview({ invoiceId, onClose }: InvoicePreviewProps) {
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailSending, setEmailSending] = useState(false);
@@ -78,9 +80,9 @@ export default function InvoicePreview({ invoiceId, onClose }: InvoicePreviewPro
     if (!invoice) return;
     setEmailSending(true);
     // Simulate email sending
-    setTimeout(() => {
+    setTimeout(async () => {
       setEmailSending(false);
-      alert(`Invoice #${invoice.invoiceNumber} would be emailed to:\n\n${invoice.premises?.customer?.name || "Customer"}`);
+      await xpAlert(`Invoice #${invoice.invoiceNumber} would be emailed to:\n\n${invoice.premises?.customer?.name || "Customer"}`);
     }, 1000);
   };
 
@@ -163,10 +165,10 @@ export default function InvoicePreview({ invoiceId, onClose }: InvoicePreviewPro
             </button>
 
             <button
-              onClick={() => {
+              onClick={async () => {
                 const blob = new Blob([], { type: 'application/pdf' });
                 // For now just alert - actual download would need pdf blob
-                alert("Download feature - would save PDF to your computer");
+                await xpAlert("Download feature - would save PDF to your computer");
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] bg-white border border-[#d0d0d0] text-[#333] rounded hover:bg-white transition-colors"
             >
@@ -202,6 +204,7 @@ export default function InvoicePreview({ invoiceId, onClose }: InvoicePreviewPro
           </PDFViewer>
         </div>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

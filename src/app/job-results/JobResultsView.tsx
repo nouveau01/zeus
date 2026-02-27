@@ -21,6 +21,7 @@ import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 import { getJobs } from "@/lib/actions/jobs";
 import { useOffices } from "@/context/OfficesContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 // Toolbar icons matching Job Maintenance
 const toolbarIcons = [
@@ -76,6 +77,7 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
   const { openTab, closeTab, activeTabId } = useTabs();
   const { selectedOfficeIds, allSelected } = useOffices();
   const { isFieldAllowed } = usePermissions();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
@@ -374,8 +376,8 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
     setOpenMenu(null);
   };
 
-  const handleSettings = () => {
-    alert("Settings - Coming soon");
+  const handleSettings = async () => {
+    await xpAlert("Settings - Coming soon");
     setOpenMenu(null);
   };
 
@@ -397,44 +399,44 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
           const job = jobs.find(j => j.id === selectedRow);
           if (job) openTab(`Job Results ${job.externalId || job.id}`, `/job-results/${job.id}`);
         } else {
-          alert("Please select a job to edit");
+          await xpAlert("Please select a job to edit");
         }
         break;
       case "delete":
         if (selectedRow) {
           const job = jobs.find(j => j.id === selectedRow);
-          if (job && confirm(`Delete job "${job.externalId || job.jobName}"?`)) {
+          if (job && (await xpConfirm(`Delete job "${job.externalId || job.jobName}"?`))) {
             try {
               const res = await fetch(`/api/jobs/${selectedRow}`, { method: "DELETE" });
               if (res.ok) { setSelectedRow(null); fetchJobs(); }
             } catch (e) { console.error(e); }
           }
         } else {
-          alert("Please select a job to delete");
+          await xpAlert("Please select a job to delete");
         }
         break;
       case "replicate":
         if (selectedRow) {
           const job = jobs.find(j => j.id === selectedRow);
-          if (job && confirm(`Create a copy of job "${job.externalId || job.jobName}"?`)) {
+          if (job && (await xpConfirm(`Create a copy of job "${job.externalId || job.jobName}"?`))) {
             try {
               const res = await fetch(`/api/jobs/${selectedRow}/replicate`, { method: "POST" });
               if (res.ok) {
                 const newJob = await res.json();
                 fetchJobs();
                 setSelectedRow(newJob.id);
-                alert(`Job duplicated. New job ID: ${newJob.externalId || newJob.id}`);
+                await xpAlert(`Job duplicated. New job ID: ${newJob.externalId || newJob.id}`);
               } else {
                 const error = await res.json();
-                alert(`Failed to replicate job: ${error.error || "Unknown error"}`);
+                await xpAlert(`Failed to replicate job: ${error.error || "Unknown error"}`);
               }
             } catch (e) {
               console.error(e);
-              alert("Failed to replicate job");
+              await xpAlert("Failed to replicate job");
             }
           }
         } else {
-          alert("Please select a job to replicate");
+          await xpAlert("Please select a job to replicate");
         }
         break;
       case "filter":
@@ -780,6 +782,7 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
         initialFilters={activeFilters}
         pageId="job-results"
       />
+      <XPDialogComponent />
     </div>
   );
 }

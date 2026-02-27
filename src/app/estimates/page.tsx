@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { usePermissions } from "@/context/PermissionsContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface Estimate {
   id: string;
@@ -68,6 +69,7 @@ const toolbarIcons = [
 export default function EstimatesPage() {
   const { openTab } = useTabs();
   const { isFieldAllowed } = usePermissions();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
@@ -171,10 +173,10 @@ export default function EstimatesPage() {
     }
   };
 
-  const handleDeleteEstimate = () => {
+  const handleDeleteEstimate = async () => {
     if (selectedRow) {
       const estimate = estimates.find(e => e.id === selectedRow);
-      if (estimate && confirm(`Are you sure you want to delete estimate ${estimate.estimateNumber}?`)) {
+      if (estimate && (await xpConfirm(`Are you sure you want to delete estimate ${estimate.estimateNumber}?`))) {
         const updated = estimates.filter(e => e.id !== selectedRow);
         setEstimates(updated);
         setSelectedRow(updated[0]?.id || null);
@@ -543,6 +545,7 @@ export default function EstimatesPage() {
           {showTotals ? "Totals On" : "Totals Off"}
         </button>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

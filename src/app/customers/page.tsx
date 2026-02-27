@@ -22,6 +22,7 @@ import { AdminTools } from "@/components/AdminTools";
 import { getCustomers } from "@/lib/actions/customers";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import { useOffices } from "@/context/OfficesContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 // Default field configuration for Customers
 const CUSTOMERS_DEFAULT_FIELDS = createDefaultFields({
@@ -94,6 +95,7 @@ interface PageState {
 export default function CustomersPage() {
   const { openTab, closeTab, activeTabId } = useTabs();
   const { selectedOfficeIds, allSelected } = useOffices();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
 
   // Page configuration for admin customization
   const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("customers", CUSTOMERS_DEFAULT_FIELDS);
@@ -421,8 +423,8 @@ export default function CustomersPage() {
     setOpenMenu(null);
   };
 
-  const handleSettings = () => {
-    alert("Settings - Coming soon");
+  const handleSettings = async () => {
+    await xpAlert("Settings - Coming soon");
     setOpenMenu(null);
   };
 
@@ -444,27 +446,27 @@ export default function CustomersPage() {
           const customer = customers.find(c => c.id === selectedRow);
           if (customer) openTab(customer.name, `/customers/${customer.id}`);
         } else {
-          alert("Please select a customer to edit");
+          await xpAlert("Please select a customer to edit");
         }
         break;
       case "delete":
         if (selectedRow) {
           const customer = customers.find(c => c.id === selectedRow);
-          if (customer && confirm(`Delete customer "${customer.name}"?`)) {
+          if (customer && (await xpConfirm(`Delete customer "${customer.name}"?`))) {
             try {
               const res = await fetch(`/api/customers/${selectedRow}`, { method: "DELETE" });
               if (res.ok) { setSelectedRow(null); fetchCustomers(); }
             } catch (e) { console.error(e); }
           }
         } else {
-          alert("Please select a customer to delete");
+          await xpAlert("Please select a customer to delete");
         }
         break;
       case "replicate":
         if (selectedRow) {
-          alert("Replicate - Coming soon");
+          await xpAlert("Replicate - Coming soon");
         } else {
-          alert("Please select a customer to replicate");
+          await xpAlert("Please select a customer to replicate");
         }
         break;
       case "filter":
@@ -797,6 +799,7 @@ export default function CustomersPage() {
         initialFilters={activeFilters}
         pageId="customers"
       />
+      <XPDialogComponent />
     </div>
   );
 }

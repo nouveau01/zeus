@@ -22,6 +22,7 @@ import { AdminTools } from "@/components/AdminTools";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import { getAccounts } from "@/lib/actions/accounts";
 import { useOffices } from "@/context/OfficesContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 // Default field configuration for Accounts
 const ACCOUNTS_DEFAULT_FIELDS = createDefaultFields({
@@ -102,6 +103,7 @@ interface PageState {
 export default function AccountsPage() {
   const { openTab, closeTab, activeTabId } = useTabs();
   const { selectedOfficeIds, allSelected } = useOffices();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
 
   // Page configuration for admin customization
   const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("accounts", ACCOUNTS_DEFAULT_FIELDS);
@@ -490,8 +492,8 @@ export default function AccountsPage() {
     setOpenMenu(null);
   };
 
-  const handleSettings = () => {
-    alert("Settings - Coming soon");
+  const handleSettings = async () => {
+    await xpAlert("Settings - Coming soon");
     setOpenMenu(null);
   };
 
@@ -513,27 +515,27 @@ export default function AccountsPage() {
           const account = accounts.find(a => a.id === selectedRow);
           if (account) openTab(account.name || account.address, `/accounts/${account.id}`);
         } else {
-          alert("Please select an account to edit");
+          await xpAlert("Please select an account to edit");
         }
         break;
       case "delete":
         if (selectedRow) {
           const account = accounts.find(a => a.id === selectedRow);
-          if (account && confirm(`Delete account "${account.name || account.address}"?`)) {
+          if (account && (await xpConfirm(`Delete account "${account.name || account.address}"?`))) {
             try {
               const res = await fetch(`/api/premises/${selectedRow}`, { method: "DELETE" });
               if (res.ok) { setSelectedRow(null); fetchAccounts(); }
             } catch (e) { console.error(e); }
           }
         } else {
-          alert("Please select an account to delete");
+          await xpAlert("Please select an account to delete");
         }
         break;
       case "replicate":
         if (selectedRow) {
-          alert("Replicate - Coming soon");
+          await xpAlert("Replicate - Coming soon");
         } else {
-          alert("Please select an account to replicate");
+          await xpAlert("Please select an account to replicate");
         }
         break;
       case "filter":
@@ -880,6 +882,7 @@ export default function AccountsPage() {
         initialFilters={activeFilters}
         pageId="accounts"
       />
+      <XPDialogComponent />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Bell, Send, RefreshCw, ChevronDown, ChevronUp, Mail, CheckCircle, XCircle, Settings, Save, Plus, Trash2 } from "lucide-react";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface EmailTrigger {
   id: string;
@@ -43,6 +44,7 @@ interface SmtpSettings {
 }
 
 export function NotificationsPanel() {
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [triggers, setTriggers] = useState<EmailTrigger[]>([]);
   const [availableEvents, setAvailableEvents] = useState<AvailableEvent[]>([]);
   const [logs, setLogs] = useState<EmailLog[]>([]);
@@ -165,7 +167,7 @@ export function NotificationsPanel() {
         setNewTriggerRecipients("");
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to create trigger");
+        await xpAlert(data.error || "Failed to create trigger");
       }
     } catch (error) {
       console.error("Error creating trigger:", error);
@@ -175,7 +177,7 @@ export function NotificationsPanel() {
   };
 
   const deleteTrigger = async (trigger: EmailTrigger) => {
-    if (!confirm(`Delete trigger "${trigger.label}"?`)) return;
+    if (!(await xpConfirm(`Delete trigger "${trigger.label}"?`))) return;
     try {
       const res = await fetch(`/api/email-triggers?id=${trigger.id}`, { method: "DELETE" });
       if (res.ok) {
@@ -524,6 +526,7 @@ export function NotificationsPanel() {
           </div>
         )}
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

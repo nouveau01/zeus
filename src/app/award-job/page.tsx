@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface Estimate {
   id: string;
@@ -109,6 +110,7 @@ const jobCategories = ["Capital Improvement", "Maintenance", "Safety Compliance"
 
 export default function AwardJobPage() {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [selectedEstimateId, setSelectedEstimateId] = useState<string>("");
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
   const [competitorBids, setCompetitorBids] = useState<CompetitorBid[]>([]);
@@ -199,14 +201,14 @@ export default function AwardJobPage() {
     setCompetitorBids((prev) => prev.filter((bid) => bid.id !== bidId));
   };
 
-  const handleAwardJob = () => {
+  const handleAwardJob = async () => {
     const awardedBid = competitorBids.find((b) => b.isAwarded);
     if (!awardedBid) {
-      alert("Please select which company won the bid before awarding the job.");
+      await xpAlert("Please select which company won the bid before awarding the job.");
       return;
     }
     if (!selectedEstimate) {
-      alert("Please select an estimate first.");
+      await xpAlert("Please select an estimate first.");
       return;
     }
 
@@ -216,11 +218,11 @@ export default function AwardJobPage() {
     const isOurWin = awardedBid.company.toLowerCase().includes("nouveau") || awardedBid.company.toLowerCase().includes("us");
 
     if (isOurWin) {
-      alert(`Job ${jobId} has been created!\n\nEstimate: ${selectedEstimate.estimateNumber}\nCustomer: ${selectedEstimate.customerName}\nAmount: $${awardedBid.amount.toLocaleString()}\n\nThe job will now appear in Job Maintenance.`);
+      await xpAlert(`Job ${jobId} has been created!\n\nEstimate: ${selectedEstimate.estimateNumber}\nCustomer: ${selectedEstimate.customerName}\nAmount: $${awardedBid.amount.toLocaleString()}\n\nThe job will now appear in Job Maintenance.`);
       // In real app, would navigate to the new job
       openTab("Job Maintenance", "/job-maintenance");
     } else {
-      alert(`Bid result recorded.\n\nEstimate: ${selectedEstimate.estimateNumber}\nAwarded to: ${awardedBid.company}\nAmount: $${awardedBid.amount.toLocaleString()}\n\nThis estimate has been marked as lost.`);
+      await xpAlert(`Bid result recorded.\n\nEstimate: ${selectedEstimate.estimateNumber}\nAwarded to: ${awardedBid.company}\nAmount: $${awardedBid.amount.toLocaleString()}\n\nThis estimate has been marked as lost.`);
     }
   };
 
@@ -593,6 +595,7 @@ export default function AwardJobPage() {
           Select an estimate, add competitor bids, check the "Award" box for the winning company, then click "Award Job" to create the job or record the loss.
         </p>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

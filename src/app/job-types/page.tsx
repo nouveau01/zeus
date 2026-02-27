@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   X,
   Check,
@@ -39,6 +40,7 @@ const COLOR_OPTIONS = [
 ];
 
 export default function JobTypesPage() {
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -70,9 +72,9 @@ export default function JobTypesPage() {
     }
   };
 
-  const handleSelectRow = (jt: JobType) => {
+  const handleSelectRow = async (jt: JobType) => {
     if (isDirty) {
-      if (!confirm("You have unsaved changes. Discard them?")) {
+      if (!(await xpConfirm("You have unsaved changes. Discard them?"))) {
         return;
       }
     }
@@ -88,7 +90,7 @@ export default function JobTypesPage() {
 
   const handleSave = async () => {
     if (!formData.name?.trim()) {
-      alert("Name is required");
+      await xpAlert("Name is required");
       return;
     }
     try {
@@ -103,7 +105,7 @@ export default function JobTypesPage() {
           setIsDirty(false);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to save job type");
+          await xpAlert(error.error || "Failed to save job type");
         }
       } else {
         const response = await fetch("/api/job-types", {
@@ -118,18 +120,18 @@ export default function JobTypesPage() {
           setIsDirty(false);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to create job type");
+          await xpAlert(error.error || "Failed to create job type");
         }
       }
     } catch (error) {
       console.error("Error saving job type:", error);
-      alert("Failed to save job type");
+      await xpAlert("Failed to save job type");
     }
   };
 
   const handleDelete = async () => {
     if (!selectedId) return;
-    if (!confirm("Are you sure you want to delete this job type?")) return;
+    if (!(await xpConfirm("Are you sure you want to delete this job type?"))) return;
     try {
       const response = await fetch(`/api/job-types/${selectedId}`, {
         method: "DELETE",
@@ -141,17 +143,17 @@ export default function JobTypesPage() {
         setIsDirty(false);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to delete job type");
+        await xpAlert(error.error || "Failed to delete job type");
       }
     } catch (error) {
       console.error("Error deleting job type:", error);
-      alert("Failed to delete job type");
+      await xpAlert("Failed to delete job type");
     }
   };
 
-  const handleNew = () => {
+  const handleNew = async () => {
     if (isDirty) {
-      if (!confirm("You have unsaved changes. Discard them?")) {
+      if (!(await xpConfirm("You have unsaved changes. Discard them?"))) {
         return;
       }
     }
@@ -353,6 +355,7 @@ export default function JobTypesPage() {
         <div className="flex-1" />
         <div className="px-2">{jobTypes.length} types</div>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

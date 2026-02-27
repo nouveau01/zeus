@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Pencil,
@@ -55,6 +56,7 @@ const columns = [
 export default function PurchaseOrdersPage() {
   const { openTab } = useTabs();
   const { filteredColumns } = useFilteredColumns("purchase-orders", columns);
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [startDate, setStartDate] = useState("2026-01-01");
   const [endDate, setEndDate] = useState("2026-01-31");
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
@@ -210,9 +212,9 @@ export default function PurchaseOrdersPage() {
     setShowNewPODialog(true);
   };
 
-  const handleCreatePO = () => {
+  const handleCreatePO = async () => {
     if (!newPO.vendorId) {
-      alert("Please select a vendor");
+      await xpAlert("Please select a vendor");
       return;
     }
 
@@ -588,6 +590,7 @@ export default function PurchaseOrdersPage() {
           </div>
         </div>
       )}
+      <XPDialogComponent />
     </div>
   );
 }

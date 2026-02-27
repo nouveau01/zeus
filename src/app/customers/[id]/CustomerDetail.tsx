@@ -22,6 +22,7 @@ import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import { getCustomerById } from "@/lib/actions/customers";
 import { useDetailLayout } from "@/hooks/useDetailLayout";
 import { DetailLayout } from "@/components/detail/DetailLayout";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface Contact {
   id: string;
@@ -110,6 +111,7 @@ interface CustomerDetailProps {
 
 export default function CustomerDetail({ customerId, onClose }: CustomerDetailProps) {
   const { openTab, closeTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const isNew = customerId === "new";
 
   const [customer, setCustomer] = useState<Customer | null>(isNew ? {
@@ -252,7 +254,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
 
   const handleSave = async () => {
     if (!formData.name?.trim()) {
-      alert("Customer name is required");
+      await xpAlert("Customer name is required");
       return;
     }
 
@@ -270,7 +272,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
           openTab(data.name, `/customers/${data.id}`);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to create customer");
+          await xpAlert(error.error || "Failed to create customer");
         }
       } else {
         const response = await fetch(`/api/customers/${customerId}`, {
@@ -285,12 +287,12 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
           setIsDirty(false);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to update customer");
+          await xpAlert(error.error || "Failed to update customer");
         }
       }
     } catch (error) {
       console.error("Error saving customer:", error);
-      alert("Failed to save customer");
+      await xpAlert("Failed to save customer");
     }
   };
 
@@ -485,7 +487,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         </button>
         <button
           onClick={async () => {
-            if (selectedAccount && confirm("Delete this account?")) {
+            if (selectedAccount && (await xpConfirm("Delete this account?"))) {
               try {
                 const res = await fetch(`/api/premises/${selectedAccount}`, { method: "DELETE" });
                 if (res.ok) { setSelectedAccount(null); fetchCustomer(); }
@@ -647,6 +649,9 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         onCancel={handleDialogCancel}
         message="Do you want to save changes to this customer?"
       />
+
+      {/* XP Alert/Confirm Dialog */}
+      <XPDialogComponent />
     </div>
   );
 }

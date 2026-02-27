@@ -15,6 +15,7 @@ import {
   Printer,
   Settings,
 } from "lucide-react";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import { useTabs } from "@/context/TabContext";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
@@ -80,6 +81,7 @@ const toolbarIcons = [
 
 export default function RoutesPage() {
   const { closeTab, activeTabId } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [routes, setRoutes] = useState<RouteData[]>([]);
   const [totals, setTotals] = useState<RouteTotals>({
     totalRoutes: 0,
@@ -361,8 +363,8 @@ export default function RoutesPage() {
     setOpenMenu(null);
   };
 
-  const handleSettings = () => {
-    alert("Settings - Coming soon");
+  const handleSettings = async () => {
+    await xpAlert("Settings - Coming soon");
     setOpenMenu(null);
   };
 
@@ -1105,6 +1107,7 @@ export default function RoutesPage() {
           </div>
         </div>
       )}
+      <XPDialogComponent />
     </div>
   );
 }

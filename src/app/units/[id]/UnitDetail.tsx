@@ -16,6 +16,7 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { getUnitById } from "@/lib/actions/units";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface UnitData {
   id: string;
@@ -85,6 +86,7 @@ interface UnitDetailProps {
 
 export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [activeTab, setActiveTab] = useState<"general" | "templateCustom" | "tests" | "remarks" | "unitCustom">("general");
   const [isEditing, setIsEditing] = useState(false);
   const [savingFromHook, setSavingFromHook] = useState(false);
@@ -383,11 +385,11 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
         setIsEditing(false);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to save unit");
+        await xpAlert(error.error || "Failed to save unit");
       }
     } catch (error) {
       console.error("Error saving unit:", error);
-      alert("Failed to save unit");
+      await xpAlert("Failed to save unit");
     }
   };
 
@@ -436,9 +438,9 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
     setShowAddTestDialog(true);
   };
 
-  const handleCreateTest = () => {
+  const handleCreateTest = async () => {
     if (!newTest.name) {
-      alert("Please enter a test name");
+      await xpAlert("Please enter a test name");
       return;
     }
 
@@ -494,9 +496,9 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
     setEditingTest(null);
   };
 
-  const handleDeleteTest = () => {
+  const handleDeleteTest = async () => {
     if (!selectedTest) return;
-    if (confirm("Delete this test?")) {
+    if (await xpConfirm("Delete this test?")) {
       setTests(tests.filter(t => t.id !== selectedTest.id));
       setSelectedTest(null);
     }
@@ -1238,6 +1240,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
         onCancel={handleDialogCancel}
         saving={savingFromHook}
       />
+      <XPDialogComponent />
     </div>
   );
 }

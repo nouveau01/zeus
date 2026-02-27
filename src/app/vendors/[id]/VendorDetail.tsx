@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -66,6 +67,7 @@ const US_STATES = [
 ];
 
 export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [activeTab, setActiveTab] = useState("1 General");
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -323,17 +325,17 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
           updatedAt: updated.updatedAt,
         } : null);
       } else {
-        alert("Failed to save vendor");
+        await xpAlert("Failed to save vendor");
       }
     } catch (error) {
       console.error("Error saving vendor:", error);
-      alert("Error saving vendor");
+      await xpAlert("Error saving vendor");
     }
   };
 
   // Undo handler
-  const handleUndo = () => {
-    if (confirm("Discard all changes?")) {
+  const handleUndo = async () => {
+    if (await xpConfirm("Discard all changes?")) {
       // Reset to original data
       if (vendor) {
         setFormData({
@@ -379,19 +381,19 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
     }
   };
 
-  const handleDeleteContact = () => {
-    if (selectedContact && confirm("Delete this contact?")) {
+  const handleDeleteContact = async () => {
+    if (selectedContact && (await xpConfirm("Delete this contact?"))) {
       setContacts(contacts.filter(c => c.id !== selectedContact.id));
       setSelectedContact(null);
       setHasChanges(true);
     }
   };
 
-  const handleSaveContact = () => {
+  const handleSaveContact = async () => {
     if (!editingContact) return;
 
     if (!editingContact.name) {
-      alert("Contact name is required");
+      await xpAlert("Contact name is required");
       return;
     }
 
@@ -1251,6 +1253,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
         onCancel={handleDialogCancel}
         saving={savingFromHook}
       />
+      <XPDialogComponent />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Pencil,
@@ -57,6 +58,7 @@ const columns = [
 export default function PurchaseJournalPage() {
   const { openTab } = useTabs();
   const { filteredColumns } = useFilteredColumns("purchase-journal", columns);
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   // Date filters
   const [postingStartDate, setPostingStartDate] = useState("2026-01-18");
   const [postingEndDate, setPostingEndDate] = useState("2026-01-24");
@@ -260,9 +262,9 @@ export default function PurchaseJournalPage() {
     setShowNewEntryDialog(true);
   };
 
-  const handleCreateEntry = () => {
+  const handleCreateEntry = async () => {
     if (!newEntry.vendorId || !newEntry.ref) {
-      alert("Please select a vendor and enter a reference");
+      await xpAlert("Please select a vendor and enter a reference");
       return;
     }
 
@@ -683,6 +685,7 @@ export default function PurchaseJournalPage() {
           </div>
         </div>
       )}
+      <XPDialogComponent />
     </div>
   );
 }

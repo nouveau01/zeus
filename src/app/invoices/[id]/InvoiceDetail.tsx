@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface InvoiceItem {
   id: string;
@@ -85,6 +86,7 @@ const TABS = ["Account/General", "Taxes/Job Remarks"];
 
 export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Account/General");
@@ -358,9 +360,9 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
     setIsDirty(true);
   };
 
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (!selectedItemId) return;
-    if (confirm("Delete this line item?")) {
+    if (await xpConfirm("Delete this line item?")) {
       setItems(items.filter(i => i.id !== selectedItemId));
       setSelectedItemId(null);
       setIsDirty(true);
@@ -1046,6 +1048,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
           </div>
         </div>
       )}
+      <XPDialogComponent />
     </div>
   );
 }

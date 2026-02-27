@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Settings, Edit3, Eye, EyeOff, Save, X, GripVertical } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface FieldConfig {
   fieldName: string;
@@ -29,6 +30,7 @@ export function AdminTools({
   onEditModeChange,
 }: AdminToolsProps) {
   const { isAdmin } = useAuth();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [isOpen, setIsOpen] = useState(false);
   const [editingFields, setEditingFields] = useState<FieldConfig[]>(fields);
   const [saving, setSaving] = useState(false);
@@ -74,11 +76,11 @@ export function AdminTools({
         onFieldsChange?.(editingFields);
         onEditModeChange?.(false);
       } else {
-        alert("Failed to save configuration");
+        await xpAlert("Failed to save configuration");
       }
     } catch (error) {
       console.error("Error saving config:", error);
-      alert("Failed to save configuration");
+      await xpAlert("Failed to save configuration");
     } finally {
       setSaving(false);
     }
@@ -146,6 +148,7 @@ export function AdminTools({
           <X className="w-3 h-3" />
           Cancel
         </button>
+        <XPDialogComponent />
       </div>
     );
   }
@@ -176,6 +179,7 @@ export function AdminTools({
           </div>
         </div>
       )}
+      <XPDialogComponent />
     </div>
   );
 }

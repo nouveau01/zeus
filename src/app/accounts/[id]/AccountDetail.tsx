@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { getAccountById } from "@/lib/actions/accounts";
 import { useOffices } from "@/context/OfficesContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface Unit {
   id: string;
@@ -70,6 +71,9 @@ interface Account {
     units: number;
     jobs: number;
   };
+  remarks: string | null;
+  colRemarks: string | null;
+  salesRemarks: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -92,6 +96,7 @@ const US_STATES = [
 export default function AccountDetail({ accountId, onClose }: AccountDetailProps) {
   const { openTab, closeTab } = useTabs();
   const { offices, selectedOfficeIds } = useOffices();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
 
   // Parse URL params for new account creation
   const isNew = accountId.startsWith("new");
@@ -122,6 +127,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     customerId: customerId || "",
     officeId: defaultOfficeId,
     customer: { id: customerId || "", name: "" },
+    remarks: null,
+    colRemarks: null,
+    salesRemarks: null,
     units: [],
     _count: { units: 0, jobs: 0 },
   } : null);
@@ -400,13 +408,13 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   const handleSave = async () => {
     if (!formData.address?.trim()) {
-      alert("Address is required");
+      await xpAlert("Address is required");
       return;
     }
 
     const effectiveCustomerId = customerId || selectedCustomerId;
     if (isNew && !effectiveCustomerId) {
-      alert("Please select a customer");
+      await xpAlert("Please select a customer");
       return;
     }
 
@@ -424,7 +432,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           openTab(created.name || created.address, `/accounts/${created.id}`);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to create account");
+          await xpAlert(error.error || "Failed to create account");
         }
       } else {
         const response = await fetch(`/api/premises/${accountId}`, {
@@ -444,12 +452,12 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           setIsDirty(false);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to update account");
+          await xpAlert(error.error || "Failed to update account");
         }
       }
     } catch (error) {
       console.error("Error saving account:", error);
-      alert("Failed to save account");
+      await xpAlert("Failed to save account");
     }
   };
 
@@ -469,7 +477,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   // Unit CRUD handlers
   const handleAddUnit = async () => {
     if (!newUnit.unitNumber.trim()) {
-      alert("Unit # is required");
+      await xpAlert("Unit # is required");
       return;
     }
     try {
@@ -518,7 +526,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   const handleDeleteUnit = async () => {
     if (!selectedUnit) return;
-    if (!confirm("Are you sure you want to delete this unit?")) return;
+    if (!(await xpConfirm("Are you sure you want to delete this unit?"))) return;
 
     try {
       const response = await fetch(`/api/units/${selectedUnit}`, {
@@ -542,7 +550,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   // Contact CRUD handlers
   const handleAddContact = async () => {
     if (!newContact.name.trim()) {
-      alert("Contact name is required");
+      await xpAlert("Contact name is required");
       return;
     }
     try {
@@ -596,7 +604,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   const handleUpdateContact = async () => {
     if (!editingContact || !newContact.name.trim()) {
-      alert("Contact name is required");
+      await xpAlert("Contact name is required");
       return;
     }
     try {
@@ -628,7 +636,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   const handleDeleteContact = async () => {
     if (!selectedContact) return;
-    if (!confirm("Are you sure you want to delete this contact?")) return;
+    if (!(await xpConfirm("Are you sure you want to delete this contact?"))) return;
 
     try {
       const response = await fetch(`/api/contacts/${selectedContact}`, {
@@ -736,7 +744,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   const handleDeletePMContract = async () => {
     if (!selectedContract) return;
-    if (!confirm("Delete this PM contract?")) return;
+    if (!(await xpConfirm("Delete this PM contract?"))) return;
     try {
       const response = await fetch(`/api/contracts/${selectedContract}`, {
         method: "DELETE",
@@ -1900,6 +1908,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         onCancel={handleDialogCancel}
         saving={savingFromHook}
       />
+
+      {/* XP Alert/Confirm Dialog */}
+      <XPDialogComponent />
 
       {/* Add Unit Dialog */}
       {showAddUnitDialog && (

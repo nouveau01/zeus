@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Briefcase, ChevronDown, X, AlertTriangle, Copy, Trash2, Edit3, Upload } from "lucide-react";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import { StatusPath } from "@/components/layout/StatusPath";
 import { HighlightsPanel } from "@/components/layout/HighlightsPanel";
 import { Tabs } from "@/components/layout/Tabs";
@@ -150,6 +151,7 @@ function Modal({ isOpen, onClose, title, children, size = "md" }: {
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -216,11 +218,11 @@ export default function JobDetailPage() {
         await fetchJob();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to update status");
+        await xpAlert(error.error || "Failed to update status");
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("Failed to update status");
+      await xpAlert("Failed to update status");
     }
   };
 
@@ -922,6 +924,7 @@ export default function JobDetailPage() {
           </button>
         </div>
       </Modal>
+      <XPDialogComponent />
     </div>
   );
 }

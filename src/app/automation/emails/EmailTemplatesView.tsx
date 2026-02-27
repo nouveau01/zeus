@@ -6,6 +6,7 @@ import {
   Mail, RefreshCw, ChevronDown, ChevronRight, FileText, ArrowLeft,
   Bold, Italic, Underline, Link as LinkIcon, Braces, Send, Code,
 } from "lucide-react";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface EmailTemplate {
   id: string;
@@ -687,6 +688,7 @@ function TemplateCard({ template, onClick, onDuplicate, onDelete }: {
 
 // ─── Main View ───────────────────────────────────────────────────
 export default function EmailTemplatesView() {
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -716,7 +718,7 @@ export default function EmailTemplatesView() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this template?")) return;
+    if (!(await xpConfirm("Delete this template?"))) return;
     const res = await fetch(`/api/email-templates?id=${id}`, { method: "DELETE" });
     if (res.ok) { setTemplates(prev => prev.filter(t => t.id !== id)); setEditing(null); }
   };
@@ -739,13 +741,16 @@ export default function EmailTemplatesView() {
   if (editing) {
     const tmpl = editing === "new" ? null : editing;
     return (
-      <TemplateEditor
-        key={tmpl?.id || "new"}
-        template={tmpl}
-        onSave={handleSave}
-        onBack={() => { setEditing(null); fetchTemplates(); }}
-        onDelete={tmpl ? () => handleDelete(tmpl.id) : undefined}
-      />
+      <>
+        <TemplateEditor
+          key={tmpl?.id || "new"}
+          template={tmpl}
+          onSave={handleSave}
+          onBack={() => { setEditing(null); fetchTemplates(); }}
+          onDelete={tmpl ? () => handleDelete(tmpl.id) : undefined}
+        />
+        <XPDialogComponent />
+      </>
     );
   }
 
@@ -879,6 +884,7 @@ export default function EmailTemplatesView() {
           </div>
         )}
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

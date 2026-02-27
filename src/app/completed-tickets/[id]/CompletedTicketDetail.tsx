@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { getTicketById } from "@/lib/actions/tickets";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface Ticket {
   id: string;
@@ -111,6 +112,7 @@ const TABS = ["1 Ticket Info", "2 Materials/Custom", "3 Workers/Signatures"];
 
 export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
@@ -158,11 +160,11 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
         setIsDirty(false);
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to save ticket");
+        await xpAlert(error.error || "Failed to save ticket");
       }
     } catch (error) {
       console.error("Error saving ticket:", error);
-      alert("Failed to save ticket");
+      await xpAlert("Failed to save ticket");
     }
   };
 
@@ -390,6 +392,9 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
           {ticket.accountId || ticket.premises?.premisesId} - {ticket.premises?.address} - {ticket.ticketNumber}
         </span>
       </div>
+
+      {/* XP Alert/Confirm Dialog */}
+      <XPDialogComponent />
     </div>
   );
 }

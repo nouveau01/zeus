@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTabs } from "@/context/TabContext";
 import { usePermissions } from "@/context/PermissionsContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface QuoteLineItem {
   id: string;
@@ -254,6 +255,7 @@ type StatusFilter = "All" | "Draft" | "Sent" | "Accepted" | "Rejected" | "Expire
 export default function QuotesPage() {
   const { openTab } = useTabs();
   const { isFieldAllowed } = usePermissions();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<"createdDate" | "total" | "quoteNumber">("createdDate");
@@ -355,9 +357,9 @@ export default function QuotesPage() {
     }
   };
 
-  const handleDeleteQuote = () => {
+  const handleDeleteQuote = async () => {
     if (selectedQuote) {
-      if (confirm(`Are you sure you want to delete quote ${selectedQuote.quoteNumber}?`)) {
+      if (await xpConfirm(`Are you sure you want to delete quote ${selectedQuote.quoteNumber}?`)) {
         const updated = quotes.filter(q => q.id !== selectedQuote.id);
         setQuotes(updated);
         setSelectedQuote(null);
@@ -581,6 +583,7 @@ export default function QuotesPage() {
           Double-click or click Quote # to view details
         </span>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

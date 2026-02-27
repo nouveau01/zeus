@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface QuoteLineItem {
   id: string;
@@ -94,6 +95,7 @@ const mockQuoteDetail: Quote = {
 
 export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [activeTab, setActiveTab] = useState<"details" | "lineItems" | "notes" | "history">("details");
   const [quote] = useState<Quote>(mockQuoteDetail);
 
@@ -143,20 +145,20 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
     }
   };
 
-  const handleConvertToEstimate = () => {
-    alert(`Quote ${quote.quoteNumber} would be converted to a formal Estimate.\n\nThis would:\n1. Create a new Estimate with all line items\n2. Link the Quote to the Estimate\n3. Update Quote status to "Converted"`);
+  const handleConvertToEstimate = async () => {
+    await xpAlert(`Quote ${quote.quoteNumber} would be converted to a formal Estimate.\n\nThis would:\n1. Create a new Estimate with all line items\n2. Link the Quote to the Estimate\n3. Update Quote status to "Converted"`);
   };
 
-  const handleSendQuote = () => {
-    alert(`Quote ${quote.quoteNumber} would be emailed to:\n${quote.contactName}\n${quote.contactEmail}`);
+  const handleSendQuote = async () => {
+    await xpAlert(`Quote ${quote.quoteNumber} would be emailed to:\n${quote.contactName}\n${quote.contactEmail}`);
   };
 
-  const handlePrint = () => {
-    alert("Print quote dialog would open");
+  const handlePrint = async () => {
+    await xpAlert("Print quote dialog would open");
   };
 
-  const handleDuplicate = () => {
-    alert(`A copy of Quote ${quote.quoteNumber} would be created as a new Draft`);
+  const handleDuplicate = async () => {
+    await xpAlert(`A copy of Quote ${quote.quoteNumber} would be created as a new Draft`);
   };
 
   // Mock history
@@ -570,6 +572,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
         <span>Last modified: {formatDateTime(quote.lastModified)} by {quote.lastModifiedBy}</span>
         <span>Quote ID: {quote.id}</span>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }
