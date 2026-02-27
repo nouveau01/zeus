@@ -6,6 +6,7 @@ interface FetchAccountsParams {
   search?: string;
   customerId?: string;
   status?: string;
+  officeIds?: string[];
   limit?: number;
 }
 

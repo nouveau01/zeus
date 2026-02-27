@@ -21,6 +21,7 @@ import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { AdminTools } from "@/components/AdminTools";
 import { getCustomers } from "@/lib/actions/customers";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
+import { useOffices } from "@/context/OfficesContext";
 
 // Default field configuration for Customers
 const CUSTOMERS_DEFAULT_FIELDS = createDefaultFields({
@@ -92,6 +93,7 @@ interface PageState {
 
 export default function CustomersPage() {
   const { openTab, closeTab, activeTabId } = useTabs();
+  const { selectedOfficeIds, allSelected } = useOffices();
 
   // Page configuration for admin customization
   const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("customers", CUSTOMERS_DEFAULT_FIELDS);
@@ -236,7 +238,7 @@ export default function CustomersPage() {
     if (isHydrated) {
       fetchCustomers();
     }
-  }, [activeTab, isHydrated]);
+  }, [activeTab, isHydrated, selectedOfficeIds]);
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -244,6 +246,7 @@ export default function CustomersPage() {
       // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
       const data = await getCustomers({
         status: activeTab === "All" ? undefined : activeTab,
+        officeIds: allSelected ? undefined : selectedOfficeIds,
       });
       setCustomers(data);
     } catch (error) {

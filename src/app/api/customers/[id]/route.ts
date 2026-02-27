@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, customerOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/customers/[id]
@@ -7,8 +10,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const customer = await prisma.customer.findUnique({
-      where: { id: params.id },
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    const customer = await prisma.customer.findFirst({
+      where: { id: params.id, ...customerOfficeWhere(scope) },
       include: {
         premises: {
           include: {
@@ -40,6 +49,21 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.customer.findFirst({
+      where: { id: params.id, ...customerOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const {
       name,
@@ -128,6 +152,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.customer.findFirst({
+      where: { id: params.id, ...customerOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    }
+
     await prisma.customer.delete({
       where: { id: params.id },
     });

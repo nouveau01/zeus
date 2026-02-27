@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, parseOfficeFilter } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/tickets - List tickets with filtering
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = session.user as any;
+    const filteredIds = parseOfficeFilter(request);
+    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+
     const searchParams = request.nextUrl.searchParams;
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -70,6 +82,11 @@ export async function GET(request: NextRequest) {
     // Payroll filter
     if (payroll && payroll !== "All") {
       where.pr = payroll === "true";
+    }
+
+    // Office scoping — filter tickets through their premises
+    if (!scope.allOffices) {
+      where.premises = { ...(where.premises || {}), OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] };
     }
 
     const tickets = await prisma.ticket.findMany({

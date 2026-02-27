@@ -20,6 +20,7 @@ import { usePermissions } from "@/context/PermissionsContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialog";
 import { getJobs } from "@/lib/actions/jobs";
+import { useOffices } from "@/context/OfficesContext";
 
 // Toolbar icons matching Job Maintenance
 const toolbarIcons = [
@@ -73,6 +74,7 @@ interface JobResultsPageProps {
 
 export default function JobResultsView({ premisesId }: JobResultsPageProps) {
   const { openTab, closeTab, activeTabId } = useTabs();
+  const { selectedOfficeIds, allSelected } = useOffices();
   const { isFieldAllowed } = usePermissions();
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,7 +163,7 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
 
   useEffect(() => {
     fetchJobs();
-  }, [activeTab, premisesId]);
+  }, [activeTab, premisesId, selectedOfficeIds]);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -170,6 +172,7 @@ export default function JobResultsView({ premisesId }: JobResultsPageProps) {
       const result = await getJobs({
         type: activeTab !== "All" ? activeTab : undefined,
         premisesId: premisesId || undefined,
+        officeIds: allSelected ? undefined : selectedOfficeIds,
       });
 
       const jobResults: JobResult[] = result.map((job: any) => ({

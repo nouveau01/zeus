@@ -35,23 +35,72 @@ model User {
   password  String?                        // Hashed password for authentication
   name      String
   role      String   @default("User")      // "GodAdmin", "Admin", or "User"
-  avatar    String?
-  isActive  Boolean  @default(true) @map("is_active")
-  uiMode    String   @default("classic") @map("ui_mode") // "classic" or "modern"
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  avatar     String?
+  title      String?                        // Job title (e.g., "Service Manager")
+  department String?                        // Department (e.g., "Operations")
+  phone      String?                        // Direct phone number
+  extension  String?                        // Phone extension (e.g., "4201")
+  lastLogin  DateTime? @map("last_login")  // Last sign-in timestamp
+  isActive   Boolean  @default(true) @map("is_active")
+  uiMode     String   @default("classic") @map("ui_mode") // "classic" or "modern"
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  primaryOfficeId String? @map("primary_office_id") // User's home/default office
 
   // Relations
+  primaryOffice  Office?      @relation("PrimaryOfficeUser", fields: [primaryOfficeId], references: [id])
   createdJobs    Job[]        @relation("CreatedByUser")
   jobHistory     JobHistory[]
   activities     Activity[]
   files          File[]
   savedFilters   SavedFilter[]
 
+  offices          UserOffice[]
   ownedSequences   Sequence[]      @relation("SequenceOwner")
   sequenceShares   SequenceShare[]
 
   @@map("users")
+}
+
+// ============================================
+// OFFICES (Multi-location data scoping)
+// ============================================
+// Each office corresponds to a regional Total Service database (NEI, N-CA, N-CT, etc.)
+// Users are assigned to one or more offices. Data is scoped by office.
+// CEO/GodAdmin can see all offices. Regional employees see only their office(s).
+
+model Office {
+  id        String   @id @default(cuid())
+  code      String   @unique                    // "NEI", "N-CA", "N-CT", etc.
+  name      String                              // "New York (HQ)", "California", etc.
+  address   String?                             // Office street address
+  city      String?
+  state     String?
+  zipCode   String?  @map("zip_code")
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users          UserOffice[]
+  premises       Premises[]
+  primaryUsers   User[]       @relation("PrimaryOfficeUser")
+
+  @@map("offices")
+}
+
+model UserOffice {
+  id       String @id @default(cuid())
+  userId   String @map("user_id")
+  officeId String @map("office_id")
+
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  office   Office @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, officeId])
+  @@map("user_offices")
 }
 
 // ============================================
@@ -337,6 +386,8 @@ model Premises {
   // Relations
   customerId  String?  @map("customer_id")          // Loc.Owner → Owner.ID
   customer    Customer? @relation(fields: [customerId], references: [id])
+  officeId    String?  @map("office_id")             // Which office/region owns this account
+  office      Office?  @relation(fields: [officeId], references: [id])
   jobs        Job[]
   units       Unit[]
   invoices    Invoice[]
@@ -2023,6 +2074,30 @@ model PageSectionConfig {
 
   @@unique([pageId, sectionName])
   @@map("page_section_configs")
+}
+
+// ============================================
+// DETAIL LAYOUT (Salesforce-like Page Layouts)
+// ============================================
+// Stores the full layout config for detail/form pages as JSON.
+// Each pageId gets one layout document. The JSON defines tabs, sections,
+// field placement, labels, visibility, and column arrangement.
+// Admins edit this via Settings > Page Layouts or inline edit mode.
+
+model DetailLayout {
+  id          String   @id @default(cuid())
+
+  pageId      String   @unique @map("page_id")   // e.g., "customers-detail", "accounts-detail"
+  name        String   @default("Default")        // Layout name (future: multiple layouts per role)
+  layout      Json                                 // Full DetailLayoutConfig JSON
+  isDefault   Boolean  @default(true) @map("is_default")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String?  @map("created_by")         // userId of who last saved
+
+  @@index([pageId])
+  @@map("detail_layouts")
 }
 
 // ============================================

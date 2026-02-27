@@ -1,12 +1,27 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, parseOfficeFilter } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = session.user as any;
+    const filteredIds = parseOfficeFilter(request);
+    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+
     const { searchParams } = new URL(request.url);
     const premisesId = searchParams.get("premisesId");
 
-    const where = premisesId ? { premisesId } : {};
+    const where: any = premisesId ? { premisesId } : {};
+    // Office scoping — filter units through their premises
+    if (!scope.allOffices) {
+      where.premises = { ...(where.premises || {}), OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] };
+    }
 
     const units = await prisma.unit.findMany({
       where,

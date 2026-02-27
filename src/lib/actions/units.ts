@@ -6,6 +6,7 @@ interface FetchUnitsParams {
   search?: string;
   premisesId?: string;
   status?: string;
+  officeIds?: string[];
   limit?: number;
 }
 

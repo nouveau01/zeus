@@ -14,6 +14,7 @@ interface FetchTicketsParams {
   startDate?: string;
   endDate?: string;
   premisesId?: string;
+  officeIds?: string[];
   limit?: number;
 }
 

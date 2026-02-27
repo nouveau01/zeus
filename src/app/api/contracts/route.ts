@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { getOfficeScope, parseOfficeFilter } from "@/lib/officeScope";
 
 // GET /api/contracts - List contracts with filtering
 export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
+    const user = session.user as any;
+    const filteredIds = parseOfficeFilter(request);
+    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+
     const searchParams = request.nextUrl.searchParams;
     const premisesId = searchParams.get("premisesId");
     const customerId = searchParams.get("customerId");
@@ -11,6 +23,10 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     if (premisesId) where.premisesId = premisesId;
     if (customerId) where.customerId = customerId;
+
+    if (!scope.allOffices) {
+      where.premises = { ...(where.premises || {}), OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] };
+    }
 
     const contracts = await prisma.contract.findMany({
       where,

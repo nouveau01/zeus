@@ -5,6 +5,7 @@ import { fetchCustomers as fetchCustomersData, fetchCustomerById as fetchCustome
 interface FetchCustomersParams {
   search?: string;
   status?: string;
+  officeIds?: string[];
   limit?: number;
 }
 

@@ -11,15 +11,19 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   User,
   Eye,
   EyeOff,
+  Building2,
+  Check as CheckIcon,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { useSession, signOut } from "next-auth/react";
 import { usePermissions } from "@/context/PermissionsContext";
 import { useUIMode } from "@/context/UIModeContext";
+import { useOffices } from "@/context/OfficesContext";
 
 export function TopNav() {
   const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab, openTab } = useTabs();
@@ -31,10 +35,14 @@ export function TopNav() {
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showPreviewMenu, setShowPreviewMenu] = useState(false);
+  const [showOfficeMenu, setShowOfficeMenu] = useState(false);
   const [avatarBroken, setAvatarBroken] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const previewMenuRef = useRef<HTMLDivElement>(null);
+  const officeMenuRef = useRef<HTMLDivElement>(null);
+
+  const { offices, selectedOfficeIds, setSelectedOfficeIds, allSelected, primaryOfficeId } = useOffices();
 
   const user = session?.user as any;
   const userInitials = user?.name
@@ -50,6 +58,9 @@ export function TopNav() {
       }
       if (previewMenuRef.current && !previewMenuRef.current.contains(e.target as Node)) {
         setShowPreviewMenu(false);
+      }
+      if (officeMenuRef.current && !officeMenuRef.current.contains(e.target as Node)) {
+        setShowOfficeMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -228,6 +239,93 @@ export function TopNav() {
               className="pl-8 pr-3 py-1.5 w-40 border border-[#dadce0] rounded-full text-[12px] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] focus:border-[#1a73e8] bg-white"
             />
           </div>
+
+          {/* Office Filter Dropdown */}
+          {offices.length > 0 && (
+            <div className="relative" ref={officeMenuRef}>
+              <button
+                onClick={() => setShowOfficeMenu(!showOfficeMenu)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[12px] border transition-colors ${
+                  showOfficeMenu
+                    ? "bg-white border-[#1a73e8] text-[#1a73e8]"
+                    : allSelected
+                    ? "bg-white border-[#dadce0] text-[#5f6368] hover:border-[#bdc1c6]"
+                    : "bg-[#e8f0fe] border-[#1a73e8] text-[#1a73e8]"
+                }`}
+                title="Filter by office"
+              >
+                <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="max-w-[120px] truncate font-medium">
+                  {allSelected
+                    ? "All Offices"
+                    : selectedOfficeIds.length === 1
+                    ? offices.find((o) => o.id === selectedOfficeIds[0])?.code || "1 Office"
+                    : `${selectedOfficeIds.length} Offices`}
+                </span>
+                <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${showOfficeMenu ? "rotate-180" : ""}`} />
+              </button>
+
+              {showOfficeMenu && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-[#dadce0] z-50 py-1">
+                  <div className="px-3 py-2 border-b border-[#e0e0e0] text-[11px] font-semibold text-[#333]">
+                    Show data from:
+                  </div>
+                  {/* All Offices toggle */}
+                  <button
+                    onClick={() => {
+                      if (allSelected) {
+                        // Uncheck all → default to primary office (or first office)
+                        const defaultId = primaryOfficeId || offices[0]?.id;
+                        if (defaultId) setSelectedOfficeIds([defaultId]);
+                      } else {
+                        setSelectedOfficeIds(offices.map((o) => o.id));
+                      }
+                    }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-[#f1f3f4] ${
+                      allSelected ? "bg-[#e8f0fe] text-[#1a73e8] font-medium" : "text-[#333]"
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                      allSelected ? "bg-[#1a73e8] border-[#1a73e8]" : "border-[#dadce0]"
+                    }`}>
+                      {allSelected && <CheckIcon className="w-3 h-3 text-white" />}
+                    </div>
+                    All Offices
+                  </button>
+                  <div className="border-b border-[#e0e0e0] my-1" />
+                  {/* Individual offices */}
+                  {offices.map((office) => {
+                    const isChecked = selectedOfficeIds.includes(office.id);
+                    return (
+                      <button
+                        key={office.id}
+                        onClick={() => {
+                          if (isChecked) {
+                            // Don't allow deselecting the last one
+                            if (selectedOfficeIds.length <= 1) return;
+                            setSelectedOfficeIds(selectedOfficeIds.filter((id) => id !== office.id));
+                          } else {
+                            setSelectedOfficeIds([...selectedOfficeIds, office.id]);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-[#f1f3f4] ${
+                          isChecked ? "text-[#333]" : "text-[#999]"
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                          isChecked ? "bg-[#1a73e8] border-[#1a73e8]" : "border-[#dadce0]"
+                        }`}>
+                          {isChecked && <CheckIcon className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className="font-mono font-medium mr-1">{office.code}</span>
+                        <span className="text-[11px] text-[#888] truncate">{office.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Icon buttons */}
           <button className="p-1.5 hover:bg-[#c8ccd1] rounded-full" title="Notifications">

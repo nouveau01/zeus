@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, childOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/jobs/[id]
@@ -7,8 +10,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const job = await prisma.job.findUnique({
-      where: { id: params.id },
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    const job = await prisma.job.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
       include: {
         customer: { select: { id: true, name: true } },
         premises: { select: { id: true, address: true } },
@@ -55,11 +64,17 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
     const body = await request.json();
 
-    // Get current job for history
-    const currentJob = await prisma.job.findUnique({
-      where: { id: params.id },
+    // Get current job for history + access check
+    const currentJob = await prisma.job.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
     });
 
     if (!currentJob) {
@@ -103,6 +118,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.job.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+
     await prisma.job.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });
   } catch (error) {

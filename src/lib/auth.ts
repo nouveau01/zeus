@@ -50,13 +50,15 @@ export const authOptions: NextAuthOptions = {
           return false; // Not in the system — admin must add them first
         }
 
-        // Update avatar if changed
+        // Update avatar if changed + record last login
+        const updateData: any = { lastLogin: new Date() };
         if (dbUser.avatar !== user.image && user.image) {
-          await prisma.user.update({
-            where: { id: dbUser.id },
-            data: { avatar: user.image },
-          });
+          updateData.avatar = user.image;
         }
+        await prisma.user.update({
+          where: { id: dbUser.id },
+          data: updateData,
+        });
 
         if (!dbUser.isActive) {
           return false; // Deactivated user can't sign in
@@ -66,16 +68,17 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user, account }) {
-      // On sign-in, look up DB user for id, role, avatar
-      if (account) {
+      // Always refresh user data from DB to keep role, avatar, etc. current
+      if (token.email) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: token.email! },
+          where: { email: token.email },
         });
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role;
           token.avatar = dbUser.avatar;
           token.uiMode = dbUser.uiMode;
+          token.primaryOfficeId = dbUser.primaryOfficeId;
         }
       }
       return token;
@@ -86,6 +89,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).avatar = token.avatar;
         (session.user as any).uiMode = token.uiMode;
+        (session.user as any).primaryOfficeId = token.primaryOfficeId;
       }
       return session;
     },

@@ -5,6 +5,7 @@ import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { AdminTools } from "@/components/AdminTools";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
+import { useOffices } from "@/context/OfficesContext";
 
 // Default field configuration for Invoices
 const INVOICES_DEFAULT_FIELDS = createDefaultFields({
@@ -52,6 +53,7 @@ interface InvoicesPageProps {
 
 export default function InvoicesView({ premisesId }: InvoicesPageProps) {
   const { openTab } = useTabs();
+  const { selectedOfficeIds, allSelected, officeFilterParam } = useOffices();
 
   // Page configuration for admin customization
   const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("invoices", INVOICES_DEFAULT_FIELDS);
@@ -98,7 +100,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
     if (filtersLoaded) {
       fetchInvoices();
     }
-  }, [startDate, endDate, activeType, filtersLoaded, premisesId]);
+  }, [startDate, endDate, activeType, filtersLoaded, premisesId, selectedOfficeIds]);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -109,7 +111,7 @@ export default function InvoicesView({ premisesId }: InvoicesPageProps) {
       if (activeType !== "All") params.set("type", activeType);
       if (premisesId) params.set("premisesId", premisesId);
 
-      const response = await fetch(`/api/invoices?${params.toString()}`);
+      const response = await fetch(`/api/invoices?${params.toString()}${officeFilterParam}`);
       if (response.ok) {
         const data = await response.json();
         setInvoices(data);

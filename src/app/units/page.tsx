@@ -20,6 +20,7 @@ import {
   Lock,
 } from "lucide-react";
 import { getUnits } from "@/lib/actions/units";
+import { useOffices } from "@/context/OfficesContext";
 
 interface Unit {
   id: string;
@@ -46,6 +47,7 @@ interface NewUnitForm {
 
 export default function UnitsPage() {
   const { openTab } = useTabs();
+  const { selectedOfficeIds, allSelected } = useOffices();
   const [filterType, setFilterType] = useState<"Category" | "Type" | "Building">("Category");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -86,7 +88,9 @@ export default function UnitsPage() {
   const fetchUnits = async () => {
     setLoading(true);
     try {
-      const data = await getUnits({});
+      const data = await getUnits({
+        officeIds: allSelected ? undefined : selectedOfficeIds,
+      });
       // Map response to our interface
       const mappedUnits: Unit[] = data.map((u: any) => ({
         id: u.id,
@@ -115,7 +119,7 @@ export default function UnitsPage() {
 
   useEffect(() => {
     fetchUnits();
-  }, []);
+  }, [selectedOfficeIds]);
 
   // Filter units based on selected filter type and category
   useEffect(() => {

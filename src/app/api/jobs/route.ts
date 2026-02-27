@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, parseOfficeFilter } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/jobs - Get all jobs
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = session.user as any;
+    const filteredIds = parseOfficeFilter(request);
+    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
     const premisesId = searchParams.get("premisesId");
@@ -15,6 +26,10 @@ export async function GET(request: NextRequest) {
     }
     if (premisesId) {
       where.premisesId = premisesId;
+    }
+    // Office scoping — filter jobs through their premises
+    if (!scope.allOffices) {
+      where.premises = { ...(where.premises || {}), OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] };
     }
 
     const jobs = await prisma.job.findMany({

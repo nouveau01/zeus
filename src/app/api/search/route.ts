@@ -1,17 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { fetchAccounts } from "@/lib/data/accounts";
-import { fetchCustomers } from "@/lib/data/customers";
-import { fetchUnits } from "@/lib/data/units";
-import { fetchJobs } from "@/lib/data/jobs";
+import { getOfficeScope, parseOfficeFilter } from "@/lib/officeScope";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const user = session.user as any;
+  const filteredIds = parseOfficeFilter(request);
+  const scope = await getOfficeScope(user.id, user.role, filteredIds);
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type"); // accounts, customers, units, jobs
@@ -26,7 +27,23 @@ export async function GET(request: Request) {
   try {
     switch (type) {
       case "accounts": {
-        const results = await fetchAccounts({ search: q, limit });
+        const accountWhere: any = {};
+        if (q) {
+          accountWhere.OR = [
+            { premisesId: { contains: q, mode: "insensitive" } },
+            { name: { contains: q, mode: "insensitive" } },
+            { address: { contains: q, mode: "insensitive" } },
+          ];
+        }
+        if (!scope.allOffices) {
+          accountWhere.AND = [...(accountWhere.AND || []), { OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] }];
+        }
+        const results = await prisma.premises.findMany({
+          where: accountWhere,
+          take: limit,
+          orderBy: { premisesId: "asc" },
+          include: { customer: { select: { id: true, name: true } } },
+        });
         const mapped = results.map((a: any) => ({
           id: a.id,
           label: a.premisesId || a.name || a.id,
@@ -37,7 +54,21 @@ export async function GET(request: Request) {
       }
 
       case "customers": {
-        const results = await fetchCustomers({ search: q, limit });
+        const custWhere: any = {};
+        if (q) {
+          custWhere.OR = [
+            { name: { contains: q, mode: "insensitive" } },
+            { accountNumber: { contains: q, mode: "insensitive" } },
+          ];
+        }
+        if (!scope.allOffices) {
+          custWhere.premises = { some: { OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] } };
+        }
+        const results = await prisma.customer.findMany({
+          where: custWhere,
+          take: limit,
+          orderBy: { name: "asc" },
+        });
         const mapped = results.map((c: any) => ({
           id: c.id,
           label: c.name,
@@ -48,7 +79,25 @@ export async function GET(request: Request) {
       }
 
       case "units": {
-        const results = await fetchUnits({ search: q, premisesId, limit });
+        const unitWhere: any = {};
+        if (q) {
+          unitWhere.OR = [
+            { unitNumber: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+          ];
+        }
+        if (premisesId) {
+          unitWhere.premisesId = premisesId;
+        }
+        if (!scope.allOffices) {
+          unitWhere.premises = { ...(unitWhere.premises || {}), OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] };
+        }
+        const results = await prisma.unit.findMany({
+          where: unitWhere,
+          take: limit,
+          orderBy: { unitNumber: "asc" },
+          include: { premises: { select: { id: true, premisesId: true, address: true } } },
+        });
         const mapped = results.map((u: any) => ({
           id: u.id,
           label: u.unitNumber || u.id,
@@ -59,24 +108,49 @@ export async function GET(request: Request) {
       }
 
       case "jobs": {
-        const results = await fetchJobs({ search: q, premisesId, limit });
+        const jobWhere: any = {};
+        if (q) {
+          jobWhere.OR = [
+            { jobName: { contains: q, mode: "insensitive" } },
+            { externalId: { contains: q, mode: "insensitive" } },
+          ];
+        }
+        if (premisesId) {
+          jobWhere.premisesId = premisesId;
+        }
+        if (!scope.allOffices) {
+          jobWhere.premises = { ...(jobWhere.premises || {}), OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] };
+        }
+        const results = await prisma.job.findMany({
+          where: jobWhere,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          include: { premises: { select: { id: true, premisesId: true, address: true } } },
+        });
         const mapped = results.map((j: any) => ({
           id: j.id,
-          label: j.jobNumber || j.id,
-          description: [j.description, j.type, j.status].filter(Boolean).join(" - "),
+          label: j.externalId || j.jobName || j.id,
+          description: [j.jobName, j.type, j.status].filter(Boolean).join(" - "),
           data: j,
         }));
         return NextResponse.json(mapped);
       }
 
       case "contacts": {
+        const contactWhere: any = q ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+          ],
+        } : {};
+
+        // Office scoping — only show contacts whose customer has premises in user's offices
+        if (!scope.allOffices) {
+          contactWhere.customer = { premises: { some: { OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] } } };
+        }
+
         const contacts = await prisma.contact.findMany({
-          where: q ? {
-            OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { email: { contains: q, mode: "insensitive" } },
-            ],
-          } : {},
+          where: contactWhere,
           include: { customer: { select: { id: true, name: true } } },
           take: limit,
           orderBy: { name: "asc" },

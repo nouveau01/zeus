@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, parseOfficeFilter, customerOfficeWhere } from "@/lib/officeScope";
 
 // GET /api/accounts
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = session.user as any;
+    const filteredIds = parseOfficeFilter(request);
+    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+
+    const where: any = { ...customerOfficeWhere(scope) };
+
     const accounts = await prisma.customer.findMany({
+      where,
       orderBy: { name: "asc" },
       include: {
         _count: {

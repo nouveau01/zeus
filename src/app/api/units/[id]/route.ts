@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, childOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 export async function GET(
@@ -6,8 +9,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const unit = await prisma.unit.findUnique({
-      where: { id: params.id },
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    const unit = await prisma.unit.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
       include: {
         premises: {
           select: {
@@ -45,6 +54,21 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.unit.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Unit not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const unit = await prisma.unit.update({
       where: { id: params.id },
@@ -114,6 +138,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.unit.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Unit not found" }, { status: 404 });
+    }
+
     await prisma.unit.delete({
       where: { id: params.id },
     });

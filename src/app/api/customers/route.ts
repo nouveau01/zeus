@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, parseOfficeFilter } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/customers
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = session.user as any;
+    const filteredIds = parseOfficeFilter(request);
+    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
 
-    const where = type && type !== "All" ? { type } : {};
+    const where: any = type && type !== "All" ? { type } : {};
+
+    // Office scoping — only show customers who have premises in user's offices
+    if (!scope.allOffices) {
+      where.premises = { some: { OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] } };
+    }
 
     const customers = await prisma.customer.findMany({
       where,

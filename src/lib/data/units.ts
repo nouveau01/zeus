@@ -11,6 +11,7 @@ interface FetchUnitsOptions {
   search?: string;
   premisesId?: string;
   status?: string;
+  officeIds?: string[];
   limit?: number;
 }
 
@@ -167,7 +168,7 @@ async function mirrorUnitToPostgres(unit: any) {
  * Fallback: fetch from PostgreSQL only
  */
 async function fetchUnitsFromPostgres(options: FetchUnitsOptions) {
-  const { search, premisesId, status, limit = 500 } = options;
+  const { search, premisesId, status, officeIds, limit = 500 } = options;
 
   const where: any = {};
 
@@ -184,6 +185,9 @@ async function fetchUnitsFromPostgres(options: FetchUnitsOptions) {
     where.isActive = true;
   } else if (status === "Inactive") {
     where.isActive = false;
+  }
+  if (officeIds && officeIds.length > 0) {
+    where.premises = { ...where.premises, OR: [{ officeId: { in: officeIds } }, { officeId: null }] };
   }
 
   const units = await prisma.unit.findMany({

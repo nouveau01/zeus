@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, parseOfficeFilter, premisesOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/premises
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = session.user as any;
+    const filteredIds = parseOfficeFilter(request);
+    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get("filter");
 
     const premises = await prisma.premises.findMany({
+      where: {
+        ...premisesOfficeWhere(scope),
+      },
       orderBy: { premisesId: "asc" },
       include: {
         customer: {
@@ -44,6 +58,7 @@ export async function POST(request: NextRequest) {
       isActive,
       balance,
       customerId,
+      officeId,
     } = body;
 
     if (!address) {
@@ -62,6 +77,7 @@ export async function POST(request: NextRequest) {
         isActive: isActive ?? true,
         balance: balance || 0,
         customerId: customerId || undefined,
+        officeId: officeId || undefined,
       },
       include: {
         customer: {

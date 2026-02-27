@@ -12,6 +12,7 @@ interface FetchAccountsOptions {
   search?: string;
   filter?: string;
   customerId?: string;
+  officeIds?: string[];
   limit?: number;
 }
 
@@ -155,7 +156,7 @@ export async function fetchAccounts(options: FetchAccountsOptions = {}) {
  * Fallback: fetch from PostgreSQL only
  */
 async function fetchAccountsFromPostgres(options: FetchAccountsOptions) {
-  const { filter, customerId, limit = 500 } = options;
+  const { filter, customerId, officeIds, limit = 500 } = options;
 
   const where: any = {};
   if (filter && filter !== "All") {
@@ -163,6 +164,9 @@ async function fetchAccountsFromPostgres(options: FetchAccountsOptions) {
   }
   if (customerId) {
     where.customerId = customerId;
+  }
+  if (officeIds && officeIds.length > 0) {
+    where.OR = [{ officeId: { in: officeIds } }, { officeId: null }];
   }
 
   const accounts = await prisma.premises.findMany({

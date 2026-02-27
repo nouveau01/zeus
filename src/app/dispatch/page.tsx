@@ -9,6 +9,7 @@ import { getTickets, getCallHistory } from "@/lib/actions/tickets";
 import { getInvoices } from "@/lib/actions/invoices";
 import { AutocompleteInput, AutocompleteResult } from "@/components/AutocompleteInput";
 import { DynamicSelect } from "@/components/ui/DynamicSelect";
+import { useOffices } from "@/context/OfficesContext";
 import {
   FileText,
   Save,
@@ -184,6 +185,7 @@ interface LedgerItem {
 
 export default function DispatchPage() {
   const { openTab } = useTabs();
+  const { selectedOfficeIds, allSelected } = useOffices();
   const [viewMode, setViewMode] = useState<"grid" | "schedule">("grid");
 
   // Page configuration for admin customization
@@ -357,7 +359,7 @@ export default function DispatchPage() {
   // Fetch tickets when filters change
   useEffect(() => {
     fetchTickets();
-  }, [statusFilter, typeFilter, startDate, endDate]);
+  }, [statusFilter, typeFilter, startDate, endDate, selectedOfficeIds]);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -376,6 +378,7 @@ export default function DispatchPage() {
         type: typeFilter !== "All" ? typeFilter : undefined,
         startDate: formattedStartDate,
         endDate: formattedEndDate,
+        officeIds: allSelected ? undefined : selectedOfficeIds,
       });
 
       if (data && data.length >= 0) {
@@ -620,7 +623,7 @@ export default function DispatchPage() {
   const fetchLedger = async (customerId: string) => {
     try {
       // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
-      const data = await getInvoices({ customerId, limit: 20 });
+      const data = await getInvoices({ customerId, limit: 20, officeIds: allSelected ? undefined : selectedOfficeIds });
 
       // Map to ledger format
       let runningBalance = 0;

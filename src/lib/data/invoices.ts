@@ -14,6 +14,7 @@ interface FetchInvoicesParams {
   startDate?: string;
   endDate?: string;
   unpaidOnly?: boolean;
+  officeIds?: string[];
   limit?: number;
 }
 
@@ -116,11 +117,14 @@ export async function fetchInvoices(params: FetchInvoicesParams = {}) {
 }
 
 async function fetchInvoicesFromPostgres(params: FetchInvoicesParams = {}) {
-  const { customerId, premisesId, limit = 100 } = params;
+  const { customerId, premisesId, officeIds, limit = 100 } = params;
 
   const where: any = {};
   if (customerId) where.customerId = customerId;
   if (premisesId) where.premisesId = premisesId;
+  if (officeIds && officeIds.length > 0) {
+    where.premises = { ...where.premises, OR: [{ officeId: { in: officeIds } }, { officeId: null }] };
+  }
 
   const invoices = await prisma.invoice.findMany({
     where,

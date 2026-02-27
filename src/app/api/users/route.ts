@@ -27,7 +27,13 @@ export async function GET() {
       name: true,
       role: true,
       avatar: true,
+      title: true,
+      department: true,
+      phone: true,
+      extension: true,
+      lastLogin: true,
       isActive: true,
+      primaryOfficeId: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   const callerRole = (session.user as any)?.role;
   const body = await request.json();
-  const { email, name, role } = body;
+  const { email, name, role, primaryOfficeId } = body;
 
   if (!email || !name) {
     return NextResponse.json({ error: "Email and name are required" }, { status: 400 });
@@ -74,6 +80,7 @@ export async function POST(request: NextRequest) {
       name,
       role: role || "User",
       isActive: true,
+      ...(primaryOfficeId !== undefined && { primaryOfficeId: primaryOfficeId || null }),
     },
   });
 
@@ -90,7 +97,7 @@ export async function PATCH(request: NextRequest) {
   const callerRole = (session.user as any)?.role;
   const callerId = (session.user as any)?.id;
   const body = await request.json();
-  const { id, name, role, isActive } = body;
+  const { id, name, role, isActive, primaryOfficeId, title, department, phone, extension } = body;
 
   if (!id) {
     return NextResponse.json({ error: "User ID is required" }, { status: 400 });
@@ -121,6 +128,11 @@ export async function PATCH(request: NextRequest) {
     if (name !== undefined) data.name = name;
     if (role !== undefined) data.role = role;
     if (isActive !== undefined) data.isActive = isActive;
+    if (primaryOfficeId !== undefined) data.primaryOfficeId = primaryOfficeId || null;
+    if (title !== undefined) data.title = title || null;
+    if (department !== undefined) data.department = department || null;
+    if (phone !== undefined) data.phone = phone || null;
+    if (extension !== undefined) data.extension = extension || null;
 
     const updated = await prisma.user.update({
       where: { id },

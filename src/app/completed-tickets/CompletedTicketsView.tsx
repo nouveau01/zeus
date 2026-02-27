@@ -26,6 +26,7 @@ import { useTabs } from "@/context/TabContext";
 import { SavedFiltersDropdown } from "@/components/SavedFiltersDropdown";
 import { getTickets } from "@/lib/actions/tickets";
 import { useFilteredColumns } from "@/hooks/useFilteredColumns";
+import { useOffices } from "@/context/OfficesContext";
 
 // Toolbar icons matching Accounts/Customers pattern
 const toolbarIcons = [
@@ -138,6 +139,7 @@ interface CompletedTicketsViewProps {
 
 export default function CompletedTicketsView({ premisesId, defaultStatus = "Completed" }: CompletedTicketsViewProps) {
   const { openTab } = useTabs();
+  const { selectedOfficeIds, allSelected } = useOffices();
   const { filteredColumns, filteredWidths: initialWidths } = useFilteredColumns("completed-tickets", columns);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -243,7 +245,7 @@ export default function CompletedTicketsView({ premisesId, defaultStatus = "Comp
     if (isHydrated) {
       fetchTickets();
     }
-  }, [startDate, endDate, activeTab, mechanic, supervisor, reviewed, billed, payroll, isHydrated, premisesId, defaultStatus]);
+  }, [startDate, endDate, activeTab, mechanic, supervisor, reviewed, billed, payroll, isHydrated, premisesId, defaultStatus, selectedOfficeIds]);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -254,6 +256,7 @@ export default function CompletedTicketsView({ premisesId, defaultStatus = "Comp
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         premisesId: premisesId || undefined,
+        officeIds: allSelected ? undefined : selectedOfficeIds,
       });
       setTickets(data);
     } catch (error) {

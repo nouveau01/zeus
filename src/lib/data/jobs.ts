@@ -12,6 +12,7 @@ interface FetchJobsOptions {
   type?: string;
   status?: string;
   premisesId?: string;
+  officeIds?: string[];
   limit?: number;
 }
 
@@ -178,7 +179,7 @@ async function mirrorJobToPostgres(job: any) {
  * Fallback: fetch from PostgreSQL only
  */
 async function fetchJobsFromPostgres(options: FetchJobsOptions) {
-  const { search, type, status, premisesId, limit = 500 } = options;
+  const { search, type, status, premisesId, officeIds, limit = 500 } = options;
 
   const where: any = {};
 
@@ -197,6 +198,9 @@ async function fetchJobsFromPostgres(options: FetchJobsOptions) {
   }
   if (premisesId) {
     where.premisesId = premisesId;
+  }
+  if (officeIds && officeIds.length > 0) {
+    where.premises = { ...where.premises, OR: [{ officeId: { in: officeIds } }, { officeId: null }] };
   }
 
   const jobs = await prisma.job.findMany({

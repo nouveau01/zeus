@@ -34,6 +34,7 @@ interface FetchTicketsOptions {
   startDate?: string;
   endDate?: string;
   premisesId?: string;
+  officeIds?: string[];
   limit?: number;  // Default increased to 1000 for better coverage
 }
 
@@ -313,7 +314,7 @@ async function mirrorTicketToPostgres(ticket: any, isCompleted: boolean) {
  * Fallback: fetch from PostgreSQL only
  */
 async function fetchTicketsFromPostgres(options: FetchTicketsOptions) {
-  const { status, type, startDate, endDate, premisesId, limit = 500 } = options;
+  const { status, type, startDate, endDate, premisesId, officeIds, limit = 500 } = options;
 
   const where: any = {};
 
@@ -336,6 +337,9 @@ async function fetchTicketsFromPostgres(options: FetchTicketsOptions) {
   }
   if (premisesId) {
     where.premisesId = premisesId;
+  }
+  if (officeIds && officeIds.length > 0) {
+    where.premises = { ...where.premises, OR: [{ officeId: { in: officeIds } }, { officeId: null }] };
   }
 
   const tickets = await prisma.ticket.findMany({

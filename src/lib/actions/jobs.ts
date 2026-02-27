@@ -7,6 +7,7 @@ interface FetchJobsParams {
   type?: string;
   status?: string;
   premisesId?: string;
+  officeIds?: string[];
   limit?: number;
 }
 

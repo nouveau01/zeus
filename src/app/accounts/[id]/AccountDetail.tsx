@@ -16,6 +16,7 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { getAccountById } from "@/lib/actions/accounts";
+import { useOffices } from "@/context/OfficesContext";
 
 interface Unit {
   id: string;
@@ -59,6 +60,7 @@ interface Account {
   isActive: boolean;
   balance: number;
   customerId: string;
+  officeId: string | null;
   customer: {
     id: string;
     name: string;
@@ -89,12 +91,15 @@ const US_STATES = [
 
 export default function AccountDetail({ accountId, onClose }: AccountDetailProps) {
   const { openTab, closeTab } = useTabs();
+  const { offices, selectedOfficeIds } = useOffices();
 
   // Parse URL params for new account creation
   const isNew = accountId.startsWith("new");
   const urlParams = new URLSearchParams(accountId.replace("new?", "").replace("new", ""));
   const customerId = urlParams.get("customerId");
   const copyFromId = urlParams.get("copyFrom");
+
+  const defaultOfficeId = selectedOfficeIds.length > 0 ? selectedOfficeIds[0] : null;
 
   const [account, setAccount] = useState<Account | null>(isNew ? {
     id: "",
@@ -115,6 +120,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     isActive: true,
     balance: 0,
     customerId: customerId || "",
+    officeId: defaultOfficeId,
     customer: { id: customerId || "", name: "" },
     units: [],
     _count: { units: 0, jobs: 0 },
@@ -123,6 +129,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   const [activeTab, setActiveTab] = useState("General");
   const [formData, setFormData] = useState<Partial<Account>>(isNew ? {
     customerId: customerId || "",
+    officeId: defaultOfficeId,
     type: "Non-Contract",
     isActive: true,
     country: "United States",
@@ -865,6 +872,21 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
           </div>
+          {offices.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="w-16 text-right text-[12px]">Office</label>
+              <select
+                value={formData.officeId || ""}
+                onChange={(e) => handleInputChange("officeId" as keyof Account, e.target.value || "")}
+                className="flex-1 px-1 py-1 border border-[#a0a0a0] text-[12px] bg-white"
+              >
+                <option value="">-- None --</option>
+                {offices.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name} ({o.code})</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Middle Column - Contact Info */}

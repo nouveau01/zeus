@@ -21,6 +21,7 @@ import { FilterDialog, FilterField, FilterValue } from "@/components/FilterDialo
 import { AdminTools } from "@/components/AdminTools";
 import { usePageConfig, createDefaultFields } from "@/hooks/usePageConfig";
 import { getJobs } from "@/lib/actions/jobs";
+import { useOffices } from "@/context/OfficesContext";
 
 // Default field configuration for Job Maintenance
 const JOBS_DEFAULT_FIELDS = createDefaultFields({
@@ -95,6 +96,7 @@ interface JobMaintenancePageProps {
 
 export default function JobMaintenanceView({ premisesId }: JobMaintenancePageProps) {
   const { openTab, closeTab, activeTabId } = useTabs();
+  const { selectedOfficeIds, allSelected } = useOffices();
 
   // Page configuration for admin customization
   const { fields, getLabel, isVisible, getVisibleFields, updateFields } = usePageConfig("jobs", JOBS_DEFAULT_FIELDS);
@@ -230,7 +232,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
     if (isHydrated) {
       fetchJobs();
     }
-  }, [activeTab, premisesId, isHydrated]);
+  }, [activeTab, premisesId, isHydrated, selectedOfficeIds]);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -240,6 +242,7 @@ export default function JobMaintenanceView({ premisesId }: JobMaintenancePagePro
         type: activeTab !== "All" ? activeTab : undefined,
         premisesId: premisesId || undefined,
         limit: 500,
+        officeIds: allSelected ? undefined : selectedOfficeIds,
       });
 
       // Map response to Job interface

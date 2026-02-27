@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, premisesOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/premises/[id]
@@ -7,8 +10,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const premises = await prisma.premises.findUnique({
-      where: { id: params.id },
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    const premises = await prisma.premises.findFirst({
+      where: { id: params.id, ...premisesOfficeWhere(scope) },
       include: {
         customer: {
           select: {
@@ -42,6 +51,21 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.premises.findFirst({
+      where: { id: params.id, ...premisesOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const {
       premisesId,
@@ -64,6 +88,7 @@ export async function PUT(
       remarks,
       colRemarks,
       salesRemarks,
+      officeId,
     } = body;
 
     const premises = await prisma.premises.update({
@@ -82,6 +107,8 @@ export async function PUT(
         remarks: remarks !== undefined ? remarks : undefined,
         colRemarks: colRemarks !== undefined ? colRemarks : undefined,
         salesRemarks: salesRemarks !== undefined ? salesRemarks : undefined,
+        // Office
+        officeId: officeId !== undefined ? (officeId || null) : undefined,
       },
       include: {
         customer: {
@@ -115,6 +142,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.premises.findFirst({
+      where: { id: params.id, ...premisesOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    }
+
     await prisma.premises.delete({
       where: { id: params.id },
     });

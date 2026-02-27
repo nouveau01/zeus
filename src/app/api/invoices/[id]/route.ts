@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, childOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/invoices/[id]
@@ -7,8 +10,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: params.id },
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
       include: {
         premises: {
           include: {
@@ -68,6 +77,21 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.invoice.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const {
       postingDate,
@@ -211,6 +235,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.invoice.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
     await prisma.invoice.delete({
       where: { id: params.id },
     });

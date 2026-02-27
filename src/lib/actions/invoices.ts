@@ -5,6 +5,7 @@ import { fetchInvoices as fetchInvoicesData } from "@/lib/data/invoices";
 interface FetchInvoicesParams {
   customerId?: string;
   premisesId?: string;
+  officeIds?: string[];
   limit?: number;
 }
 

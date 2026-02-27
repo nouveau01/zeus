@@ -11,6 +11,7 @@ import sqlserver, { isSqlServerAvailable } from "@/lib/sqlserver";
 interface FetchCustomersOptions {
   search?: string;
   type?: string;
+  officeIds?: string[];
   limit?: number;
 }
 
@@ -117,11 +118,14 @@ export async function fetchCustomers(options: FetchCustomersOptions = {}) {
  * Fallback: fetch from PostgreSQL only
  */
 async function fetchCustomersFromPostgres(options: FetchCustomersOptions) {
-  const { type, limit = 500 } = options;
+  const { type, officeIds, limit = 500 } = options;
 
   const where: any = {};
   if (type && type !== "All") {
     where.type = type;
+  }
+  if (officeIds && officeIds.length > 0) {
+    where.premises = { some: { OR: [{ officeId: { in: officeIds } }, { officeId: null }] } };
   }
 
   const customers = await prisma.customer.findMany({

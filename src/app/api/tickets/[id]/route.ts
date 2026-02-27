@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, childOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
 
 // GET /api/tickets/[id]
@@ -7,8 +10,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ticket = await prisma.ticket.findUnique({
-      where: { id: params.id },
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    const ticket = await prisma.ticket.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
       include: {
         premises: {
           select: {
@@ -62,6 +71,21 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.ticket.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+    }
+
     const body = await request.json();
 
     // Build update data - only include fields that are present in the request
@@ -212,6 +236,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const scope = await getOfficeScope(session.user.id, session.user.role);
+
+    // Access check
+    const existing = await prisma.ticket.findFirst({
+      where: { id: params.id, ...childOfficeWhere(scope) },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+    }
+
     await prisma.ticket.delete({
       where: { id: params.id },
     });

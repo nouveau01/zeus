@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getOfficeScope, premisesOfficeWhere, customerOfficeWhere, childOfficeWhere } from "@/lib/officeScope";
 
 // GET /api/lookups/[field] - Get lookup values for filter fields
 export async function GET(
@@ -7,14 +10,22 @@ export async function GET(
   { params }: { params: { field: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = session.user as any;
+    const scope = await getOfficeScope(user.id, user.role);
+
     const { field } = params;
     let values: { id: string; label: string; description?: string }[] = [];
 
     switch (field) {
       case "accountId":
       case "account": {
-        // Get all premises with their IDs
+        // Get all premises with their IDs (scoped by office)
         const premises = await prisma.premises.findMany({
+          where: { ...premisesOfficeWhere(scope) },
           select: {
             id: true,
             premisesId: true,
@@ -33,8 +44,9 @@ export async function GET(
       }
 
       case "accountTag": {
-        // Get all premises with their names/tags
+        // Get all premises with their names/tags (scoped by office)
         const premisesTags = await prisma.premises.findMany({
+          where: { ...premisesOfficeWhere(scope) },
           select: {
             id: true,
             premisesId: true,
@@ -53,8 +65,9 @@ export async function GET(
       }
 
       case "customer": {
-        // Get all customers
+        // Get all customers (scoped by office — only those with premises in user's offices)
         const customers = await prisma.customer.findMany({
+          where: { ...customerOfficeWhere(scope) },
           select: {
             id: true,
             name: true,
@@ -72,11 +85,11 @@ export async function GET(
       }
 
       case "status": {
-        // Get distinct status values from jobs
+        // Get distinct status values from jobs (scoped by office)
         const statuses = await prisma.job.findMany({
           select: { status: true },
           distinct: ["status"],
-          where: { status: { not: null } },
+          where: { status: { not: null }, ...childOfficeWhere(scope) },
           orderBy: { status: "asc" },
         });
         values = statuses
@@ -129,11 +142,11 @@ export async function GET(
       }
 
       case "contractType": {
-        // Get distinct contract types from jobs (cType field)
+        // Get distinct contract types from jobs (scoped by office)
         const cTypes = await prisma.job.findMany({
           select: { cType: true },
           distinct: ["cType"],
-          where: { cType: { not: null } },
+          where: { cType: { not: null }, ...childOfficeWhere(scope) },
           orderBy: { cType: "asc" },
         });
         values = cTypes
@@ -245,11 +258,11 @@ export async function GET(
       case "accountType":
       case "premisesType":
       case "type": {
-        // Get distinct account/premises types
+        // Get distinct account/premises types (scoped by office)
         const premisesTypes = await prisma.premises.findMany({
           select: { type: true },
           distinct: ["type"],
-          where: { type: { not: null } },
+          where: { type: { not: null }, ...premisesOfficeWhere(scope) },
           orderBy: { type: "asc" },
         });
         values = premisesTypes
@@ -289,8 +302,10 @@ export async function GET(
       }
 
       case "accountId": {
-        // Get all account/premises IDs
-        const premises = await prisma.premises.findMany({
+        // Get all account/premises IDs (scoped by office)
+        // NOTE: This case is unreachable — "accountId" is handled above
+        const premisesById = await prisma.premises.findMany({
+          where: { ...premisesOfficeWhere(scope) },
           select: {
             id: true,
             locId: true,
@@ -300,7 +315,7 @@ export async function GET(
           orderBy: { locId: "asc" },
           take: 500,
         });
-        values = premises.map((p) => ({
+        values = premisesById.map((p) => ({
           id: p.locId || p.id,
           label: p.locId || p.id,
           description: p.name || p.address || undefined,
@@ -309,8 +324,9 @@ export async function GET(
       }
 
       case "owner": {
-        // Owner lookup - shows Customer Name + Type (VERIFIED 2026-01-27)
+        // Owner lookup - shows Customer Name + Type (scoped by office)
         const owners = await prisma.customer.findMany({
+          where: { ...customerOfficeWhere(scope) },
           select: {
             id: true,
             name: true,
@@ -328,11 +344,11 @@ export async function GET(
       }
 
       case "route": {
-        // Get distinct routes
+        // Get distinct routes (scoped by office)
         const routes = await prisma.premises.findMany({
           select: { route: true },
           distinct: ["route"],
-          where: { route: { not: null } },
+          where: { route: { not: null }, ...premisesOfficeWhere(scope) },
           orderBy: { route: "asc" },
         });
         values = routes
@@ -345,11 +361,11 @@ export async function GET(
       }
 
       case "salesTaxRegion": {
-        // Get distinct sales tax regions
+        // Get distinct sales tax regions (scoped by office)
         const taxRegions = await prisma.premises.findMany({
           select: { sTax: true },
           distinct: ["sTax"],
-          where: { sTax: { not: null } },
+          where: { sTax: { not: null }, ...premisesOfficeWhere(scope) },
           orderBy: { sTax: "asc" },
         });
         values = taxRegions
@@ -362,7 +378,7 @@ export async function GET(
       }
 
       case "tag": {
-        // Get all account tags/names
+        // Get all account tags/names (scoped by office)
         const tags = await prisma.premises.findMany({
           select: {
             id: true,
@@ -375,6 +391,7 @@ export async function GET(
               { tag: { not: null } },
               { name: { not: null } },
             ],
+            ...premisesOfficeWhere(scope),
           },
           orderBy: { name: "asc" },
           take: 500,
@@ -388,11 +405,11 @@ export async function GET(
       }
 
       case "territory": {
-        // Get distinct territories
+        // Get distinct territories (scoped by office)
         const territories = await prisma.premises.findMany({
           select: { terr: true },
           distinct: ["terr"],
-          where: { terr: { not: null } },
+          where: { terr: { not: null }, ...premisesOfficeWhere(scope) },
           orderBy: { terr: "asc" },
         });
         values = territories
@@ -405,11 +422,11 @@ export async function GET(
       }
 
       case "useTax": {
-        // Get distinct use tax values
+        // Get distinct use tax values (scoped by office)
         const useTaxes = await prisma.premises.findMany({
           select: { uTax: true },
           distinct: ["uTax"],
-          where: { uTax: { not: null } },
+          where: { uTax: { not: null }, ...premisesOfficeWhere(scope) },
           orderBy: { uTax: "asc" },
         });
         values = useTaxes
@@ -422,11 +439,11 @@ export async function GET(
       }
 
       case "zone": {
-        // Get distinct zones
+        // Get distinct zones (scoped by office)
         const zones = await prisma.premises.findMany({
           select: { zone: true },
           distinct: ["zone"],
-          where: { zone: { not: null } },
+          where: { zone: { not: null }, ...premisesOfficeWhere(scope) },
           orderBy: { zone: "asc" },
         });
         values = zones
