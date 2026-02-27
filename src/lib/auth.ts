@@ -75,6 +75,7 @@ export const authOptions: NextAuthOptions = {
           token.id = dbUser.id;
           token.role = dbUser.role;
           token.avatar = dbUser.avatar;
+          token.uiMode = dbUser.uiMode;
         }
       }
       return token;
@@ -84,6 +85,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).avatar = token.avatar;
+        (session.user as any).uiMode = token.uiMode;
       }
       return session;
     },

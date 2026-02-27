@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/db";
 import { fetchAccounts } from "@/lib/data/accounts";
 import { fetchCustomers } from "@/lib/data/customers";
 import { fetchUnits } from "@/lib/data/units";
@@ -64,6 +65,27 @@ export async function GET(request: Request) {
           label: j.jobNumber || j.id,
           description: [j.description, j.type, j.status].filter(Boolean).join(" - "),
           data: j,
+        }));
+        return NextResponse.json(mapped);
+      }
+
+      case "contacts": {
+        const contacts = await prisma.contact.findMany({
+          where: q ? {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { email: { contains: q, mode: "insensitive" } },
+            ],
+          } : {},
+          include: { customer: { select: { id: true, name: true } } },
+          take: limit,
+          orderBy: { name: "asc" },
+        });
+        const mapped = contacts.map((c: any) => ({
+          id: c.id,
+          label: c.name,
+          description: [c.email, c.customer?.name].filter(Boolean).join(" - "),
+          data: { ...c, customerName: c.customer?.name },
         }));
         return NextResponse.json(mapped);
       }

@@ -19,16 +19,19 @@ import {
 import { useTabs } from "@/context/TabContext";
 import { useSession, signOut } from "next-auth/react";
 import { usePermissions } from "@/context/PermissionsContext";
+import { useUIMode } from "@/context/UIModeContext";
 
 export function TopNav() {
   const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab, openTab } = useTabs();
   const { data: session } = useSession();
   const { previewRole, setPreviewRole } = usePermissions();
+  const { mode, toggleMode } = useUIMode();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showPreviewMenu, setShowPreviewMenu] = useState(false);
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const previewMenuRef = useRef<HTMLDivElement>(null);
@@ -241,6 +244,26 @@ export function TopNav() {
             <Settings className="w-4 h-4 text-[#5f6368]" />
           </button>
 
+          {/* UI Mode Toggle — Thunder (Classic) / Lightning (Modern) */}
+          <div
+            className="flex items-center gap-0 cursor-pointer select-none"
+            onClick={toggleMode}
+            title={mode === "classic" ? "Switch to Lightning (Modern)" : "Switch to Thunder (Classic)"}
+          >
+            <span className={`text-[12px] font-semibold tracking-wide transition-colors ${mode === "classic" ? "text-[#333]" : "text-[#aaa]"}`}>
+              Thunder
+            </span>
+            <div className="relative mx-2 w-[40px] h-[20px]">
+              <div className={`absolute inset-0 rounded-full transition-colors duration-200 ${mode === "modern" ? "bg-[#6366f1]" : "bg-[#b0b3b8]"}`} />
+              <div
+                className={`absolute top-[2px] w-[16px] h-[16px] rounded-full bg-white shadow transition-transform duration-200 ${mode === "modern" ? "translate-x-[22px]" : "translate-x-[2px]"}`}
+              />
+            </div>
+            <span className={`text-[12px] font-semibold tracking-wide transition-colors ${mode === "modern" ? "text-[#6366f1]" : "text-[#aaa]"}`}>
+              Lightning
+            </span>
+          </div>
+
           {/* Preview as Role - GodAdmin only */}
           {isGodAdmin && (
             <div className="relative" ref={previewMenuRef}>
@@ -297,8 +320,8 @@ export function TopNav() {
               className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-medium ml-1 overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#1a73e8] focus:ring-offset-1"
               title={user?.name || "User"}
             >
-              {user?.avatar ? (
-                <img src={user.avatar} alt={user.name || "User"} className="w-7 h-7 rounded-full object-cover" />
+              {user?.avatar && !avatarBroken ? (
+                <img src={user.avatar} alt={user.name || "User"} className="w-7 h-7 rounded-full object-cover" onError={() => setAvatarBroken(true)} />
               ) : (
                 <div className="w-7 h-7 bg-[#1a73e8] rounded-full flex items-center justify-center">
                   {userInitials}
@@ -310,8 +333,8 @@ export function TopNav() {
               <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-[#dadce0] z-50 py-1">
                 <div className="px-4 py-3 border-b border-[#e0e0e0]">
                   <div className="flex items-center gap-3">
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt="" className="w-9 h-9 rounded-full" />
+                    {user?.avatar && !avatarBroken ? (
+                      <img src={user.avatar} alt="" className="w-9 h-9 rounded-full" onError={() => setAvatarBroken(true)} />
                     ) : (
                       <div className="w-9 h-9 bg-[#1a73e8] rounded-full flex items-center justify-center text-white text-sm font-medium">
                         {userInitials}

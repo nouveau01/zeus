@@ -3,6 +3,7 @@ import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { PermissionsProvider } from "@/context/PermissionsContext";
+import { UIModeProvider } from "@/context/UIModeContext";
 
 export const metadata: Metadata = {
   title: "ZEUS",
@@ -19,7 +20,9 @@ export default function RootLayout({
       <body className="min-h-screen">
         <SessionProvider>
           <PermissionsProvider>
-            <AppShell>{children}</AppShell>
+            <UIModeProvider>
+              <AppShell>{children}</AppShell>
+            </UIModeProvider>
           </PermissionsProvider>
         </SessionProvider>
       </body>

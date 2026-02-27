@@ -2,6 +2,7 @@
 
 import { useTabs } from "@/context/TabContext";
 import { usePermissions } from "@/context/PermissionsContext";
+import { useUIMode } from "@/context/UIModeContext";
 import { ShieldX } from "lucide-react";
 import CustomersPage from "@/app/customers/page";
 import CustomerDetail from "@/app/customers/[id]/CustomerDetail";
@@ -106,13 +107,14 @@ function getPageIdFromRoute(route: string): string | null {
 export function TabContent() {
   const { tabs, activeTabId, closeTab } = useTabs();
   const { canAccessPage, isLoading: permissionsLoading } = usePermissions();
+  const { mode, isModern } = useUIMode();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   // No tabs open or blank tab - show welcome screen
   if (!activeTab || activeTab.route === "") {
     return (
-      <div className="flex-1 h-full bg-[#c0c0c0] flex flex-col items-center justify-center">
+      <div className={`flex-1 h-full flex flex-col items-center justify-center ${isModern ? "bg-[#f5f7fa]" : "bg-[#c0c0c0]"}`}>
         <div className="text-center">
           <h2
             className="text-3xl font-bold mb-2"
@@ -123,9 +125,18 @@ export function TabContent() {
           >
             Z.E.U.S.
           </h2>
-          <p className="text-[#606060] text-sm">
+          <p className={`text-sm ${isModern ? "text-[#888]" : "text-[#606060]"}`}>
             Select a module from the sidebar to get started
           </p>
+          {isModern && (
+            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-[#6366f1]/10 to-[#8b5cf6]/10 text-[#6366f1] rounded-full text-[11px] font-medium">
+              <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="2" y="3" width="12" height="10" rx="2" />
+                <circle cx="8" cy="8" r="2" />
+              </svg>
+              Modern Mode
+            </div>
+          )}
         </div>
       </div>
     );
