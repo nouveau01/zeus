@@ -20,16 +20,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No recipient email" }, { status: 400 });
   }
 
-  const success = await sendEmail({
-    to,
-    subject: "ZEUS Test Email",
-    html: `
+  // Allow custom subject/html from template editor, fall back to defaults
+  const emailSubject = body.subject || "ZEUS Test Email";
+  const emailHtml = body.html || `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1e3a5f; border-bottom: 2px solid #316ac5; padding-bottom: 8px;">ZEUS Email Test</h2>
         <p>This is a test email from ZEUS. If you're seeing this, your email configuration is working correctly.</p>
         <p style="color: #666; font-size: 12px; margin-top: 24px;">Sent at: ${new Date().toLocaleString()}</p>
       </div>
-    `,
+    `;
+
+  const success = await sendEmail({
+    to,
+    subject: emailSubject,
+    html: emailHtml,
   });
 
   if (success) {
