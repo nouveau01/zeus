@@ -20,6 +20,7 @@ import {
   Phone,
   Cog,
   FileText,
+  Zap,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 
@@ -50,6 +51,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Phone,
   Cog,
   FileText,
+  Zap,
 };
 
 const navStructure: NavSection[] = [
@@ -273,6 +275,15 @@ const navStructure: NavSection[] = [
     iconName: "FileText",
     children: [
       { name: "Report Builder", href: "/ai-reports" },
+    ],
+  },
+  {
+    id: "15",
+    name: "Automation",
+    iconName: "Zap",
+    children: [
+      { name: "Email Templates", href: "/automation/email-templates" },
+      { name: "Email Sequences", href: "/automation/email-sequences" },
     ],
   },
 ];

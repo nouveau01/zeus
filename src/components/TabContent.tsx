@@ -44,6 +44,7 @@ import QuoteDetail from "@/app/quotes/[id]/QuoteDetail";
 import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
 import JobTemplatesPage from "@/app/job-templates/page";
 import AIReportsView from "@/app/ai-reports/AIReportsView";
+import EmailTemplatesView from "@/app/automation/emails/EmailTemplatesView";
 import SettingsPage from "@/app/settings/page";
 
 // Map routes to module pageIds for permission checks
@@ -75,6 +76,8 @@ function getPageIdFromRoute(route: string): string | null {
     "/estimates": "estimates",
     "/bid-results": "bid-results",
     "/quotes": "quotes",
+    "/automation/email-templates": "email-templates",
+    "/automation/email-sequences": "email-sequences",
   };
 
   if (routeMap[path]) return routeMap[path];
@@ -468,9 +471,14 @@ export function TabContent() {
     );
   }
 
-  // Check for ai-reports route
-  if (activeTab.route === "/ai-reports") {
+  // Check for ai-reports / report-generator route
+  if (activeTab.route === "/ai-reports" || activeTab.route === "/report-generator") {
     return <AIReportsView />;
+  }
+
+  // Check for automation routes
+  if (activeTab.route === "/automation/email-templates") {
+    return <EmailTemplatesView />;
   }
 
   // Check for settings route

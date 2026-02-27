@@ -19,6 +19,7 @@ import { UserManagementPanel } from "@/components/settings/UserManagementPanel";
 import { RolesPermissionsPanel } from "@/components/settings/RolesPermissionsPanel";
 import { PicklistEditorPanel } from "@/components/settings/PicklistEditorPanel";
 import { StatusWorkflowEditorPanel } from "@/components/settings/StatusWorkflowEditorPanel";
+import { NotificationsPanel } from "@/components/settings/NotificationsPanel";
 
 interface SettingsSection {
   id: string;
@@ -67,7 +68,7 @@ export default function SettingsPage() {
       case "appearance":
         return <ComingSoon title="Appearance" description="Customize the platform theme, colors, and layout preferences." />;
       case "notifications":
-        return <ComingSoon title="Notifications" description="Configure email notifications, alerts, and notification preferences." />;
+        return <NotificationsPanel />;
       case "database":
         return <ComingSoon title="Database" description="View database status, run migrations, manage backups, and configure connections." />;
       case "system":

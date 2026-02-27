@@ -348,6 +348,31 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
       { fieldName: "salesRep", label: "Sales Rep" },
     ],
   },
+  // Automation
+  {
+    pageId: "email-templates",
+    label: "Email Templates",
+    section: "Automation",
+    fields: [
+      { fieldName: "name", label: "Template Name" },
+      { fieldName: "category", label: "Category" },
+      { fieldName: "subject", label: "Subject" },
+      { fieldName: "createdBy", label: "Created By" },
+      { fieldName: "updatedAt", label: "Last Modified" },
+    ],
+  },
+  {
+    pageId: "email-sequences",
+    label: "Email Sequences",
+    section: "Automation",
+    fields: [
+      { fieldName: "name", label: "Sequence Name" },
+      { fieldName: "steps", label: "Steps" },
+      { fieldName: "status", label: "Status" },
+      { fieldName: "enrolled", label: "Enrolled" },
+      { fieldName: "createdBy", label: "Created By" },
+    ],
+  },
   // Global (shared picklists)
   {
     pageId: "_global",

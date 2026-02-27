@@ -2072,3 +2072,75 @@ model StatusWorkflow {
   @@index([pageId, fromStatus])
   @@map("status_workflows")
 }
+
+// ============================================
+// EMAIL NOTIFICATIONS
+// ============================================
+
+model EmailTrigger {
+  id          String   @id @default(cuid())
+
+  event       String   // e.g., "ticket.created", "ticket.statusChanged", "ticket.completed"
+  label       String   // Human-readable name, e.g., "New Ticket Created"
+  description String?  // Optional description of what this trigger does
+  isActive    Boolean  @default(true) @map("is_active")
+  recipients  String   // Comma-separated emails or special tokens like "{assignee}", "{dispatcher}"
+  subject     String   // Email subject template (supports {{variables}})
+  bodyHtml    String   @map("body_html") @db.Text // Email body HTML template
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  logs        EmailLog[]
+
+  @@unique([event])
+  @@map("email_triggers")
+}
+
+model EmailLog {
+  id          String   @id @default(cuid())
+
+  triggerId   String?  @map("trigger_id")
+  trigger     EmailTrigger? @relation(fields: [triggerId], references: [id], onDelete: SetNull)
+  event       String   // The event that fired
+  recipients  String   // Who it was sent to
+  subject     String
+  status      String   @default("sent") // "sent", "failed"
+  error       String?  // Error message if failed
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([triggerId])
+  @@index([createdAt])
+  @@map("email_logs")
+}
+
+model EmailSettings {
+  id            String   @id @default("singleton") // Only one row ever
+  smtpHost      String   @default("") @map("smtp_host")
+  smtpPort      Int      @default(587) @map("smtp_port")
+  smtpUser      String   @default("") @map("smtp_user")
+  smtpPassword  String   @default("") @map("smtp_password") // Stored encrypted in production
+  smtpFrom      String   @default("") @map("smtp_from")
+  isConfigured  Boolean  @default(false) @map("is_configured")
+
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("email_settings")
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   // Template name, e.g. "Welcome New Customer"
+  subject     String   // Subject line template (supports {{variables}})
+  bodyHtml    String   @map("body_html") @db.Text // Email body HTML
+  category    String   @default("general") // "notification", "sequence", "general"
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdBy   String?  @map("created_by") // User who created it
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("email_templates")
+}
