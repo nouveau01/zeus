@@ -22,6 +22,16 @@ export function isGodAdmin(role: string): boolean {
   return role === "GodAdmin";
 }
 
+// Only these emails can ever hold the GodAdmin role.
+// Even with direct DB access, the JWT callback and API routes enforce this.
+export const GOD_ADMIN_EMAILS = [
+  "zschwartz@nouveauelevator.com",
+];
+
+export function canBeGodAdmin(email: string): boolean {
+  return GOD_ADMIN_EMAILS.includes(email.toLowerCase());
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -75,7 +85,10 @@ export const authOptions: NextAuthOptions = {
         });
         if (dbUser) {
           token.id = dbUser.id;
-          token.role = dbUser.role;
+          // Enforce GodAdmin whitelist — even if DB says GodAdmin, only approved emails get it
+          token.role = dbUser.role === "GodAdmin" && !GOD_ADMIN_EMAILS.includes(dbUser.email.toLowerCase())
+            ? "Admin"
+            : dbUser.role;
           token.avatar = dbUser.avatar;
           token.uiMode = dbUser.uiMode;
           token.primaryOfficeId = dbUser.primaryOfficeId;

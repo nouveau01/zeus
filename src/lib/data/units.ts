@@ -240,7 +240,6 @@ export async function fetchUnitById(unitId: string) {
       where: { id: unitId },
       include: {
         premises: true,
-        tests: true,
       },
     });
   }

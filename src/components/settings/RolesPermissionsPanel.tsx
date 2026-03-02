@@ -234,8 +234,8 @@ export function RolesPermissionsPanel() {
   };
 
   const getRoleIcon = (name: string) => {
-    switch (name) {
-      case "GodAdmin": return <ShieldAlert className="w-3.5 h-3.5 text-[#d4a017]" />;
+    const displayName = name === "GodAdmin" ? "Admin" : name;
+    switch (displayName) {
       case "Admin": return <Shield className="w-3.5 h-3.5 text-[#316ac5]" />;
       default: return <User className="w-3.5 h-3.5 text-[#666]" />;
     }
@@ -282,7 +282,7 @@ export function RolesPermissionsPanel() {
             >
               {getRoleIcon(role.name)}
               <div className="flex-1 min-w-0">
-                <div className="truncate font-medium">{role.name}</div>
+                <div className="truncate font-medium">{role.name === "GodAdmin" ? "Admin" : role.name}</div>
                 {role.isSystem && (
                   <div className={`text-[9px] ${selectedRoleId === role.id ? "text-white/70" : "text-[#999]"}`}>
                     System
@@ -314,7 +314,7 @@ export function RolesPermissionsPanel() {
               <div>
                 <div className="flex items-center gap-2">
                   {getRoleIcon(selectedRole.name)}
-                  <span className="font-semibold text-[14px]">{selectedRole.name}</span>
+                  <span className="font-semibold text-[14px]">{selectedRole.name === "GodAdmin" ? "Admin" : selectedRole.name}</span>
                   {selectedRole.isSystem && (
                     <span className="text-[9px] px-1.5 py-0.5 bg-[#f0f0f0] text-[#666] rounded border border-[#ddd]">System</span>
                   )}
@@ -342,11 +342,7 @@ export function RolesPermissionsPanel() {
 
             {/* Module Tree */}
             <div className="flex-1 overflow-auto bg-white px-4 py-2">
-              {selectedRole.name === "GodAdmin" && (
-                <div className="mb-3 p-2 bg-[#fff3cd] border border-[#ffc107] rounded text-[11px] text-[#856404]">
-                  GodAdmin has unrestricted access to everything. Permissions here are for reference only.
-                </div>
-              )}
+              {/* GodAdmin info hidden from UI */}
 
               {Object.entries(modulesBySection).map(([section, modules]) => {
                 const isSectionExpanded = expandedSections.includes(section);

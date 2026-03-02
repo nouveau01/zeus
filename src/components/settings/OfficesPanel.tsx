@@ -728,8 +728,8 @@ function UserAccessTab({ isGodAdmin }: { isGodAdmin: boolean }) {
   };
 
   const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "GodAdmin": return <ShieldAlert className="w-3 h-3 text-[#d4a017]" />;
+    const display = role === "GodAdmin" ? "Admin" : role;
+    switch (display) {
       case "Admin": return <Shield className="w-3 h-3 text-[#316ac5]" />;
       default: return <UserIcon className="w-3 h-3 text-[#666]" />;
     }
@@ -752,7 +752,7 @@ function UserAccessTab({ isGodAdmin }: { isGodAdmin: boolean }) {
       {/* Info bar */}
       <div className="px-3 py-2 bg-[#e8f0fe] border-b border-[#b8daff] text-[11px] text-[#004085] flex items-center gap-2">
         <Building2 className="w-3.5 h-3.5" />
-        Check the boxes to grant users access to each office&apos;s data. GodAdmin users automatically have access to all offices.
+        Check the boxes to grant users access to each office&apos;s data. System administrators automatically have access to all offices.
       </div>
 
       {/* Matrix */}
@@ -793,7 +793,7 @@ function UserAccessTab({ isGodAdmin }: { isGodAdmin: boolean }) {
               return (
                 <tr
                   key={user.id}
-                  className={`border-b border-[#e0e0e0] ${isGA ? "bg-[#fffbeb]" : "bg-white hover:bg-[#f0f8ff]"}`}
+                  className="border-b border-[#e0e0e0] bg-white hover:bg-[#f0f8ff]"
                 >
                   <td className="sticky left-0 z-10 border-r border-[#c0c0c0] px-2 py-1.5 bg-inherit">
                     <div className="flex items-center gap-2">

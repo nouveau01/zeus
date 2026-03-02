@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions, hasRole } from "@/lib/auth";
+import { authOptions, hasRole, canBeGodAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 async function requireAdmin() {
@@ -57,9 +57,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Email and name are required" }, { status: 400 });
   }
 
-  // Only GodAdmin can create GodAdmin users
-  if (role === "GodAdmin" && callerRole !== "GodAdmin") {
-    return NextResponse.json({ error: "Only GodAdmin can create GodAdmin users" }, { status: 403 });
+  // Only GodAdmin can create GodAdmin users, and only whitelisted emails can be GodAdmin
+  if (role === "GodAdmin") {
+    if (callerRole !== "GodAdmin") {
+      return NextResponse.json({ error: "Only GodAdmin can create GodAdmin users" }, { status: 403 });
+    }
+    if (!canBeGodAdmin(email)) {
+      return NextResponse.json({ error: "This email is not authorized for the GodAdmin role" }, { status: 403 });
+    }
   }
 
   // Check domain restriction
@@ -113,9 +118,14 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Only GodAdmin can modify GodAdmin accounts" }, { status: 403 });
   }
 
-  // Only GodAdmin can promote to GodAdmin
-  if (role === "GodAdmin" && callerRole !== "GodAdmin") {
-    return NextResponse.json({ error: "Only GodAdmin can assign GodAdmin role" }, { status: 403 });
+  // Only GodAdmin can promote to GodAdmin, and only whitelisted emails can hold it
+  if (role === "GodAdmin") {
+    if (callerRole !== "GodAdmin") {
+      return NextResponse.json({ error: "Only GodAdmin can assign GodAdmin role" }, { status: 403 });
+    }
+    if (!canBeGodAdmin(targetUser.email)) {
+      return NextResponse.json({ error: "This email is not authorized for the GodAdmin role" }, { status: 403 });
+    }
   }
 
   // Prevent GodAdmin from deactivating themselves

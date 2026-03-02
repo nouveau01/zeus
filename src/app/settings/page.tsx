@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Users,
   Shield,
-  ShieldAlert,
   Palette,
   Database,
   Bell,
@@ -88,15 +87,6 @@ const settingsGroups: SettingsGroup[] = [
       { id: "system", label: "System", icon: Globe, minRole: "Admin" },
     ],
   },
-  {
-    id: "godmode-group",
-    label: "God Mode",
-    icon: ShieldAlert,
-    minRole: "GodAdmin",
-    items: [
-      { id: "godmode", label: "God Mode", icon: ShieldAlert, minRole: "GodAdmin" },
-    ],
-  },
 ];
 
 const ROLE_LEVEL: Record<string, number> = {
@@ -112,6 +102,7 @@ const ROLE_LEVEL: Record<string, number> = {
 export default function SettingsPage() {
   const { data: session } = useSession();
   const currentRole = (session?.user as any)?.role || "User";
+  // GodAdmin sees everything Admin sees + their powers work silently
   const userLevel = ROLE_LEVEL[currentRole] || 0;
 
   const [activeSection, setActiveSection] = useState("users");
@@ -166,8 +157,6 @@ export default function SettingsPage() {
         return <ComingSoon title="Object Manager" description="View and manage all objects (modules) in the platform. See field counts, relationships, and configure object-level settings." />;
       case "page-layouts":
         return <ComingSoon title="Page Layouts" description="Customize the layout and field arrangement of detail pages for each module. Control which fields appear and in what order." />;
-      case "godmode":
-        return <GodModePanel />;
       default:
         return null;
     }
@@ -250,57 +239,6 @@ export default function SettingsPage() {
 // ============================================
 // GOD MODE PANEL
 // ============================================
-
-function GodModePanel() {
-  return (
-    <div className="flex-1 flex flex-col overflow-auto" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
-      <div className="p-4 border-b border-[#d0d0d0] bg-gradient-to-r from-[#fff8e1] to-[#fff3cd]">
-        <div className="flex items-center gap-2 mb-1">
-          <ShieldAlert className="w-5 h-5 text-[#d4a017]" />
-          <h2 className="text-[16px] font-bold text-[#333]">God Mode</h2>
-        </div>
-        <p className="text-[11px] text-[#666]">
-          Full platform control. Only visible to GodAdmin. Manage all roles, permissions, and destructive operations.
-        </p>
-      </div>
-      <div className="p-4 space-y-4">
-        <div className="border border-[#d0d0d0] rounded">
-          <div className="px-3 py-2 bg-[#f5f5f5] border-b border-[#d0d0d0] font-semibold text-[12px]">Role Management</div>
-          <div className="p-3 text-[11px] text-[#666]">
-            Assign and revoke GodAdmin, Admin, and User roles. Override any user&apos;s permissions. Only you can see and use this panel.
-          </div>
-          <div className="px-3 pb-3">
-            <span className="inline-block px-3 py-1 text-[11px] bg-[#fff3cd] text-[#856404] border border-[#ffc107] rounded">
-              Coming Soon
-            </span>
-          </div>
-        </div>
-        <div className="border border-[#d0d0d0] rounded">
-          <div className="px-3 py-2 bg-[#f5f5f5] border-b border-[#d0d0d0] font-semibold text-[12px]">Destructive Actions</div>
-          <div className="p-3 text-[11px] text-[#666]">
-            Purge data, reset modules, wipe platform. These actions are irreversible and only available at this level.
-          </div>
-          <div className="px-3 pb-3">
-            <span className="inline-block px-3 py-1 text-[11px] bg-[#fff3cd] text-[#856404] border border-[#ffc107] rounded">
-              Coming Soon
-            </span>
-          </div>
-        </div>
-        <div className="border border-[#d0d0d0] rounded">
-          <div className="px-3 py-2 bg-[#f5f5f5] border-b border-[#d0d0d0] font-semibold text-[12px]">Platform Override</div>
-          <div className="p-3 text-[11px] text-[#666]">
-            Bypass all permission checks, impersonate any user, access backend configuration directly from the UI.
-          </div>
-          <div className="px-3 pb-3">
-            <span className="inline-block px-3 py-1 text-[11px] bg-[#fff3cd] text-[#856404] border border-[#ffc107] rounded">
-              Coming Soon
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ============================================
 // COMING SOON PLACEHOLDER

@@ -301,15 +301,15 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
         if (data) {
           const loadedUnit: UnitData = {
             id: data.id,
-            unitNumber: data.unit || "",
+            unitNumber: data.unitNumber || "",
             description: data.description || "",
             stateNumber: data.state || "",
             template: data.template || "Standard",
             category: data.cat || "",
-            type: data.elevatorType || "Elevator",
+            type: data.unitType || "Elevator",
             building: data.building || "",
             accountId: data.premisesId || "",
-            accountTag: data.premisesAddress || data.premisesTag || "",
+            accountTag: data.premises?.address || data.premises?.premisesId || "",
             status: data.isActive ? "Active" : "Inactive",
             group: data.group || "",
             onServiceSince: toDateInputValue(data.sinceDate),
@@ -662,7 +662,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             {/* Left Column */}
             <div className="flex flex-col gap-2 min-w-[280px]">
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Unit #</label>
+                <label className="w-20 text-[12px]">Unit</label>
                 <input
                   type="text"
                   value={unit.unitNumber}

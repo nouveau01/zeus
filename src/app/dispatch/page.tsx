@@ -34,6 +34,8 @@ import {
   RotateCcw,
   Plus,
   Trash2,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 
 // Default field configuration for Dispatch/Call Manager
@@ -293,6 +295,84 @@ export default function DispatchPage() {
   // Units and jobs for the selected account (for dropdowns)
   const [accountUnits, setAccountUnits] = useState<{ id: string; label: string }[]>([]);
   const [accountJobs, setAccountJobs] = useState<{ id: string; label: string }[]>([]);
+
+  // AI Account Summary
+  const [accountSummary, setAccountSummary] = useState<string>("");
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryAccountId, setSummaryAccountId] = useState<string>("");
+  const summaryAbortRef = useRef<AbortController | null>(null);
+
+  const fetchAccountSummary = useCallback(async (premisesId: string, force = false) => {
+    if (!premisesId) return;
+    if (!force && premisesId === summaryAccountId) return; // already loaded for this account
+
+    // Abort any in-flight request
+    if (summaryAbortRef.current) summaryAbortRef.current.abort();
+    const abortController = new AbortController();
+    summaryAbortRef.current = abortController;
+
+    setSummaryLoading(true);
+    setSummaryAccountId(premisesId);
+    setAccountSummary("");
+
+    try {
+      const res = await fetch("/api/ai/account-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ premisesId }),
+        signal: abortController.signal,
+      });
+
+      if (!res.ok) {
+        setAccountSummary("Unable to generate summary.");
+        setSummaryLoading(false);
+        return;
+      }
+
+      // Stream the response — text appears in real-time
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setAccountSummary("Unable to generate summary.");
+        setSummaryLoading(false);
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.text) {
+                fullText += parsed.text;
+                setAccountSummary(fullText);
+              }
+            } catch {
+              // skip
+            }
+          }
+        }
+      }
+
+      setSummaryLoading(false);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setAccountSummary("Unable to generate summary.");
+      setSummaryLoading(false);
+    }
+  }, [summaryAccountId]);
 
   // Custom fields
   const [ticketCustom, setTicketCustom] = useState({
@@ -650,6 +730,11 @@ export default function DispatchPage() {
     } else {
       setLedgerItems([]);
     }
+
+    // Fetch AI account summary (streams in real-time)
+    if (apiTicket?.premises?.id) {
+      fetchAccountSummary(apiTicket.premises.id);
+    }
   };
 
   // Fetch call history for a premises
@@ -911,6 +996,10 @@ export default function DispatchPage() {
     // Save current grid height and collapse grid to give more room for the form
     prevGridHeightRef.current = gridHeightPercent;
     setGridHeightPercent(10);
+
+    // Clear AI summary
+    setAccountSummary("");
+    setSummaryAccountId("");
 
     setSelectedTicket(null);
     setIsNewTicket(true);
@@ -1959,6 +2048,38 @@ export default function DispatchPage() {
                     <label className="text-[11px] ml-2">Exp</label>
                     <input type="text" value={ticketDetail.onServiceExp} onChange={(e) => updateDetail("onServiceExp", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
+                </div>
+
+                {/* AI Account Summary — fills remaining whitespace */}
+                <div className="flex-1 min-w-[180px] border-l border-[#ccc] pl-3 flex flex-col">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sparkles size={11} className="text-amber-500 flex-shrink-0" />
+                    <span className="text-[11px] font-bold text-[#333]">Account Intelligence</span>
+                    {ticketDetail.premisesInternalId && (
+                      <button
+                        onClick={() => fetchAccountSummary(ticketDetail.premisesInternalId!, true)}
+                        disabled={summaryLoading}
+                        className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 disabled:opacity-50 ml-auto"
+                      >
+                        <RefreshCw size={10} className={summaryLoading ? "animate-spin" : ""} />
+                        Refresh
+                      </button>
+                    )}
+                  </div>
+                  {summaryLoading && !accountSummary ? (
+                    <div className="text-[11px] text-[#666] animate-pulse">Analyzing account...</div>
+                  ) : accountSummary ? (
+                    <div className="text-[11px] text-[#444] leading-[1.5] flex-1 overflow-y-auto">
+                      {accountSummary.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+                        part.startsWith("**") && part.endsWith("**")
+                          ? <strong key={i} className="font-semibold text-[#111]">{part.slice(2, -2)}</strong>
+                          : <span key={i}>{part}</span>
+                      )}
+                      {summaryLoading && <span className="inline-block w-1 h-3 bg-amber-500 animate-pulse ml-0.5 align-middle" />}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-[#999] italic">Select a ticket to see account summary</div>
+                  )}
                 </div>
               </div>
             )}

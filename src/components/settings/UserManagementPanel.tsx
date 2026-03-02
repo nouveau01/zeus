@@ -186,17 +186,18 @@ export function UserManagementPanel() {
     document.addEventListener("mouseup", handleMouseUp);
   };
 
+  // GodAdmin displays as "Admin" everywhere in the UI
+  const getDisplayRole = (role: string) => role === "GodAdmin" ? "Admin" : role;
+
   const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "GodAdmin": return <ShieldAlert className="w-3.5 h-3.5 text-[#d4a017]" />;
+    switch (getDisplayRole(role)) {
       case "Admin": return <Shield className="w-3.5 h-3.5 text-[#316ac5]" />;
       default: return <User className="w-3.5 h-3.5 text-[#666]" />;
     }
   };
 
   const getRoleBadgeClass = (role: string) => {
-    switch (role) {
-      case "GodAdmin": return "bg-[#fff3cd] text-[#856404] border-[#ffc107]";
+    switch (getDisplayRole(role)) {
       case "Admin": return "bg-[#cce5ff] text-[#004085] border-[#b8daff]";
       default: return "bg-[#f0f0f0] text-[#333] border-[#ccc]";
     }
@@ -440,7 +441,7 @@ export function UserManagementPanel() {
                   {/* Role */}
                   <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 flex items-center justify-center" style={{ width: columnWidths[6] }}>
                     <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${isSelected ? "bg-white/20 text-white border-white/30" : getRoleBadgeClass(user.role)}`}>
-                      {getRoleIcon(user.role)} {user.role}
+                      {getRoleIcon(user.role)} {getDisplayRole(user.role)}
                     </span>
                   </div>
                   {/* Status */}
@@ -583,7 +584,7 @@ function UserDetailView({
   const [savingOffice, setSavingOffice] = useState(false);
 
   const isSelf = user.id === currentId;
-  const isUserGodAdmin = user.role === "GodAdmin";
+  const isUserGodAdmin = false; // GodAdmin role is never revealed in UI
 
   // Fetch all offices and user's office assignments
   useEffect(() => {
@@ -727,7 +728,7 @@ function UserDetailView({
               </div>
               <div className="flex items-center gap-3 mt-2">
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-medium ${getRoleBadgeClass(user.role)}`}>
-                  {getRoleIcon(user.role)} {user.role}
+                  {getRoleIcon(user.role)} {user.role === "GodAdmin" ? "Admin" : user.role}
                 </span>
                 {user.isActive ? (
                   <span className="text-[11px] font-medium text-[#28a745]">Active</span>
