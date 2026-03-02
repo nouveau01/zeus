@@ -12,10 +12,10 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
-  Play,
-  Square,
   Printer,
   MapPin,
+  Receipt,
+  ExternalLink,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { getTicketById } from "@/lib/actions/tickets";
@@ -111,7 +111,7 @@ interface Props {
 const TABS = ["1 Ticket Info", "2 Materials/Custom", "3 Workers/Signatures"];
 
 export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
-  const { openTab } = useTabs();
+  const { openTab, tabs, activeTabId, updateTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,10 +119,86 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const [formData, setFormData] = useState<Partial<Ticket>>({});
   const [isDirty, setIsDirty] = useState(false);
   const [printOnSave, setPrintOnSave] = useState(false);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
+  const [accountJobs, setAccountJobs] = useState<{ id: string; label: string }[]>([]);
+  const [accounts, setAccounts] = useState<{ id: string; label: string; description: string }[]>([]);
+  const [siblingIds, setSiblingIds] = useState<{ id: string; ticketNumber: number }[]>([]);
 
   useEffect(() => {
     fetchTicket();
   }, [ticketId]);
+
+  // Fetch sibling ticket IDs for navigation
+  useEffect(() => {
+    const fetchSiblings = async () => {
+      try {
+        const res = await fetch("/api/tickets?status=Completed");
+        if (res.ok) {
+          const data = await res.json();
+          setSiblingIds(data.map((t: any) => ({ id: t.id, ticketNumber: t.ticketNumber })));
+        }
+      } catch (e) {
+        console.error("Error fetching sibling tickets:", e);
+      }
+    };
+    fetchSiblings();
+  }, []);
+
+  const navigateTo = (targetId: string, targetNumber: number) => {
+    if (!activeTabId) return;
+    updateTab(activeTabId, `Ticket #${targetNumber}`, `/completed-tickets/${targetId}`);
+  };
+
+  const currentIndex = siblingIds.findIndex((s) => s.id === ticketId);
+
+  const handleFirst = () => {
+    if (siblingIds.length > 0) {
+      const first = siblingIds[siblingIds.length - 1]; // oldest = last (sorted newest first)
+      navigateTo(first.id, first.ticketNumber);
+    }
+  };
+  const handlePrev = () => {
+    if (currentIndex >= 0 && currentIndex < siblingIds.length - 1) {
+      const prev = siblingIds[currentIndex + 1]; // prev = older = higher index (sorted newest first)
+      navigateTo(prev.id, prev.ticketNumber);
+    }
+  };
+  const handleNext = () => {
+    if (currentIndex > 0) {
+      const next = siblingIds[currentIndex - 1]; // next = newer = lower index (sorted newest first)
+      navigateTo(next.id, next.ticketNumber);
+    }
+  };
+  const handleLast = () => {
+    if (siblingIds.length > 0) {
+      const last = siblingIds[0]; // newest = first (sorted newest first)
+      navigateTo(last.id, last.ticketNumber);
+    }
+  };
+
+  const fetchJobsForAccount = async (premisesId: string) => {
+    try {
+      const res = await fetch(`/api/search?type=jobs&premisesId=${encodeURIComponent(premisesId)}&q=`);
+      if (res.ok) {
+        const jobs = await res.json();
+        setAccountJobs(jobs.map((j: any) => ({ id: j.id, label: j.label })));
+      }
+    } catch (e) {
+      console.error("Error fetching jobs:", e);
+    }
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch(`/api/search?type=accounts&q=`);
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data.map((a: any) => ({ id: a.id, label: a.label, description: a.description })));
+      }
+    } catch (e) {
+      console.error("Error fetching accounts:", e);
+    }
+  };
 
   const fetchTicket = async () => {
     setLoading(true);
@@ -132,6 +208,29 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
       if (data) {
         setTicket(data);
         setFormData(data);
+        // Fetch accounts list and jobs for this account
+        fetchAccounts().then(() => {
+          // Ensure current account is in the list (API returns max 20)
+          if (data.premises?.id) {
+            setAccounts((prev) => {
+              const exists = prev.some((a) => a.id === data.premises!.id);
+              if (!exists) {
+                return [
+                  {
+                    id: data.premises!.id,
+                    label: data.premises!.premisesId || data.premises!.address || "",
+                    description: [data.premises!.address, data.premises!.city, data.premises!.state].filter(Boolean).join(", "),
+                  },
+                  ...prev,
+                ];
+              }
+              return prev;
+            });
+          }
+        });
+        if (data.premises?.id) {
+          fetchJobsForAccount(data.premises.id);
+        }
       }
     } catch (error) {
       console.error("Error fetching ticket:", error);
@@ -143,6 +242,32 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const handleChange = (field: keyof Ticket, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
+  };
+
+  const handleJobChange = (jobId: string) => {
+    setFormData((prev) => ({ ...prev, jobId: jobId || null } as any));
+    setIsDirty(true);
+  };
+
+  const handleAccountChange = (premisesId: string) => {
+    // Find the selected account to update the display info
+    const selectedAccount = accounts.find((a) => a.id === premisesId);
+    setFormData((prev) => ({
+      ...prev,
+      premisesId: premisesId || null,
+      premises: premisesId && selectedAccount
+        ? { ...prev.premises, id: premisesId, premisesId: selectedAccount.label } as any
+        : null,
+      // Clear job when account changes since jobs are account-scoped
+      jobId: null,
+    } as any));
+    setIsDirty(true);
+    // Re-fetch jobs for the new account
+    if (premisesId) {
+      fetchJobsForAccount(premisesId);
+    } else {
+      setAccountJobs([]);
+    }
   };
 
   const handleSave = async () => {
@@ -165,6 +290,73 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
     } catch (error) {
       console.error("Error saving ticket:", error);
       await xpAlert("Failed to save ticket");
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!ticket) return;
+    setCreatingInvoice(true);
+    try {
+      // Create invoice pre-populated from ticket data
+      const response = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          premisesId: ticket.premises?.id || null,
+          jobId: ticket.job?.id || null,
+          date: new Date().toISOString(),
+          postingDate: new Date().toISOString(),
+          description: ticket.scopeOfWork || ticket.resolution || ticket.description || "",
+          type: ticket.type || "Other",
+          status: "Open",
+          terms: "Net 30 Days",
+          items: ticket.totalHours > 0 ? [{
+            name: "Labor",
+            quantity: ticket.totalHours,
+            description: ticket.scopeOfWork || ticket.resolution || "Service work",
+            tax: false,
+            price: 0,
+            markupPercent: 0,
+            amount: 0,
+            measure: "Hours",
+            phase: 0,
+          }] : [],
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Failed to create invoice" }));
+        throw new Error(err.error || "Failed to create invoice");
+      }
+
+      const newInvoice = await response.json();
+
+      // Link invoice to ticket
+      await fetch(`/api/tickets/${ticketId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: newInvoice.id, inv: true }),
+      });
+
+      // Update local state
+      setTicket((prev) => prev ? { ...prev, invoice: { id: newInvoice.id, invoiceNumber: newInvoice.invoiceNumber }, inv: true } : prev);
+      setFormData((prev) => ({ ...prev, invoice: { id: newInvoice.id, invoiceNumber: newInvoice.invoiceNumber }, inv: true }));
+
+      // Open the invoice in a new tab
+      openTab(`Invoice #${newInvoice.invoiceNumber}`, `/invoices/${newInvoice.id}`);
+
+      await xpAlert(`Invoice #${newInvoice.invoiceNumber} created successfully`);
+    } catch (error: any) {
+      console.error("Error creating invoice:", error);
+      await xpAlert(error.message || "Failed to create invoice");
+    } finally {
+      setCreatingInvoice(false);
+    }
+  };
+
+  const handleViewInvoice = () => {
+    if (ticket?.invoice) {
+      openTab(`Invoice #${ticket.invoice.invoiceNumber}`, `/invoices/${ticket.invoice.id}`);
     }
   };
 
@@ -308,23 +500,17 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
           <RotateCcw className="w-4 h-4" style={{ color: "#d4a574" }} />
         </button>
         <div className="w-px h-5 bg-[#c0c0c0] mx-1" />
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="First">
+        <button onClick={handleFirst} disabled={currentIndex < 0 || currentIndex >= siblingIds.length - 1} className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] disabled:opacity-30" title="First (oldest)">
           <ChevronLeft className="w-4 h-4" style={{ color: "#333" }} />
         </button>
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Previous">
+        <button onClick={handlePrev} disabled={currentIndex < 0 || currentIndex >= siblingIds.length - 1} className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] disabled:opacity-30" title="Previous">
           <ChevronLeft className="w-4 h-4" style={{ color: "#0066cc" }} />
         </button>
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Play">
-          <Play className="w-4 h-4" style={{ color: "#5cb85c" }} />
-        </button>
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Next">
+        <button onClick={handleNext} disabled={currentIndex <= 0} className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] disabled:opacity-30" title="Next">
           <ChevronRight className="w-4 h-4" style={{ color: "#0066cc" }} />
         </button>
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Last">
+        <button onClick={handleLast} disabled={currentIndex <= 0} className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] disabled:opacity-30" title="Last (newest)">
           <ChevronRight className="w-4 h-4" style={{ color: "#333" }} />
-        </button>
-        <button className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Stop">
-          <Square className="w-4 h-4" style={{ color: "#c45c5c" }} />
         </button>
         <button onClick={onClose} className="w-[26px] h-[26px] flex items-center justify-center hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0]" title="Close">
           <X className="w-4 h-4" style={{ color: "#95a5a6" }} />
@@ -343,6 +529,27 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
           <MapPin className="w-3 h-3" style={{ color: "#e74c3c" }} />
           GPS
         </button>
+        <div className="w-px h-5 bg-[#c0c0c0] mx-1" />
+        {ticket?.invoice ? (
+          <button
+            onClick={handleViewInvoice}
+            className="ml-2 px-3 py-1 border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0] text-[11px] rounded flex items-center gap-1"
+            title={`View Invoice #${ticket.invoice.invoiceNumber}`}
+          >
+            <ExternalLink className="w-3 h-3" style={{ color: "#0066cc" }} />
+            Invoice #{ticket.invoice.invoiceNumber}
+          </button>
+        ) : (
+          <button
+            onClick={handleCreateInvoice}
+            disabled={creatingInvoice}
+            className="ml-2 px-3 py-1 border border-[#a0a0a0] bg-[#e8f5e9] hover:bg-[#c8e6c9] text-[11px] rounded flex items-center gap-1 disabled:opacity-50"
+            title="Create Invoice from this ticket"
+          >
+            <Receipt className="w-3 h-3" style={{ color: "#2e7d32" }} />
+            {creatingInvoice ? "Creating..." : "Create Invoice"}
+          </button>
+        )}
       </div>
 
       {/* Tab Headers */}
@@ -372,6 +579,10 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
             onOpenAccount={openAccount}
             onOpenJob={openJob}
             getNameAddress={getNameAddress}
+            accounts={accounts}
+            onAccountChange={handleAccountChange}
+            accountJobs={accountJobs}
+            onJobChange={handleJobChange}
           />
         )}
         {activeTab === 1 && <MaterialsCustomTab />}
@@ -409,6 +620,35 @@ interface TicketInfoTabProps {
   onOpenAccount: () => void;
   onOpenJob: () => void;
   getNameAddress: () => string;
+  accounts: { id: string; label: string; description: string }[];
+  onAccountChange: (premisesId: string) => void;
+  accountJobs: { id: string; label: string }[];
+  onJobChange: (jobId: string) => void;
+}
+
+// Parse time strings like "02:45 PM", "1:45pm", "14:45" into "HH:mm" format for <input type="time">
+function parseTimeToInput(timeStr: string | null | undefined): string {
+  if (!timeStr) return "";
+  // Already in HH:mm format
+  if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
+  // Parse "HH:MM AM/PM" or "H:MMam/pm" variations
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
+  if (!match) return "";
+  let hours = parseInt(match[1]);
+  const minutes = match[2];
+  const ampm = match[3]?.toUpperCase();
+  if (ampm === "PM" && hours < 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  return `${hours.toString().padStart(2, "0")}:${minutes}`;
+}
+
+// Format "HH:mm" to "hh:mm AM/PM" for display/storage
+function formatTimeForStorage(timeVal: string): string {
+  if (!timeVal) return "";
+  const [h, m] = timeVal.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${ampm}`;
 }
 
 function TicketInfoTab({
@@ -418,6 +658,10 @@ function TicketInfoTab({
   onOpenAccount,
   onOpenJob,
   getNameAddress,
+  accounts,
+  onAccountChange,
+  accountJobs,
+  onJobChange,
 }: TicketInfoTabProps) {
   const inputClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
   const selectClass = "px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px]";
@@ -480,6 +724,26 @@ function TicketInfoTab({
           </select>
         </div>
 
+        {/* Account */}
+        <div className="flex items-center gap-1">
+          <label
+            className={`${labelClass} w-[50px] text-blue-600 cursor-pointer hover:underline`}
+            onClick={onOpenAccount}
+          >
+            Account
+          </label>
+          <select
+            value={formData.premises?.id || ""}
+            onChange={(e) => onAccountChange(e.target.value)}
+            className={`${selectClass} flex-1`}
+          >
+            <option value="">Select...</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id} title={a.description}>{a.label}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Job and Phase */}
         <div className="flex items-center gap-1">
           <label
@@ -488,12 +752,16 @@ function TicketInfoTab({
           >
             Job
           </label>
-          <input
-            type="text"
-            value={ticket.job?.externalId || ""}
-            className={`${inputClass} w-[70px]`}
-            readOnly
-          />
+          <select
+            value={(formData as any).jobId || ticket.job?.id || ""}
+            onChange={(e) => onJobChange(e.target.value)}
+            className={`${selectClass} w-[70px]`}
+          >
+            <option value="">Select...</option>
+            {accountJobs.map((j) => (
+              <option key={j.id} value={j.id}>{j.label}</option>
+            ))}
+          </select>
           <label className={`${labelClass} w-[35px]`}>Phase</label>
           <input
             type="number"
@@ -566,11 +834,10 @@ function TicketInfoTab({
             <div className="flex items-center">
               <label className={`${labelClass} w-[45px]`}>Time</label>
               <input
-                type="text"
-                value={formData.workTime || ""}
-                onChange={(e) => onChange("workTime", e.target.value)}
+                type="time"
+                value={parseTimeToInput(formData.workTime)}
+                onChange={(e) => onChange("workTime", formatTimeForStorage(e.target.value))}
                 className={`${inputClass} flex-1`}
-                placeholder="03:42 PM"
               />
             </div>
             <div className="flex items-center">
@@ -605,31 +872,28 @@ function TicketInfoTab({
             <div className="flex items-center">
               <label className={`${labelClass} w-[60px]`}>En Route</label>
               <input
-                type="text"
-                value={formData.enRouteTime || ""}
-                onChange={(e) => onChange("enRouteTime", e.target.value)}
+                type="time"
+                value={parseTimeToInput(formData.enRouteTime)}
+                onChange={(e) => onChange("enRouteTime", formatTimeForStorage(e.target.value))}
                 className={`${inputClass} flex-1`}
-                placeholder="02:45 PM"
               />
             </div>
             <div className="flex items-center">
               <label className={`${labelClass} w-[60px]`}>On Site</label>
               <input
-                type="text"
-                value={formData.onSiteTime || ""}
-                onChange={(e) => onChange("onSiteTime", e.target.value)}
+                type="time"
+                value={parseTimeToInput(formData.onSiteTime)}
+                onChange={(e) => onChange("onSiteTime", formatTimeForStorage(e.target.value))}
                 className={`${inputClass} flex-1`}
-                placeholder="02:45 PM"
               />
             </div>
             <div className="flex items-center">
               <label className={`${labelClass} w-[60px]`}>Completed</label>
               <input
-                type="text"
-                value={formData.completedTime || ""}
-                onChange={(e) => onChange("completedTime", e.target.value)}
+                type="time"
+                value={parseTimeToInput(formData.completedTime)}
+                onChange={(e) => onChange("completedTime", formatTimeForStorage(e.target.value))}
                 className={`${inputClass} flex-1`}
-                placeholder="03:30 PM"
               />
             </div>
           </div>

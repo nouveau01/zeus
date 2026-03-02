@@ -18,6 +18,17 @@ import {
 import { getUnitById } from "@/lib/actions/units";
 import { useXPDialog } from "@/components/ui/XPDialog";
 
+// Convert a date string/object to YYYY-MM-DD for <input type="date">
+function toDateInputValue(d: string | Date | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(date.getTime())) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 interface UnitData {
   id: string;
   unitNumber: string;
@@ -251,9 +262,9 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
         accountTag: updated.premises?.address || updated.premises?.premisesId || "",
         status: updated.status || "Active",
         group: updated.group || "",
-        onServiceSince: updated.sinceDate ? new Date(updated.sinceDate).toLocaleDateString() : "",
-        lastServiceOn: updated.lastDate ? new Date(updated.lastDate).toLocaleDateString() : "",
-        installed: updated.installDate ? new Date(updated.installDate).toLocaleDateString() : "",
+        onServiceSince: toDateInputValue(updated.sinceDate),
+        lastServiceOn: toDateInputValue(updated.lastDate),
+        installed: toDateInputValue(updated.installDate),
         installedBy: updated.installBy || "",
         manufacturer: updated.manufacturer || "",
         serialNumber: updated.serial || "",
@@ -301,9 +312,9 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             accountTag: data.premisesAddress || data.premisesTag || "",
             status: data.isActive ? "Active" : "Inactive",
             group: data.group || "",
-            onServiceSince: data.sinceDate ? new Date(data.sinceDate).toLocaleDateString() : "",
-            lastServiceOn: data.lastDate ? new Date(data.lastDate).toLocaleDateString() : "",
-            installed: data.installDate ? new Date(data.installDate).toLocaleDateString() : "",
+            onServiceSince: toDateInputValue(data.sinceDate),
+            lastServiceOn: toDateInputValue(data.lastDate),
+            installed: toDateInputValue(data.installDate),
             installedBy: data.installBy || "",
             manufacturer: data.manufacturer || "",
             serialNumber: data.serial || "",
@@ -759,39 +770,30 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
               </div>
               <div className="flex items-center gap-2">
                 <label className="w-24 text-[12px]">On Service Since</label>
-                <div className="flex-1 flex gap-1">
-                  <input
-                    type="text"
-                    value={unit.onServiceSince}
-                    onChange={(e) => setUnit({ ...unit, onServiceSince: e.target.value })}
-                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
-                  />
-                  <button className="px-2 border border-[#7f9db9] bg-white text-[12px]">...</button>
-                </div>
+                <input
+                  type="date"
+                  value={unit.onServiceSince}
+                  onChange={(e) => { setUnit({ ...unit, onServiceSince: e.target.value }); markDirty(); }}
+                  className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                />
               </div>
               <div className="flex items-center gap-2">
                 <label className="w-24 text-[12px]">Last Service On</label>
-                <div className="flex-1 flex gap-1">
-                  <input
-                    type="text"
-                    value={unit.lastServiceOn}
-                    onChange={(e) => setUnit({ ...unit, lastServiceOn: e.target.value })}
-                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
-                  />
-                  <button className="px-2 border border-[#7f9db9] bg-white text-[12px]">...</button>
-                </div>
+                <input
+                  type="date"
+                  value={unit.lastServiceOn}
+                  onChange={(e) => { setUnit({ ...unit, lastServiceOn: e.target.value }); markDirty(); }}
+                  className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                />
               </div>
               <div className="flex items-center gap-2">
                 <label className="w-24 text-[12px]">Installed</label>
-                <div className="flex-1 flex gap-1">
-                  <input
-                    type="text"
-                    value={unit.installed}
-                    onChange={(e) => setUnit({ ...unit, installed: e.target.value })}
-                    className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
-                  />
-                  <button className="px-2 border border-[#7f9db9] bg-white text-[12px]">...</button>
-                </div>
+                <input
+                  type="date"
+                  value={unit.installed}
+                  onChange={(e) => { setUnit({ ...unit, installed: e.target.value }); markDirty(); }}
+                  className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
+                />
               </div>
               <div className="flex items-center gap-2">
                 <label className="w-24 text-[12px]">Installed By</label>

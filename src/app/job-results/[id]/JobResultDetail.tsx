@@ -30,6 +30,28 @@ interface Job {
   status: string;
   type: string | null;
   template: string | null;
+  // Financial fields
+  rev: number;
+  mat: number;
+  labor: number;
+  cost: number;
+  profit: number;
+  ratio: number;
+  bRev: number;
+  bMat: number;
+  bLabor: number;
+  bCost: number;
+  bProfit: number;
+  bRatio: number;
+  // Hours fields
+  reg: number;
+  ot: number;
+  dt: number;
+  tt: number;
+  nt: number;
+  hour: number;
+  bHour: number;
+  comm: number;
   premises: {
     id: string;
     premisesId: string | null;
@@ -67,12 +89,12 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
 
   // Financial summary data
   const [financials, setFinancials] = useState({
-    actual: { revenues: 0, costs: 130.72, profits: -130.72, percent: 0 },
-    committed: { revenues: 0, costs: 1.00, profits: -1.00, percent: 0 },
-    total: { revenues: 0, costs: 131.72, profits: -131.72, percent: 0 },
-    budget: { revenues: 3660.00, costs: 0, profits: 3660.00, percent: 100 },
-    difference: { revenues: -3660.00, costs: 131.72, profits: -3791.72, percent: 104 },
-    overUnder: { revenues: -100, costs: 0, profits: -103.60 },
+    actual: { revenues: 0, costs: 0, profits: 0, percent: 0 },
+    committed: { revenues: 0, costs: 0, profits: 0, percent: 0 },
+    total: { revenues: 0, costs: 0, profits: 0, percent: 0 },
+    budget: { revenues: 0, costs: 0, profits: 0, percent: 0 },
+    difference: { revenues: 0, costs: 0, profits: 0, percent: 0 },
+    overUnder: { revenues: 0, costs: 0, profits: 0 },
   });
 
   // Hourly yield data
@@ -89,10 +111,71 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
   const fetchJob = async () => {
     setLoading(true);
     try {
-      // Use Server Action - pulls from SQL Server and mirrors to PostgreSQL
+      // Use Server Action - pulls from PostgreSQL
       const data = await getJobById(jobId);
       if (data) {
         setJob(data);
+
+        // Populate hours from job data
+        const reg = Number(data.reg) || 0;
+        const ot = Number(data.ot) || 0;
+        const dt = Number(data.dt) || 0;
+        const tt = Number(data.tt) || 0;
+        const totalHours = Number(data.hour) || (reg + ot + dt + tt);
+        const budgetedHours = Number(data.bHour) || 0;
+        setHours({
+          regular: reg,
+          overtime: ot,
+          time17: Number(data.nt) || 0,
+          doubleTime: dt,
+          travel: tt,
+          total: totalHours,
+          budgeted: budgetedHours,
+          difference: budgetedHours - totalHours,
+        });
+
+        // Populate financials from job data
+        const rev = Number(data.rev) || 0;
+        const mat = Number(data.mat) || 0;
+        const labor = Number(data.labor) || 0;
+        const cost = Number(data.cost) || 0;
+        const profit = Number(data.profit) || 0;
+        const bRev = Number(data.bRev) || 0;
+        const bMat = Number(data.bMat) || 0;
+        const bLabor = Number(data.bLabor) || 0;
+        const bCost = Number(data.bCost) || 0;
+        const bProfit = Number(data.bProfit) || 0;
+
+        const totalRev = rev;
+        const totalCost = cost || (mat + labor);
+        const totalProfit = profit || (rev - totalCost);
+        const profitPercent = rev > 0 ? ((totalProfit / rev) * 100) : 0;
+        const budgetProfitPercent = bRev > 0 ? ((bProfit / bRev) * 100) : (bRev === 0 && bCost === 0 ? 0 : 100);
+        const diffRev = totalRev - bRev;
+        const diffCost = totalCost - bCost;
+        const diffProfit = totalProfit - bProfit;
+        const diffPercent = bRev > 0 ? ((diffProfit / bRev) * 100) : 0;
+        const overUnderRev = bRev > 0 ? ((diffRev / bRev) * 100) : 0;
+        const overUnderCost = bCost > 0 ? ((diffCost / bCost) * 100) : 0;
+        const overUnderProfit = bProfit > 0 ? ((diffProfit / bProfit) * 100) : 0;
+
+        setFinancials({
+          actual: { revenues: rev, costs: totalCost, profits: totalProfit, percent: profitPercent },
+          committed: { revenues: 0, costs: Number(data.comm) || 0, profits: -(Number(data.comm) || 0), percent: 0 },
+          total: { revenues: rev, costs: totalCost + (Number(data.comm) || 0), profits: totalProfit - (Number(data.comm) || 0), percent: profitPercent },
+          budget: { revenues: bRev, costs: bCost, profits: bProfit, percent: budgetProfitPercent },
+          difference: { revenues: diffRev, costs: diffCost, profits: diffProfit, percent: diffPercent },
+          overUnder: { revenues: overUnderRev, costs: overUnderCost, profits: overUnderProfit },
+        });
+
+        // Hourly yield
+        if (totalHours > 0) {
+          setHourlyYield({
+            avgIncome: rev / totalHours,
+            avgCost: totalCost / totalHours,
+            avgProfit: totalProfit / totalHours,
+          });
+        }
       }
     } catch (error) {
       console.error("Error fetching job:", error);
@@ -283,13 +366,25 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
     </div>
   );
 
-  // Tab 2: Job Costing Detail
+  // Tab 2: Job Costing Detail - computed from real data
+  const rev = Number(job?.rev) || 0;
+  const mat = Number(job?.mat) || 0;
+  const labor = Number(job?.labor) || 0;
+  const costTotal = Number(job?.cost) || (mat + labor);
+  const profitActual = Number(job?.profit) || (rev - costTotal);
+  const bRev = Number(job?.bRev) || 0;
+  const bMat = Number(job?.bMat) || 0;
+  const bLabor = Number(job?.bLabor) || 0;
+  const bCostVal = Number(job?.bCost) || 0;
+  const bProfitVal = Number(job?.bProfit) || 0;
+  const commAmt = Number(job?.comm) || 0;
+
   const costingData = {
-    revenues: { actual: 0, committed: 0, total: 0, budget: 3660.00, difference: -3660.00, ratio: -100 },
-    labor: { actual: 124.72, committed: 0, total: 124.72, budget: 0, difference: 124.72, ratio: 0 },
-    materials: { actual: 6.00, committed: 1.00, total: 7.00, budget: 0, difference: 7.00, ratio: 0 },
-    totalCost: { actual: 130.72, committed: 1.00, total: 131.72, budget: 0, difference: 131.72, ratio: 0 },
-    netProfit: { actual: -130.72, committed: -1.00, total: -131.72, budget: 3660.00, difference: -3791.72, ratio: -104 },
+    revenues: { actual: rev, committed: 0, total: rev, budget: bRev, difference: rev - bRev, ratio: bRev > 0 ? ((rev - bRev) / bRev) * 100 : 0 },
+    labor: { actual: labor, committed: 0, total: labor, budget: bLabor, difference: labor - bLabor, ratio: bLabor > 0 ? ((labor - bLabor) / bLabor) * 100 : 0 },
+    materials: { actual: mat, committed: commAmt, total: mat + commAmt, budget: bMat, difference: (mat + commAmt) - bMat, ratio: bMat > 0 ? (((mat + commAmt) - bMat) / bMat) * 100 : 0 },
+    totalCost: { actual: costTotal, committed: commAmt, total: costTotal + commAmt, budget: bCostVal, difference: (costTotal + commAmt) - bCostVal, ratio: bCostVal > 0 ? (((costTotal + commAmt) - bCostVal) / bCostVal) * 100 : 0 },
+    netProfit: { actual: profitActual, committed: -commAmt, total: profitActual - commAmt, budget: bProfitVal, difference: (profitActual - commAmt) - bProfitVal, ratio: bProfitVal > 0 ? (((profitActual - commAmt) - bProfitVal) / bProfitVal) * 100 : 0 },
   };
 
   const renderCostingDetailTab = () => (
@@ -442,11 +537,8 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
     </div>
   );
 
-  // Tab 3: Job Costing Items
-  const costingItems = [
-    { date: "8/9/2003", source: "Ticket", ref: "71663", desc: "Labor on Ticket", revenues: null, expenses: 124.72, phase: 1 },
-    { date: "5/20/2004", source: "AP Item", ref: "3211680", desc: "CAGE 303H1", revenues: null, expenses: 6.00, phase: 2 },
-  ];
+  // Tab 3: Job Costing Items - empty until populated from real ticket/invoice data
+  const costingItems: { date: string; source: string; ref: string; desc: string; revenues: number | null; expenses: number | null; phase: number }[] = [];
 
   const renderCostingItemsTab = () => (
     <div className="p-4">

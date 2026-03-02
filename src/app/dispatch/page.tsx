@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTabs } from "@/context/TabContext";
 import { AdminTools } from "@/components/AdminTools";
 import { EditableColumnHeader } from "@/components/EditableColumnHeader";
@@ -41,7 +41,8 @@ const DISPATCH_DEFAULT_FIELDS = createDefaultFields({
   ticketNumber: { label: "Ticket #", width: 70 },
   woNumber: { label: "W/O #", width: 70 },
   type: { label: "Type", width: 100 },
-  account: { label: "Account", width: 120 },
+  accountId: { label: "Account ID", width: 120 },
+  account: { label: "Account", width: 150 },
   address: { label: "Address", width: 180 },
   unit: { label: "Unit", width: 60 },
   description: { label: "Description", width: 200 },
@@ -90,6 +91,7 @@ interface TicketDetail {
   source: string;
   // Account Info
   accountId: string;
+  premisesInternalId?: string; // internal CUID for the FK relation
   accountTag: string;
   accountAddress: string;
   accountCity: string;
@@ -114,6 +116,7 @@ interface TicketDetail {
   updateMechLocation: boolean;
   onServiceExp: string;
   // Scope & Schedule
+  ticketStatus: string;
   scopeOfWork: string;
   maintenanceNotes: string;
   followUpNotes: string;
@@ -123,10 +126,12 @@ interface TicketDetail {
   schedDate: string;
   schedTime: string;
   schedMech: string;
+  estTime: string;
   enRouteTime: string;
   onSiteTime: string;
   completedTime: string;
   witness: string;
+  onHold: boolean;
   // Customer Info
   customerName: string;
   customerAddress: string;
@@ -183,6 +188,53 @@ interface LedgerItem {
   days: number;
 }
 
+// Parse date strings like "MM/DD/YYYY" or "3/2/2026" into "YYYY-MM-DD" for <input type="date">
+function parseDateToInput(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  // Parse MM/DD/YYYY
+  const match = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (match) {
+    return `${match[3]}-${match[1].padStart(2, "0")}-${match[2].padStart(2, "0")}`;
+  }
+  // Try Date parse as fallback
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().split("T")[0];
+  }
+  return "";
+}
+
+// Format "YYYY-MM-DD" to "MM/DD/YYYY" for storage
+function formatDateForStorage(dateVal: string): string {
+  if (!dateVal) return "";
+  const [y, m, d] = dateVal.split("-");
+  return `${parseInt(m)}/${parseInt(d)}/${y}`;
+}
+
+// Parse time strings like "02:45 PM", "1:45pm", "14:45" into "HH:mm" format for <input type="time">
+function parseTimeToInput(timeStr: string | null | undefined): string {
+  if (!timeStr) return "";
+  if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
+  if (!match) return "";
+  let hours = parseInt(match[1]);
+  const minutes = match[2];
+  const ampm = match[3]?.toUpperCase();
+  if (ampm === "PM" && hours < 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  return `${hours.toString().padStart(2, "0")}:${minutes}`;
+}
+
+function formatTimeForStorage(timeVal: string): string {
+  if (!timeVal) return "";
+  const [h, m] = timeVal.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${ampm}`;
+}
+
 export default function DispatchPage() {
   const { openTab } = useTabs();
   const { selectedOfficeIds, allSelected } = useOffices();
@@ -235,6 +287,8 @@ export default function DispatchPage() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isNewTicket, setIsNewTicket] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const originalTicketDetailRef = useRef<TicketDetail | null>(null);
 
   // Units and jobs for the selected account (for dropdowns)
   const [accountUnits, setAccountUnits] = useState<{ id: string; label: string }[]>([]);
@@ -260,7 +314,8 @@ export default function DispatchPage() {
     ticketNumber: 70,
     woNumber: 70,
     type: 80,
-    account: 180,
+    accountId: 120,
+    account: 150,
     address: 180,
     unit: 60,
     description: 200,
@@ -397,7 +452,7 @@ export default function DispatchPage() {
           woNumber: String(t.workOrderNumber || t.ticketNumber),
           type: t.type as "Maintenance" | "Violation" | "Other" | "NEW REPAIR",
           accountId: t.accountId || t.premises?.premisesId || "",
-          accountTag: `${t.premises?.tag || t.accountId || ""}~ - ${t.premises?.address || ""}`,
+          accountTag: t.premises?.address || t.premises?.tag || "",
           address: t.premises?.address || "",
           unit: t.unitName || "",
           unitId: t.unitId?.toString() || "",
@@ -405,7 +460,7 @@ export default function DispatchPage() {
           status: t.status as "Open" | "Assigned" | "En Route" | "On Site" | "Completed" | "Closed",
           callDate: t.date ? new Date(t.date).toLocaleDateString() : "",
           callTime: t.date ? new Date(t.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : "",
-          scheduled: t.dispatchDate ? `${new Date(t.dispatchDate).toLocaleDateString()}, ${new Date(t.dispatchDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : "",
+          scheduled: t.scheduledDate ? new Date(t.scheduledDate).toLocaleDateString() : "",
           worker: t.mechCrew || "",
           city: t.premises?.city || "",
           state: t.premises?.state || "",
@@ -430,7 +485,7 @@ export default function DispatchPage() {
         setFilteredTickets(filtered);
         if (filtered.length > 0 && !selectedTicket) {
           setSelectedTicket(filtered[0]);
-          loadTicketDetail(filtered[0]);
+          loadTicketDetail(filtered[0], fullDataMap);
         }
       }
     } catch (error) {
@@ -489,22 +544,23 @@ export default function DispatchPage() {
   // Store full ticket data from API for detail view
   const [fullTicketData, setFullTicketData] = useState<Map<string, any>>(new Map());
 
-  const loadTicketDetail = async (ticket: Ticket) => {
-    // Get the full ticket data from our stored API response
-    const apiTicket = fullTicketData.get(ticket.id);
+  const loadTicketDetail = async (ticket: Ticket, dataMap?: Map<string, any>) => {
+    // Get the full ticket data from our stored API response (or passed-in map for initial load)
+    const apiTicket = (dataMap || fullTicketData).get(ticket.id);
 
     // Build detail from API data or ticket data
     const detail: TicketDetail = {
       ticketNumber: ticket.ticketNumber,
       woNumber: ticket.woNumber,
       date: apiTicket?.date ? new Date(apiTicket.date).toLocaleDateString() : ticket.callDate,
-      time: apiTicket?.time || ticket.callTime,
-      caller: apiTicket?.caller || apiTicket?.who || "",
-      phoneNumber: apiTicket?.phone || "",
-      takenBy: apiTicket?.takenBy || apiTicket?.createdBy || "",
-      source: apiTicket?.source || "GENERAL",
+      time: apiTicket?.workTime || ticket.callTime,
+      caller: apiTicket?.calledInBy || "",
+      phoneNumber: "",
+      takenBy: apiTicket?.takenBy || "",
+      source: "GENERAL",
       accountId: ticket.accountId,
-      accountTag: ticket.accountTag.split("~")[0],
+      premisesInternalId: apiTicket?.premises?.id || ticket.premisesInternalId || "",
+      accountTag: ticket.accountTag,
       accountAddress: apiTicket?.premises?.address || ticket.address,
       accountCity: apiTicket?.premises?.city || ticket.city,
       accountState: apiTicket?.premises?.state || ticket.state,
@@ -515,30 +571,33 @@ export default function DispatchPage() {
       accountContact: apiTicket?.premises?.contact || "",
       accountEmail: apiTicket?.premises?.email || "",
       category: apiTicket?.category || "None",
-      level: apiTicket?.level ? `${apiTicket.level}-Service Call` : "1-Service Call",
-      unitId: ticket.unitId,
-      unitNumber: ticket.unit,
-      nature: apiTicket?.jobId ? "Existing Job" : "New Job",
-      jobId: ticket.jobId,
+      level: apiTicket?.level || "",
+      unitId: apiTicket?.unitId || ticket.unitId,
+      unitNumber: apiTicket?.unitName || ticket.unit,
+      nature: (apiTicket?.jobId || ticket.jobId) ? "Existing Job" : "New Job",
+      jobId: apiTicket?.jobId || ticket.jobId,
       jobNumber: ticket.jobNumber,
       testMech: "Mechanic",
-      calledIn: apiTicket?.calledIn || false,
-      highPriority: apiTicket?.highPriority || false,
+      calledIn: false,
+      highPriority: false,
       updateMechLocation: false,
       onServiceExp: "",
+      ticketStatus: ticket.status || apiTicket?.status || "Open",
       scopeOfWork: apiTicket?.scopeOfWork || apiTicket?.description || ticket.description,
-      maintenanceNotes: apiTicket?.notes || "",
+      maintenanceNotes: apiTicket?.resolution || "",
       followUpNotes: "",
       codes: "",
-      followUpNeeded: apiTicket?.followUp || false,
-      notes: apiTicket?.notes || "",
+      followUpNeeded: false,
+      notes: apiTicket?.internalComments || "",
       schedDate: apiTicket?.scheduledDate ? new Date(apiTicket.scheduledDate).toLocaleDateString() : "",
-      schedTime: apiTicket?.scheduledTime || "",
-      schedMech: apiTicket?.scheduledMech || ticket.worker,
+      schedTime: "",
+      schedMech: apiTicket?.mechCrew || ticket.worker,
+      estTime: apiTicket?.estTime ? String(apiTicket.estTime) : "0",
       enRouteTime: apiTicket?.enRouteTime || "",
       onSiteTime: apiTicket?.onSiteTime || "",
       completedTime: apiTicket?.completedTime || "",
       witness: apiTicket?.witness || "",
+      onHold: apiTicket?.onHold || false,
       customerName: apiTicket?.premises?.customer?.name || ticket.customerName,
       customerAddress: apiTicket?.premises?.customer?.address || "",
       customerCity: apiTicket?.premises?.customer?.city || "",
@@ -564,6 +623,8 @@ export default function DispatchPage() {
       billingRemarks: "",
     };
     setTicketDetail(detail);
+    originalTicketDetailRef.current = detail;
+    setIsDirty(false);
 
     // Fetch units and jobs for this account
     if (apiTicket?.premises?.id) {
@@ -716,6 +777,7 @@ export default function DispatchPage() {
   // Helper to update a single field in ticketDetail
   const updateDetail = (field: keyof TicketDetail, value: string | boolean) => {
     setTicketDetail(prev => prev ? { ...prev, [field]: value } : prev);
+    if (!isNewTicket) setIsDirty(true);
   };
 
   // Autocomplete selection handlers — populate related fields from selected record
@@ -726,6 +788,7 @@ export default function DispatchPage() {
       ...prev,
       accountTag: a.name || "",
       accountId: a.premisesId || a.id || "",
+      premisesInternalId: internalId,
       accountAddress: a.address || "",
       accountCity: a.city || "",
       accountState: a.state || "",
@@ -745,6 +808,7 @@ export default function DispatchPage() {
       // Also fill customer info from the account's owner
       customerName: a.customer?.name || prev.customerName,
     } : prev);
+    if (!isNewTicket) setIsDirty(true);
 
     // Also update the selected ticket's internal ID for navigation
     if (selectedTicket) {
@@ -766,6 +830,7 @@ export default function DispatchPage() {
       ...prev,
       unitNumber: u.unitNumber || "",
     } : prev);
+    if (!isNewTicket) setIsDirty(true);
   };
 
   const handleJobSelect = (result: AutocompleteResult) => {
@@ -775,6 +840,7 @@ export default function DispatchPage() {
       jobId: j.id || "",
       jobNumber: j.jobNumber || j.id || "",
     } : prev);
+    if (!isNewTicket) setIsDirty(true);
   };
 
   const handleCustomerSelect = (result: AutocompleteResult) => {
@@ -793,6 +859,7 @@ export default function DispatchPage() {
       customerContact: c.contact || "",
       customerEmail: c.email || "",
     } : prev);
+    if (!isNewTicket) setIsDirty(true);
   };
 
   // Date quick buttons
@@ -879,6 +946,7 @@ export default function DispatchPage() {
       highPriority: false,
       updateMechLocation: false,
       onServiceExp: "",
+      ticketStatus: "Open",
       scopeOfWork: "",
       maintenanceNotes: "",
       followUpNotes: "",
@@ -888,10 +956,12 @@ export default function DispatchPage() {
       schedDate: "",
       schedTime: "",
       schedMech: "",
+      estTime: "0",
       enRouteTime: "",
       onSiteTime: "",
       completedTime: "",
       witness: "",
+      onHold: false,
       customerName: "",
       customerAddress: "",
       customerCity: "",
@@ -925,6 +995,13 @@ export default function DispatchPage() {
     setGridHeightPercent(prevGridHeightRef.current);
   };
 
+  const handleDiscardChanges = () => {
+    if (originalTicketDetailRef.current) {
+      setTicketDetail({ ...originalTicketDetailRef.current });
+    }
+    setIsDirty(false);
+  };
+
   const handleSave = async () => {
     if (!ticketDetail) return;
 
@@ -934,30 +1011,46 @@ export default function DispatchPage() {
     setSaving(true);
     setSaveMessage(null);
     try {
+      // Determine status
+      const ticketStatus = ticketDetail.ticketStatus || selectedTicket?.status || "Open";
+      const isCompleting = ticketStatus === "Completed";
+
       // Map ticketDetail state to the API's expected body format
       const body: Record<string, any> = {
         ticketNumber: parseInt(ticketDetail.ticketNumber) || undefined,
         workOrderNumber: parseInt(ticketDetail.woNumber) || parseInt(ticketDetail.ticketNumber) || undefined,
         date: ticketDetail.date,
+        scheduledDate: ticketDetail.schedDate || undefined,
         type: ticketDetail.nature === "New Job" ? "Other" : "Maintenance",
         category: ticketDetail.category || undefined,
         level: ticketDetail.level || undefined,
-        status: isNewTicket ? "Open" : (selectedTicket?.status || "Open"),
+        status: isNewTicket ? "Open" : ticketStatus,
         description: ticketDetail.scopeOfWork || undefined,
         scopeOfWork: ticketDetail.scopeOfWork || undefined,
         mechCrew: ticketDetail.schedMech || undefined,
         unitName: ticketDetail.unitNumber || undefined,
+        unitId: ticketDetail.unitId || undefined,
+        jobId: ticketDetail.jobId || undefined,
+        estTime: ticketDetail.estTime ? parseFloat(ticketDetail.estTime) : 0,
         enRouteTime: ticketDetail.enRouteTime || undefined,
         onSiteTime: ticketDetail.onSiteTime || undefined,
         completedTime: ticketDetail.completedTime || undefined,
+        witness: ticketDetail.witness || undefined,
+        onHold: ticketDetail.onHold,
         takenBy: ticketDetail.takenBy || undefined,
         resolution: ticketDetail.maintenanceNotes || undefined,
         calledInBy: ticketDetail.caller || undefined,
         internalComments: ticketDetail.notes || undefined,
         nameAddress: ticketDetail.accountAddress || undefined,
         accountId: ticketDetail.accountId || undefined,
+        premisesId: ticketDetail.premisesInternalId || undefined,
         accountPremisesId: ticketDetail.accountId || undefined,
       };
+
+      // When completing, send completedDate
+      if (isCompleting && !isNewTicket) {
+        body.completedDate = new Date().toISOString();
+      }
 
       if (isNewTicket) {
         // CREATE new ticket
@@ -972,9 +1065,10 @@ export default function DispatchPage() {
           throw new Error(err.error || "Failed to create ticket");
         }
 
+        const createdTicket = await response.json();
         setIsNewTicket(false);
         setGridHeightPercent(prevGridHeightRef.current);
-        setSaveMessage({ type: "success", text: `Ticket #${ticketDetail.ticketNumber} created successfully` });
+        setSaveMessage({ type: "success", text: `Ticket #${createdTicket.ticketNumber} created successfully` });
         setTimeout(() => setSaveMessage(null), 2000);
         // Refresh ticket list using the same filters as the grid
         await fetchTickets();
@@ -994,10 +1088,20 @@ export default function DispatchPage() {
         throw new Error(err.error || "Failed to save ticket");
       }
 
-      setSaveMessage({ type: "success", text: "Ticket saved successfully" });
+      if (isCompleting) {
+        setSaveMessage({ type: "success", text: `Ticket #${ticketDetail.ticketNumber} completed — moved to Completed Tickets` });
+        // Clear the detail panel since this ticket is no longer on dispatch
+        setSelectedTicket(null);
+        setTicketDetail(null);
+      } else {
+        setSaveMessage({ type: "success", text: "Ticket saved successfully" });
+        // Update original snapshot so dirty tracking resets
+        if (ticketDetail) originalTicketDetailRef.current = { ...ticketDetail };
+      }
+      setIsDirty(false);
       // Auto-hide success message after 2 seconds
-      setTimeout(() => setSaveMessage(null), 2000);
-      // Refresh the ticket list
+      setTimeout(() => setSaveMessage(null), 3000);
+      // Refresh the ticket list (completed ticket will disappear from dispatch)
       await fetchTickets();
     } catch (error: any) {
       setSaveMessage({ type: "error", text: error.message || "Failed to save ticket" });
@@ -1016,6 +1120,7 @@ export default function DispatchPage() {
     if (searchTerm) {
       const filtered = tickets.filter(t =>
         t.ticketNumber.includes(searchTerm) ||
+        t.accountId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.accountTag.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.address.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -1099,7 +1204,14 @@ export default function DispatchPage() {
     }
   };
 
-  const workers = ["All", "MORRISON S", "ALMONTE E", "CANZONA C", "NGONZALEZ"];
+  // Workers derived from actual ticket data — no hardcoded names
+  const workers = useMemo(() => {
+    const mechSet = new Set<string>();
+    tickets.forEach(t => { if (t.worker) mechSet.add(t.worker); });
+    return ["All", ...Array.from(mechSet).sort()];
+  }, [tickets]);
+
+  // These are DynamicSelect fallback defaults — overridden once admin configures Picklist Values
   const types = ["All", "Maintenance", "Violation", "Other", "NEW REPAIR"];
   const statuses = ["All", "Open", "Assigned", "En Route", "On Site"];
   const zones = ["All", "DIVISION #1", "DIVISION #2", "DIVISION #3", "DIVISION #4", "DIVISION #5"];
@@ -1350,6 +1462,17 @@ export default function DispatchPage() {
                   onResizeStart={(e) => handleColumnResizeStart(e, "type")}
                 />
                 <EditableColumnHeader
+                  fieldName="accountId"
+                  label={getLabel("accountId") || "Account ID"}
+                  isEditMode={isEditMode}
+                  onLabelChange={updateFieldLabel}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={() => handleSort("accountId")}
+                  width={columnWidths.accountId}
+                  onResizeStart={(e) => handleColumnResizeStart(e, "accountId")}
+                />
+                <EditableColumnHeader
                   fieldName="account"
                   label={getLabel("account")}
                   isEditMode={isEditMode}
@@ -1485,6 +1608,7 @@ export default function DispatchPage() {
                     <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.ticketNumber, maxWidth: columnWidths.ticketNumber }}>{ticket.ticketNumber}</td>
                     <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.woNumber, maxWidth: columnWidths.woNumber }}>{ticket.woNumber}</td>
                     <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.type, maxWidth: columnWidths.type }}>{ticket.type}</td>
+                    <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.accountId, maxWidth: columnWidths.accountId }}>{ticket.accountId}</td>
                     <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.account, maxWidth: columnWidths.account }}>{ticket.accountTag}</td>
                     <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.address, maxWidth: columnWidths.address }}>{ticket.address}</td>
                     <td className="px-1 py-0.5 border border-[#e0e0e0] overflow-hidden text-ellipsis whitespace-nowrap" style={{ width: columnWidths.unit, maxWidth: columnWidths.unit }}>{ticket.unit}</td>
@@ -1536,6 +1660,30 @@ export default function DispatchPage() {
             </div>
           )}
 
+          {/* Save/Discard bar for editing existing tickets */}
+          {!isNewTicket && isDirty && ticketDetail && (
+            <div className="flex items-center justify-between px-3 py-1.5 bg-[#fff3e0] border-b border-[#ff9800]">
+              <div className="flex items-center gap-2 text-[12px] text-[#e65100] font-medium">
+                <span>Unsaved changes to Ticket #{ticketDetail.ticketNumber}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-4 py-1 text-[11px] bg-[#0078d4] text-white border border-[#005a9e] rounded hover:bg-[#106ebe] disabled:opacity-50 font-medium"
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={handleDiscardChanges}
+                  className="px-4 py-1 text-[11px] bg-[#d4d0c8] text-[#333] border border-[#808080] rounded hover:bg-[#c0c0c0]"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Detail Tabs */}
           <div className="flex border-b border-[#808080]">
             <button onClick={() => setActiveTab("ticketInfo")} className={`px-3 py-1 text-[11px] border-r border-[#808080] ${activeTab === "ticketInfo" ? "bg-white font-medium" : "bg-[#d4d0c8]"}`}>
@@ -1578,11 +1726,11 @@ export default function DispatchPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Date</label>
-                    <input type="text" value={ticketDetail.date} onChange={(e) => updateDetail("date", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+                    <input type="date" value={parseDateToInput(ticketDetail.date)} onChange={(e) => updateDetail("date", formatDateForStorage(e.target.value))} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[120px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Time</label>
-                    <input type="text" value={ticketDetail.time} onChange={(e) => updateDetail("time", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+                    <input type="time" value={parseTimeToInput(ticketDetail.time)} onChange={(e) => updateDetail("time", formatTimeForStorage(e.target.value))} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Caller</label>
@@ -1715,7 +1863,11 @@ export default function DispatchPage() {
                     />
                   </div>
                   <div className="flex items-center gap-1">
-                    <label className="w-14 text-[11px]">Unit</label>
+                    <label
+                      className={`w-14 text-[11px] ${ticketDetail.unitId ? "text-blue-600 cursor-pointer hover:underline" : ""}`}
+                      onClick={ticketDetail.unitId ? handleNavigateToUnit : undefined}
+                      title={ticketDetail.unitId ? "Open unit" : ""}
+                    >Unit</label>
                     <select
                       value={ticketDetail.unitId || ""}
                       onChange={(e) => {
@@ -1725,6 +1877,7 @@ export default function DispatchPage() {
                         if (selectedTicket) {
                           setSelectedTicket(prev => prev ? { ...prev, unitId: unitId, unit: unit?.label || "" } : prev);
                         }
+                        if (!isNewTicket) setIsDirty(true);
                       }}
                       className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white"
                     >
@@ -1733,15 +1886,6 @@ export default function DispatchPage() {
                         <option key={u.id} value={u.id}>{u.label}</option>
                       ))}
                     </select>
-                    {ticketDetail.unitId && (
-                      <span
-                        onClick={handleNavigateToUnit}
-                        className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
-                        title="Open unit"
-                      >
-                        Go
-                      </span>
-                    )}
                     {ticketDetail.unitNumber && (
                       <span className="text-[11px] ml-1">Route: {ticketDetail.route || ""}</span>
                     )}
@@ -1758,7 +1902,11 @@ export default function DispatchPage() {
                     />
                   </div>
                   <div className="flex items-center gap-1">
-                    <label className="w-14 text-[11px]">Job</label>
+                    <label
+                      className={`w-14 text-[11px] ${ticketDetail.jobId ? "text-blue-600 cursor-pointer hover:underline" : ""}`}
+                      onClick={ticketDetail.jobId ? handleNavigateToJob : undefined}
+                      title={ticketDetail.jobId ? "Open job" : ""}
+                    >Job</label>
                     <select
                       value={ticketDetail.jobId || ""}
                       onChange={(e) => {
@@ -1768,6 +1916,7 @@ export default function DispatchPage() {
                         if (selectedTicket) {
                           setSelectedTicket(prev => prev ? { ...prev, jobId: jobId, jobNumber: job?.label || "" } : prev);
                         }
+                        if (!isNewTicket) setIsDirty(true);
                       }}
                       className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white"
                     >
@@ -1776,15 +1925,6 @@ export default function DispatchPage() {
                         <option key={j.id} value={j.id}>{j.label}</option>
                       ))}
                     </select>
-                    {ticketDetail.jobId && (
-                      <span
-                        onClick={handleNavigateToJob}
-                        className="text-[11px] text-[#0000ff] cursor-pointer hover:underline"
-                        title="Open job"
-                      >
-                        Go
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="flex items-center gap-1 text-[11px]">
@@ -1795,8 +1935,8 @@ export default function DispatchPage() {
                     <DynamicSelect
                       pageId="dispatch"
                       fieldName="worker"
-                      value={ticketDetail.testMech}
-                      onChange={(val) => updateDetail("testMech", val)}
+                      value={ticketDetail.schedMech}
+                      onChange={(val) => updateDetail("schedMech", val)}
                       fallbackOptions={workers.filter(w => w !== "All")}
                     />
                   </div>
@@ -1854,8 +1994,19 @@ export default function DispatchPage() {
                 <div className="min-w-[250px] flex flex-col gap-1 border border-[#808080] p-2 bg-white">
                   <label className="text-[11px] font-bold">SCHEDULING</label>
                   <div className="flex items-center gap-1">
+                    <label className="w-12 text-[11px]">Status</label>
+                    <DynamicSelect
+                      pageId="dispatch"
+                      fieldName="ticketStatus"
+                      value={ticketDetail.ticketStatus || ""}
+                      onChange={(val) => updateDetail("ticketStatus", val)}
+                      fallbackOptions={["Open", "Assigned", "En Route", "On Site", "Completed"]}
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
                     <label className="w-12 text-[11px]">Date</label>
-                    <input type="text" value={ticketDetail.schedDate} onChange={(e) => updateDetail("schedDate", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
+                    <input type="date" value={parseDateToInput(ticketDetail.schedDate)} onChange={(e) => updateDetail("schedDate", formatDateForStorage(e.target.value))} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white" />
                     <label className="flex items-center gap-1 text-[11px]">
                       <input type="radio" name="timeType" />
                       S
@@ -1865,7 +2016,7 @@ export default function DispatchPage() {
                       E
                     </label>
                     <label className="text-[11px]">Est Time</label>
-                    <input type="text" value="0:0" className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[40px]" />
+                    <input type="number" step="0.25" min="0" value={ticketDetail.estTime} onChange={(e) => updateDetail("estTime", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[50px]" />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-12 text-[11px]">Time</label>
@@ -1889,7 +2040,7 @@ export default function DispatchPage() {
                       className="flex-1"
                     />
                     <label className="text-[11px]">Completed</label>
-                    <input type="text" value={ticketDetail.completedTime} onChange={(e) => updateDetail("completedTime", e.target.value)} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[60px]" />
+                    <input type="time" value={parseTimeToInput(ticketDetail.completedTime)} onChange={(e) => updateDetail("completedTime", formatTimeForStorage(e.target.value))} className="px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
                   </div>
                   <div className="mt-2">
                     <label className="text-[11px] font-bold">WITNESS</label>
@@ -1899,7 +2050,7 @@ export default function DispatchPage() {
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-bold">OTHER WORKERS</label>
                       <label className="flex items-center gap-1 text-[11px]">
-                        <input type="checkbox" />
+                        <input type="checkbox" checked={ticketDetail.onHold} onChange={(e) => updateDetail("onHold", e.target.checked)} />
                         On Hold
                       </label>
                     </div>

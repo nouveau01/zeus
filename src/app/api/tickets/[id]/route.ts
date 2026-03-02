@@ -95,6 +95,7 @@ export async function PUT(
     if (body.ticketNumber !== undefined) updateData.ticketNumber = body.ticketNumber;
     if (body.workOrderNumber !== undefined) updateData.workOrderNumber = body.workOrderNumber;
     if (body.date !== undefined) updateData.date = body.date ? new Date(body.date) : null;
+    if (body.scheduledDate !== undefined) updateData.scheduledDate = body.scheduledDate ? new Date(body.scheduledDate) : null;
     if (body.completedDate !== undefined) updateData.completedDate = body.completedDate ? new Date(body.completedDate) : null;
     if (body.type !== undefined) updateData.type = body.type;
     if (body.category !== undefined) updateData.category = body.category;
@@ -110,6 +111,7 @@ export async function PUT(
     // Job & Unit
     if (body.phase !== undefined) updateData.phase = body.phase;
     if (body.unitName !== undefined) updateData.unitName = body.unitName;
+    if (body.unitId !== undefined) updateData.unitId = body.unitId;
     if (body.nameAddress !== undefined) updateData.nameAddress = body.nameAddress;
 
     // Text fields
@@ -120,6 +122,10 @@ export async function PUT(
 
     // Work Performed
     if (body.workTime !== undefined) updateData.workTime = body.workTime;
+
+    // Scheduling extras
+    if (body.witness !== undefined) updateData.witness = body.witness;
+    if (body.onHold !== undefined) updateData.onHold = body.onHold;
 
     // Time Frame
     if (body.enRouteTime !== undefined) updateData.enRouteTime = body.enRouteTime;
@@ -183,6 +189,11 @@ export async function PUT(
     if (body.premisesId !== undefined) updateData.premisesId = body.premisesId;
     if (body.jobId !== undefined) updateData.jobId = body.jobId;
     if (body.invoiceId !== undefined) updateData.invoiceId = body.invoiceId;
+
+    // Auto-set completedDate when status changes to "Completed"
+    if (updateData.status === "Completed" && !updateData.completedDate) {
+      updateData.completedDate = new Date();
+    }
 
     const ticket = await prisma.ticket.update({
       where: { id: params.id },

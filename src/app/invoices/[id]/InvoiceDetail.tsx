@@ -89,6 +89,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isNew, setIsNew] = useState(invoiceId === "new");
   const [activeTab, setActiveTab] = useState("Account/General");
   const [formData, setFormData] = useState<Partial<Invoice>>({});
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -125,34 +126,53 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   const handleSaveForHook = useCallback(async () => {
     setSavingFromHook(true);
     try {
-      const response = await fetch(`/api/invoices/${invoiceId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          items,
-          taxRegion1: taxRegion1 || null,
-          taxRate1: parseFloat(taxRate1) || 0,
-          taxRegion2: taxRegion2 || null,
-          taxRate2: parseFloat(taxRate2) || 0,
-          taxFactor: parseFloat(taxFactor) || 100,
-          jobRemarks: jobRemarks || null,
-          reg: regHours ? parseFloat(regHours) : null,
-          ot: otHours ? parseFloat(otHours) : null,
-          ot17: ot17Hours ? parseFloat(ot17Hours) : null,
-          dt: dtHours ? parseFloat(dtHours) : null,
-          tt: ttHours ? parseFloat(ttHours) : null,
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to save invoice");
-      const updated = await response.json();
-      setInvoice(updated);
-      setFormData(updated);
-      setItems(updated.items || []);
+      const saveBody = {
+        ...formData,
+        items,
+        taxRegion1: taxRegion1 || null,
+        taxRate1: parseFloat(taxRate1) || 0,
+        taxRegion2: taxRegion2 || null,
+        taxRate2: parseFloat(taxRate2) || 0,
+        taxFactor: parseFloat(taxFactor) || 100,
+        jobRemarks: jobRemarks || null,
+        reg: regHours ? parseFloat(regHours) : null,
+        ot: otHours ? parseFloat(otHours) : null,
+        ot17: ot17Hours ? parseFloat(ot17Hours) : null,
+        dt: dtHours ? parseFloat(dtHours) : null,
+        tt: ttHours ? parseFloat(ttHours) : null,
+      };
+
+      if (isNew) {
+        const response = await fetch("/api/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(saveBody),
+        });
+        if (!response.ok) throw new Error("Failed to create invoice");
+        const created = await response.json();
+        setInvoice(created);
+        setFormData(created);
+        setItems(created.items || []);
+        setIsNew(false);
+        // Open the real invoice and close the "new" tab
+        onClose();
+        openTab(`Invoice #${created.invoiceNumber}`, `/invoices/${created.id}`);
+      } else {
+        const response = await fetch(`/api/invoices/${invoiceId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(saveBody),
+        });
+        if (!response.ok) throw new Error("Failed to save invoice");
+        const updated = await response.json();
+        setInvoice(updated);
+        setFormData(updated);
+        setItems(updated.items || []);
+      }
     } finally {
       setSavingFromHook(false);
     }
-  }, [invoiceId, formData, items, taxRegion1, taxRate1, taxRegion2, taxRate2, taxFactor, jobRemarks, regHours, otHours, ot17Hours, dtHours, ttHours]);
+  }, [isNew, invoiceId, formData, items, taxRegion1, taxRate1, taxRegion2, taxRate2, taxFactor, jobRemarks, regHours, otHours, ot17Hours, dtHours, ttHours, onClose, openTab]);
 
   // Unsaved changes hook
   const {
@@ -171,6 +191,33 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   }, [invoiceId]);
 
   const fetchInvoice = async () => {
+    // Handle "new" invoice — skip fetch, init with defaults
+    if (invoiceId === "new") {
+      const today = new Date().toISOString();
+      const defaults: Partial<Invoice> = {
+        type: "Other",
+        terms: "Net 30 Days",
+        status: "Open",
+        date: today,
+        postingDate: today,
+        description: "",
+        taxable: 0,
+        nonTaxable: 0,
+        subTotal: 0,
+        salesTax: 0,
+        total: 0,
+        remainingUnpaid: 0,
+        emailSent: false,
+        taxRate1: 0,
+        taxRate2: 0,
+        taxFactor: 100,
+      };
+      setFormData(defaults);
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(`/api/invoices/${invoiceId}`);
@@ -206,31 +253,55 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`/api/invoices/${invoiceId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          items,
-          taxRegion1: taxRegion1 || null,
-          taxRate1: parseFloat(taxRate1) || 0,
-          taxRegion2: taxRegion2 || null,
-          taxRate2: parseFloat(taxRate2) || 0,
-          taxFactor: parseFloat(taxFactor) || 100,
-          jobRemarks: jobRemarks || null,
-          reg: regHours ? parseFloat(regHours) : null,
-          ot: otHours ? parseFloat(otHours) : null,
-          ot17: ot17Hours ? parseFloat(ot17Hours) : null,
-          dt: dtHours ? parseFloat(dtHours) : null,
-          tt: ttHours ? parseFloat(ttHours) : null,
-        }),
-      });
-      if (response.ok) {
-        const updated = await response.json();
-        setInvoice(updated);
-        setFormData(updated);
-        setItems(updated.items || []);
+      const saveBody = {
+        ...formData,
+        items,
+        taxRegion1: taxRegion1 || null,
+        taxRate1: parseFloat(taxRate1) || 0,
+        taxRegion2: taxRegion2 || null,
+        taxRate2: parseFloat(taxRate2) || 0,
+        taxFactor: parseFloat(taxFactor) || 100,
+        jobRemarks: jobRemarks || null,
+        reg: regHours ? parseFloat(regHours) : null,
+        ot: otHours ? parseFloat(otHours) : null,
+        ot17: ot17Hours ? parseFloat(ot17Hours) : null,
+        dt: dtHours ? parseFloat(dtHours) : null,
+        tt: ttHours ? parseFloat(ttHours) : null,
+      };
+
+      if (isNew) {
+        const response = await fetch("/api/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(saveBody),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: "Failed to create invoice" }));
+          await xpAlert(err.error || "Failed to create invoice");
+          return;
+        }
+        const created = await response.json();
+        setInvoice(created);
+        setFormData(created);
+        setItems(created.items || []);
+        setIsNew(false);
         setIsDirty(false);
+        // Open the real invoice and close the "new" tab
+        onClose();
+        openTab(`Invoice #${created.invoiceNumber}`, `/invoices/${created.id}`);
+      } else {
+        const response = await fetch(`/api/invoices/${invoiceId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(saveBody),
+        });
+        if (response.ok) {
+          const updated = await response.json();
+          setInvoice(updated);
+          setFormData(updated);
+          setItems(updated.items || []);
+          setIsDirty(false);
+        }
       }
     } catch (error) {
       console.error("Error saving invoice:", error);
@@ -377,7 +448,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
     );
   }
 
-  if (!invoice) {
+  if (!invoice && !isNew) {
     return (
       <div className="h-full flex items-center justify-center bg-white">
         <span className="text-red-500">Invoice not found</span>
@@ -394,6 +465,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
   // Open PDF preview in new tab
   const handleGeneratePDF = () => {
+    if (!invoice) return;
     openTab(`Invoice #${invoice.invoiceNumber} Preview`, `/invoice-preview/${invoice.id}`);
   };
 
@@ -410,17 +482,17 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             Account
           </button>
           <select
-            value={invoice.premises?.id || ""}
+            value={invoice?.premises?.id || ""}
             className="px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
           >
-            <option value={invoice.premises?.id || ""}>
-              {invoice.premises?.locId || invoice.premises?.premisesId || invoice.premises?.address || "Select Account"}
+            <option value={invoice?.premises?.id || ""}>
+              {invoice?.premises?.locId || invoice?.premises?.premisesId || invoice?.premises?.address || "Select Account"}
             </option>
           </select>
 
           {/* Address Block */}
           <div className="bg-white border border-[#a0a0a0] p-2 text-[11px] min-h-[80px]">
-            {invoice.premises && (
+            {invoice?.premises && (
               <>
                 <div>{invoice.premises.address}</div>
                 {invoice.premises.city && (
@@ -465,7 +537,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             </button>
             <input
               type="text"
-              value={invoice.job?.externalId || "0"}
+              value={invoice?.job?.externalId || "0"}
               readOnly
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-[#f0f0f0]"
             />
@@ -565,25 +637,25 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         <div className="flex flex-col gap-2 min-w-[140px]">
           <div className="border border-[#a0a0a0] bg-white p-2 text-center">
             <div className="text-[11px] text-[#606060]">Invoice #</div>
-            <div className="text-[16px] font-bold">{invoice.invoiceNumber}</div>
+            <div className="text-[16px] font-bold">{isNew ? "NEW" : invoice?.invoiceNumber}</div>
           </div>
 
           {/* Paid/Open Status Stamp */}
-          {invoice.status === "Paid" && (
+          {invoice?.status === "Paid" && (
             <div className="mt-4 text-center">
               <span className="text-[24px] font-bold text-red-600 border-b-4 border-red-600 px-4">
                 PAID
               </span>
             </div>
           )}
-          {invoice.status === "Open" && (
+          {(invoice?.status === "Open" || isNew) && (
             <div className="mt-4 text-center">
               <span className="text-[18px] font-bold text-orange-600">
-                UNPAID
+                {isNew ? "NEW" : "UNPAID"}
               </span>
             </div>
           )}
-          {invoice.status === "Void" && (
+          {invoice?.status === "Void" && (
             <div className="mt-4 text-center">
               <span className="text-[18px] font-bold text-gray-500">
                 VOID
@@ -921,7 +993,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
       {/* Status Bar */}
       <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center justify-between text-[11px]">
-        <span>{invoice.emailSent ? "Email sent" : "No E-mail sent"}</span>
+        <span>{invoice?.emailSent ? "Email sent" : "No E-mail sent"}</span>
         <span>EDIT</span>
       </div>
 

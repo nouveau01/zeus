@@ -15,6 +15,7 @@ interface TabContextType {
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   addBlankTab: () => void;
+  updateTab: (id: string, title: string, route: string) => void;
 }
 
 const TabContext = createContext<TabContextType | undefined>(undefined);
@@ -219,6 +220,12 @@ export function TabProvider({ children }: { children: ReactNode }) {
     pushHistory(newTab.id, true); // new tab = back will close it
   };
 
+  const updateTab = (id: string, title: string, route: string) => {
+    setTabs((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, title, route } : t))
+    );
+  };
+
   return (
     <TabContext.Provider
       value={{
@@ -228,6 +235,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
         closeTab,
         setActiveTab,
         addBlankTab,
+        updateTab,
       }}
     >
       {children}

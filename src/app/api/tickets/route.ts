@@ -135,10 +135,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // Server-side ticket number: always use max from DB + 1 to avoid duplicates
+    const maxTicket = await prisma.ticket.aggregate({ _max: { ticketNumber: true } });
+    const nextTicketNumber = (maxTicket._max.ticketNumber || 0) + 1;
+
     // Build the data object, only including fields that have values
     const data: any = {
-      ticketNumber: body.ticketNumber,
-      workOrderNumber: body.workOrderNumber || body.ticketNumber,
+      ticketNumber: nextTicketNumber,
+      workOrderNumber: body.workOrderNumber || nextTicketNumber,
       type: body.type || "Other",
       status: body.status || "Open",
       bill: body.bill || false,
@@ -173,6 +177,16 @@ export async function POST(request: NextRequest) {
     if (body.scopeOfWork) data.scopeOfWork = body.scopeOfWork;
     if (body.resolution) data.resolution = body.resolution;
     if (body.nameAddress) data.nameAddress = body.nameAddress;
+    if (body.scheduledDate) {
+      const parts = body.scheduledDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (parts) {
+        data.scheduledDate = new Date(parseInt(parts[3]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      } else {
+        data.scheduledDate = new Date(body.scheduledDate);
+      }
+    }
+    if (body.witness) data.witness = body.witness;
+    if (body.onHold !== undefined) data.onHold = body.onHold;
     if (body.enRouteTime) data.enRouteTime = body.enRouteTime;
     if (body.onSiteTime) data.onSiteTime = body.onSiteTime;
     if (body.completedTime) data.completedTime = body.completedTime;

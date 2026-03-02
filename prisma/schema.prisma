@@ -957,6 +957,7 @@ model Ticket {
 
   // Date/Time
   date            DateTime                          // TicketO.CDate
+  scheduledDate   DateTime? @map("scheduled_date")  // TicketO.DDate (dispatch/scheduled date)
   completedDate   DateTime? @map("completed_date")  // TicketO.EDate
 
   // Classification
@@ -1026,6 +1027,10 @@ model Ticket {
   pr              Boolean  @default(false)
   vd              Boolean  @default(false)
   inv             Boolean  @default(false)
+
+  // Scheduling extras
+  witness         String?                           // Witness name for the work
+  onHold          Boolean  @default(false) @map("on_hold")
 
   // Detail view checkboxes
   workCompleted   Boolean  @default(false) @map("work_completed")

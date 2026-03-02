@@ -360,6 +360,7 @@ async function fetchTicketsFromPostgres(options: FetchTicketsOptions) {
     ticketNumber: t.ticketNumber,
     workOrderNumber: t.workOrderNumber,
     date: t.date,
+    scheduledDate: t.scheduledDate,
     completedDate: t.completedDate,
     type: t.type,
     category: t.category,
@@ -370,8 +371,39 @@ async function fetchTicketsFromPostgres(options: FetchTicketsOptions) {
     resolution: t.resolution,
     accountId: t.accountId,
     mechCrew: t.mechCrew,
+    supervisor: t.supervisor,
+    wage: t.wage,
     unitName: t.unitName,
+    unitId: t.unitId,
+    jobId: t.jobId,
     hours: Number(t.hours),
+    // Personnel & call tracking
+    calledInBy: t.calledInBy,
+    calledInDate: t.calledInDate,
+    takenBy: t.takenBy,
+    resolvedBy: t.resolvedBy,
+    // Time fields
+    workTime: t.workTime,
+    enRouteTime: t.enRouteTime,
+    onSiteTime: t.onSiteTime,
+    completedTime: t.completedTime,
+    // Notes
+    internalComments: t.internalComments,
+    partsUsed: t.partsUsed,
+    nameAddress: t.nameAddress,
+    // Scheduling extras
+    estTime: Number(t.estTime),
+    witness: t.witness,
+    onHold: t.onHold,
+    // Checkboxes
+    bill: t.bill,
+    reviewed: t.reviewed,
+    workCompleted: t.workCompleted,
+    chargeable: t.chargeable,
+    emailOnSave: t.emailOnSave,
+    emailStatus: t.emailStatus,
+    // Scheduling
+    phase: t.phase,
     premises: t.premises ? {
       id: t.premises.id,
       premisesId: t.premises.premisesId,
@@ -406,16 +438,21 @@ export async function fetchTicketById(ticketId: string | number) {
   const ticketNum = parseInt(ticketId.toString());
 
   if (!isSqlServerAvailable()) {
+    const orConditions: any[] = [{ id: ticketId.toString() }];
+    if (!isNaN(ticketNum)) {
+      orConditions.push({ ticketNumber: ticketNum });
+    }
     const ticket = await prisma.ticket.findFirst({
-      where: {
-        OR: [
-          { id: ticketId.toString() },
-          { ticketNumber: ticketNum }
-        ]
-      },
+      where: { OR: orConditions },
       include: {
         premises: {
           include: { customer: true },
+        },
+        job: {
+          select: { id: true, externalId: true, jobName: true },
+        },
+        invoice: {
+          select: { id: true, invoiceNumber: true },
         },
       },
     });

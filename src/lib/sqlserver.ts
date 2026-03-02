@@ -32,7 +32,8 @@ if (sqlserverAvailable && PrismaClient) {
 }
 
 // Helper to check if SQL Server is available
-export const isSqlServerAvailable = () => sqlserverAvailable && sqlserver !== null;
+// ZEUS reads exclusively from PostgreSQL — SQL Server sync is handled externally
+export const isSqlServerAvailable = () => false;
 
 // Export a proxy that throws helpful errors when SQL Server isn't available
 const sqlserverProxy = new Proxy({} as any, {
