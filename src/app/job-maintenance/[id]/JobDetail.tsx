@@ -207,7 +207,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
       }
       const created = await response.json();
       if (onClose) onClose();
-      openTab(`Job ${created.externalId || created.id}`, `/job-maintenance/${created.id}`);
+      openTab(`Job #${created.externalId || created.jobName}`, `/job-maintenance/${created.id}`);
     } else {
       const response = await fetch(`/api/jobs/${jobId}`, {
         method: "PUT",
@@ -260,8 +260,9 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
         if (response.ok) {
           const created = await response.json();
           setHasChanges(false);
+          await xpAlert(`Job #${created.externalId} created successfully`);
           if (onClose) onClose();
-          openTab(`Job ${created.externalId || created.id}`, `/job-maintenance/${created.id}`);
+          openTab(`Job #${created.externalId || created.jobName}`, `/job-maintenance/${created.id}`);
         } else {
           const error = await response.json();
           await xpAlert(error.error || "Failed to create job");
@@ -277,6 +278,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
           setJob(updated);
           setFormData(updated);
           setHasChanges(false);
+          await xpAlert("Job saved successfully");
         } else {
           const error = await response.json();
           await xpAlert(error.error || "Failed to save job");
@@ -454,13 +456,13 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className={labelClass}>{isNew ? "Name *" : "Desc"}</label>
+              <label className={labelClass}>Name {isNew && "*"}</label>
               <input
                 type="text"
-                value={isNew ? (formData.jobName || "") : (formData.jobDescription || "")}
-                onChange={(e) => onChange(isNew ? "jobName" : "jobDescription", e.target.value)}
+                value={formData.jobName || ""}
+                onChange={(e) => onChange("jobName", e.target.value)}
                 className={`${inputClass} w-[220px] ${isNew && !formData.jobName ? "border-red-500" : ""}`}
-                placeholder={isNew ? "Enter job name..." : ""}
+                placeholder="Enter job name..."
               />
             </div>
           </div>
@@ -645,7 +647,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
               </div>
               <div className="flex items-center">
                 <label className={labelClass} style={{ width: "100px" }}>Ceiling Amount</label>
-                <input type="text" defaultValue="$7,993.00" className={`${inputClass} w-[100px] text-right`} />
+                <input type="text" value={formData.amount != null ? `$${Number(formData.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "$0.00"} readOnly className={`${inputClass} w-[100px] text-right bg-[#f0f0f0]`} />
               </div>
               <div className="flex items-center">
                 <label className={labelClass} style={{ width: "100px" }}>Sales Source</label>
@@ -917,31 +919,31 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
           <div className="flex gap-0">
             <div className="border border-[#808080] px-3 py-1 bg-white text-center min-w-[90px]">
               <div className="text-[10px] font-bold text-[#000080]">Revenues</div>
-              <div className="text-[11px]">$7,993.00</div>
+              <div className="text-[11px]">${Number(formData.rev || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
             </div>
             <div className="border border-[#808080] border-l-0 px-3 py-1 bg-white text-center min-w-[90px]">
               <div className="text-[10px] font-bold text-[#000080]">Materials</div>
-              <div className="text-[11px]">$7,993.00</div>
+              <div className="text-[11px]">${Number(formData.mat || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
             </div>
             <div className="border border-[#808080] border-l-0 px-3 py-1 bg-white text-center min-w-[90px]">
               <div className="text-[10px] font-bold text-[#000080]">Labor</div>
-              <div className="text-[11px]">$0.00</div>
+              <div className="text-[11px]">${Number(formData.labor || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
             </div>
             <div className="border border-[#808080] border-l-0 px-3 py-1 bg-white text-center min-w-[100px]">
               <div className="text-[10px] font-bold text-[#000080]">Total Expenses</div>
-              <div className="text-[11px]">$7,993.00</div>
+              <div className="text-[11px]">${Number(formData.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
             </div>
             <div className="border border-[#808080] border-l-0 px-3 py-1 bg-white text-center min-w-[100px]">
               <div className="text-[10px] font-bold text-[#000080]">Profit Amount</div>
-              <div className="text-[11px]">$0.00</div>
+              <div className="text-[11px]">${Number(formData.profit || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
             </div>
             <div className="border border-[#808080] border-l-0 px-3 py-1 bg-white text-center min-w-[80px]">
               <div className="text-[10px] font-bold text-[#000080]">Profit Ratio</div>
-              <div className="text-[11px]">0.00</div>
+              <div className="text-[11px]">{Number(formData.ratio || 0).toFixed(2)}</div>
             </div>
             <div className="border border-[#808080] border-l-0 px-3 py-1 bg-white text-center min-w-[100px]">
               <div className="text-[10px] font-bold text-[#000080]">Budgeted Hours</div>
-              <div className="text-[11px]">0.0</div>
+              <div className="text-[11px]">{Number(formData.bHour || 0).toFixed(1)}</div>
             </div>
           </div>
           <button className="text-[#0000ff] text-[11px] underline hover:text-[#ff0000]">

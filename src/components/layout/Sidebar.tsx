@@ -200,7 +200,7 @@ const navStructure: NavSection[] = [
     children: [
       { name: "Prospects", href: "/prospects" },
       { name: "Leads", href: "/leads" },
-      { name: "Convert Prospect", href: "/convert-prospect" },
+      { name: "Opportunities", href: "/opportunities" },
       { name: "Estimates", href: "/estimates" },
       { name: "Award Job", href: "/award-job" },
       { name: "Bid Results", href: "/bid-results" },
@@ -275,6 +275,7 @@ const navStructure: NavSection[] = [
     iconName: "FileText",
     children: [
       { name: "Report Builder", href: "/ai-reports" },
+      { name: "Saved Reports", href: "/saved-reports" },
     ],
   },
   {

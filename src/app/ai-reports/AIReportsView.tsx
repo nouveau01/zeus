@@ -14,7 +14,36 @@ import {
   ThumbsDown,
   Database,
   AlertTriangle,
+  Bookmark,
+  Check,
+  Globe,
+  Lock,
+  FolderOpen,
 } from "lucide-react";
+import { useTabs } from "@/context/TabContext";
+
+const LOADING_MESSAGES = [
+  "Riding the elevator to your data...",
+  "Pressing all the buttons...",
+  "Going up! Next stop: your report...",
+  "Holding the doors for your query...",
+  "Checking the cables...",
+  "Between floors... almost there...",
+  "The elevator music is playing...",
+  "Dispatching the AI mechanic...",
+  "Pulling the maintenance logs...",
+  "Lubricating the gears of knowledge...",
+  "Express lane to your data...",
+  "Penthouse floor — VIP data access...",
+  "Out of service? Never. Hang tight...",
+  "Running the inspection...",
+  "Calling the car to your floor...",
+  "Loading capacity: unlimited reports...",
+  "Adjusting the counterweights...",
+  "Safety check passed. Proceeding...",
+  "Taking the scenic route through your database...",
+  "Elevator pitch: your data, delivered fast...",
+];
 
 interface ReportColumn {
   key: string;
@@ -58,9 +87,50 @@ const SUGGESTED_PROMPTS = [
   "Active jobs with budget vs actual cost",
 ];
 
-export default function AIReportsView() {
-  const [prompt, setPrompt] = useState("");
+// Entity link definitions — maps hidden _id fields to routes
+const ENTITY_LINKS: { idField: string; route: (id: string) => string; keyPatterns: RegExp; labelPatterns: RegExp }[] = [
+  { idField: "_customer_id", route: (id) => `/customers/${id}`, keyPatterns: /^(customer|customer_name|owner|owner_name|name)$/, labelPatterns: /customer|owner/i },
+  { idField: "_premises_id", route: (id) => `/accounts/${id}`, keyPatterns: /^(account|account_name|premises|premises_name|premises_id|location|loc_id|address)$/, labelPatterns: /account|premises|location/i },
+  { idField: "_job_id", route: (id) => `/job-maintenance/${id}`, keyPatterns: /^(job|job_name|job_number|job_id)$/, labelPatterns: /\bjob\b/i },
+  { idField: "_invoice_id", route: (id) => `/invoices/${id}`, keyPatterns: /^(invoice|invoice_number|invoice_id|inv_number)$/, labelPatterns: /invoice/i },
+  { idField: "_unit_id", route: (id) => `/units/${id}`, keyPatterns: /^(unit|unit_number|unit_id|unit_name|elevator)$/, labelPatterns: /unit|elevator/i },
+  { idField: "_ticket_id", route: (id) => `/completed-tickets/${id}`, keyPatterns: /^(ticket|ticket_number|ticket_id|work_order)$/, labelPatterns: /ticket|work.?order/i },
+];
+
+// Find a link config for a column given the row data
+function findLinkForColumn(colKey: string, colLabel: string, row: Record<string, unknown>): { idField: string; route: (id: string) => string } | null {
+  // First pass: match by column key exactly
+  for (const entity of ENTITY_LINKS) {
+    if (entity.keyPatterns.test(colKey) && row[entity.idField]) {
+      return entity;
+    }
+  }
+  // Second pass: match by column label (e.g. "Customer Name" matches customer)
+  for (const entity of ENTITY_LINKS) {
+    if (entity.labelPatterns.test(colLabel) && row[entity.idField]) {
+      return entity;
+    }
+  }
+  // Third pass: if column key is generic "name" and only one entity ID exists, link to it
+  if (colKey === "name") {
+    const presentEntities = ENTITY_LINKS.filter((e) => row[e.idField]);
+    if (presentEntities.length === 1) {
+      return presentEntities[0];
+    }
+  }
+  return null;
+}
+
+interface SaveFolder {
+  id: string;
+  name: string;
+}
+
+export default function AIReportsView({ initialPrompt }: { initialPrompt?: string }) {
+  const { openTab } = useTabs();
+  const [prompt, setPrompt] = useState(initialPrompt || "");
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]);
   const [report, setReport] = useState<ReportData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -71,14 +141,35 @@ export default function AIReportsView() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // Save report state
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saveDescription, setSaveDescription] = useState("");
+  const [saveIsPublic, setSaveIsPublic] = useState(false);
+  const [saveFolderId, setSaveFolderId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveFolders, setSaveFolders] = useState<SaveFolder[]>([]);
+  const autoRanRef = useRef(false);
+
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Auto-run if initialPrompt is provided (from saved report click)
+  useEffect(() => {
+    if (initialPrompt && !autoRanRef.current) {
+      autoRanRef.current = true;
+      generateReport(initialPrompt);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
 
   const generateReport = async (text: string) => {
     if (!text.trim()) return;
 
     setLoading(true);
+    setLoadingMsg(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
     setError(null);
     setReport(null);
     setSortKey(null);
@@ -245,6 +336,60 @@ export default function AIReportsView() {
     setTimeout(() => printWindow.print(), 250);
   };
 
+  const openSaveDialog = async () => {
+    setSaveName(report?.title || "");
+    setSaveDescription("");
+    setSaveIsPublic(false);
+    setSaveFolderId(null);
+    setSaveSuccess(false);
+    setShowSaveDialog(true);
+    // Fetch folders for the picker
+    try {
+      const res = await fetch("/api/report-folders");
+      if (res.ok) {
+        const data = await res.json();
+        setSaveFolders(data.map((f: any) => ({ id: f.id, name: f.name })));
+      }
+    } catch {
+      // Silent fail
+    }
+  };
+
+  const saveReport = async () => {
+    if (!report || !saveName.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/saved-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: saveName.trim(),
+          description: saveDescription.trim() || null,
+          prompt,
+          sql: report.sql || null,
+          reportData: {
+            title: report.title,
+            summary: report.summary,
+            columns: report.columns,
+          },
+          isPublic: saveIsPublic,
+          folderId: saveFolderId,
+        }),
+      });
+      if (res.ok) {
+        setSaveSuccess(true);
+        setTimeout(() => {
+          setShowSaveDialog(false);
+          setSaveSuccess(false);
+        }, 1500);
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const sortedRows = getSortedRows();
 
   return (
@@ -349,8 +494,8 @@ export default function AIReportsView() {
               <div className="w-12 h-12 rounded-full border-2 border-[#e5e7eb]" />
               <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-2 border-transparent border-t-[#0176d3] animate-spin" />
             </div>
-            <p className="mt-4 text-sm text-[#6b7280]">Querying your database...</p>
-            <p className="text-xs text-[#9ca3af] mt-1">AI is writing a query and fetching real data</p>
+            <p className="mt-4 text-sm text-[#6b7280] transition-opacity duration-300">{loadingMsg}</p>
+            <p className="text-xs text-[#9ca3af] mt-1">Hang tight, this won't take long</p>
           </div>
         )}
 
@@ -422,6 +567,13 @@ export default function AIReportsView() {
                   <FileText className="w-3.5 h-3.5" />
                   Print Report
                 </button>
+                <button
+                  onClick={openSaveDialog}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#0176d3] border border-[#014486] rounded-lg text-white hover:bg-[#014486] transition-colors"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  Save Report
+                </button>
               </div>
             </div>
 
@@ -460,15 +612,30 @@ export default function AIReportsView() {
                         key={rowIdx}
                         className="border-b border-[#f3f4f6] hover:bg-[#f0f7ff] transition-colors"
                       >
-                        {report.columns.map((col) => (
-                          <td
-                            key={col.key}
-                            className="px-4 py-2 text-[13px] text-[#1a1a1a] whitespace-nowrap"
-                            style={{ textAlign: col.align || "left" }}
-                          >
-                            {formatCellValue(row[col.key], col.format)}
-                          </td>
-                        ))}
+                        {report.columns.map((col) => {
+                          const linkConfig = findLinkForColumn(col.key, col.label, row);
+                          const entityId = linkConfig ? row[linkConfig.idField] : null;
+                          const isLinked = linkConfig && entityId && row[col.key];
+
+                          return (
+                            <td
+                              key={col.key}
+                              className="px-4 py-2 text-[13px] text-[#1a1a1a] whitespace-nowrap"
+                              style={{ textAlign: col.align || "left" }}
+                            >
+                              {isLinked ? (
+                                <button
+                                  onClick={() => openTab(String(row[col.key]), linkConfig.route(String(entityId)))}
+                                  className="text-[#0176d3] hover:underline text-left"
+                                >
+                                  {formatCellValue(row[col.key], col.format)}
+                                </button>
+                              ) : (
+                                formatCellValue(row[col.key], col.format)
+                              )}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
@@ -513,6 +680,102 @@ export default function AIReportsView() {
           </div>
         )}
       </div>
+
+      {/* Save Report Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-[#ece9d8] border-2 border-[#0055e5] shadow-lg w-[380px]" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif" }}>
+            <div className="bg-gradient-to-r from-[#0058e6] to-[#3a8cff] px-3 py-1.5 flex items-center justify-between">
+              <span className="text-white text-[12px] font-semibold">Save Report</span>
+              <button onClick={() => setShowSaveDialog(false)} className="text-white hover:bg-white/20 p-0.5 rounded">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="p-4">
+              {saveSuccess ? (
+                <div className="flex flex-col items-center py-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                    <Check className="w-5 h-5 text-green-600" />
+                  </div>
+                  <p className="text-[12px] font-semibold text-green-700">Report saved!</p>
+                </div>
+              ) : (
+                <>
+                  <label className="block text-[11px] text-[#333] mb-1">Report name:</label>
+                  <input
+                    type="text"
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    className="w-full px-2 py-1 text-[12px] border border-[#999] bg-white focus:outline-none focus:border-[#0078d4] mb-3"
+                    autoFocus
+                  />
+
+                  <label className="block text-[11px] text-[#333] mb-1">Description (optional):</label>
+                  <input
+                    type="text"
+                    value={saveDescription}
+                    onChange={(e) => setSaveDescription(e.target.value)}
+                    className="w-full px-2 py-1 text-[12px] border border-[#999] bg-white focus:outline-none focus:border-[#0078d4] mb-3"
+                    placeholder="Brief description of this report"
+                  />
+
+                  <label className="block text-[11px] text-[#333] mb-1">Visibility:</label>
+                  <div className="flex gap-3 mb-3">
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={!saveIsPublic}
+                        onChange={() => setSaveIsPublic(false)}
+                      />
+                      <Lock className="w-3 h-3 text-[#666]" />
+                      Private
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={saveIsPublic}
+                        onChange={() => setSaveIsPublic(true)}
+                      />
+                      <Globe className="w-3 h-3 text-[#0078d4]" />
+                      Public
+                    </label>
+                  </div>
+
+                  <label className="block text-[11px] text-[#333] mb-1">Folder (optional):</label>
+                  <select
+                    value={saveFolderId || ""}
+                    onChange={(e) => setSaveFolderId(e.target.value || null)}
+                    className="w-full px-2 py-1 text-[12px] border border-[#999] bg-white focus:outline-none focus:border-[#0078d4] mb-3"
+                  >
+                    <option value="">No folder</option>
+                    {saveFolders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      onClick={() => setShowSaveDialog(false)}
+                      className="px-4 py-1 text-[11px] bg-[#f0f0f0] border border-[#999] hover:bg-[#e0e0e0]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveReport}
+                      disabled={!saveName.trim() || saving}
+                      className="px-4 py-1 text-[11px] bg-[#0078d4] text-white border border-[#005a9e] hover:bg-[#005a9e] disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

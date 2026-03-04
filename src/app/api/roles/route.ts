@@ -102,13 +102,11 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE /api/roles?id=xxx — delete a custom role (GodAdmin only)
+// DELETE /api/roles?id=xxx — delete a custom role (Admin+)
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const callerRole = (session?.user as any)?.role;
-
-  if (callerRole !== "GodAdmin") {
-    return NextResponse.json({ error: "Only GodAdmin can delete roles" }, { status: 403 });
+  const session = await requireAdmin();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);

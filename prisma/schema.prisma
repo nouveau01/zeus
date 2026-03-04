@@ -55,6 +55,8 @@ model User {
   activities     Activity[]
   files          File[]
   savedFilters   SavedFilter[]
+  savedReports   SavedReport[]
+  reportFolders  ReportFolder[]
 
   offices          UserOffice[]
   ownedSequences   Sequence[]      @relation("SequenceOwner")
@@ -154,6 +156,46 @@ model SavedFilter {
   @@index([pageId])
   @@index([userId])
   @@map("saved_filters")
+}
+
+// ============================================
+// SAVED REPORTS
+// ============================================
+
+model SavedReport {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  prompt      String                          // Original user prompt
+  sql         String?                         // Generated SQL query
+  reportData  Json     @map("report_data")    // { title, summary, columns } — NOT rows
+  folderId    String?  @map("folder_id")
+  isPublic    Boolean  @default(false) @map("is_public")
+  userId      String   @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user   User          @relation(fields: [userId], references: [id])
+  folder ReportFolder? @relation(fields: [folderId], references: [id])
+
+  @@index([userId])
+  @@index([folderId])
+  @@index([isPublic])
+  @@map("saved_reports")
+}
+
+model ReportFolder {
+  id        String   @id @default(cuid())
+  name      String
+  isPublic  Boolean  @default(false) @map("is_public")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User          @relation(fields: [userId], references: [id])
+  reports SavedReport[]
+
+  @@index([userId])
+  @@map("report_folders")
 }
 
 // ============================================

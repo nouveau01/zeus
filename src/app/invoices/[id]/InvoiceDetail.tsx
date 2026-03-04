@@ -286,6 +286,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         setItems(created.items || []);
         setIsNew(false);
         setIsDirty(false);
+        await xpAlert("Invoice created successfully");
         // Open the real invoice and close the "new" tab
         onClose();
         openTab(`Invoice #${created.invoiceNumber}`, `/invoices/${created.id}`);
@@ -301,6 +302,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
           setFormData(updated);
           setItems(updated.items || []);
           setIsDirty(false);
+          await xpAlert("Invoice saved successfully");
         }
       }
     } catch (error) {

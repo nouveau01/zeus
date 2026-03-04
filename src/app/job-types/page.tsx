@@ -103,6 +103,7 @@ export default function JobTypesPage() {
         if (response.ok) {
           await fetchJobTypes();
           setIsDirty(false);
+          await xpAlert("Job type saved successfully");
         } else {
           const error = await response.json();
           await xpAlert(error.error || "Failed to save job type");
@@ -118,6 +119,7 @@ export default function JobTypesPage() {
           await fetchJobTypes();
           setSelectedId(created.id);
           setIsDirty(false);
+          await xpAlert("Job type created successfully");
         } else {
           const error = await response.json();
           await xpAlert(error.error || "Failed to create job type");

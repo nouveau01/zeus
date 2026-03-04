@@ -18,6 +18,7 @@ import {
 import { getAccountById } from "@/lib/actions/accounts";
 import { useOffices } from "@/context/OfficesContext";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
 
 interface Unit {
   id: string;
@@ -428,6 +429,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         if (response.ok) {
           const created = await response.json();
           setIsDirty(false);
+          await xpAlert("Account created successfully");
           if (onClose) onClose();
           openTab(created.name || created.address, `/accounts/${created.id}`);
         } else {
@@ -450,6 +452,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           setAccount(updated);
           setFormData(updated);
           setIsDirty(false);
+          await xpAlert("Account saved successfully");
         } else {
           const error = await response.json();
           await xpAlert(error.error || "Failed to update account");
@@ -834,10 +837,16 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           </div>
           <div className="flex items-center gap-2">
             <label className={`w-16 text-right text-[12px] ${isNew ? "text-red-600 font-bold" : ""}`}>Address{isNew && " *"}</label>
-            <input
-              type="text"
+            <AddressAutocomplete
               value={formData.address || ""}
-              onChange={(e) => handleInputChange("address", e.target.value)}
+              onChange={(val) => handleInputChange("address", val)}
+              onAddressSelect={(addr) => {
+                handleInputChange("address", addr.address);
+                handleInputChange("city", addr.city);
+                handleInputChange("state", addr.state);
+                handleInputChange("zipCode", addr.zipCode);
+                handleInputChange("country", addr.country);
+              }}
               className={`flex-1 px-2 py-1 border text-[12px] bg-white ${isNew && !formData.address ? "border-red-500" : "border-[#a0a0a0]"}`}
               placeholder={isNew ? "Enter address..." : ""}
             />

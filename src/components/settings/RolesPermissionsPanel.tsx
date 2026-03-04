@@ -50,6 +50,7 @@ export function RolesPermissionsPanel() {
   // Dialog states
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteUserCount, setDeleteUserCount] = useState(0);
   const [dialogError, setDialogError] = useState("");
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
@@ -68,7 +69,9 @@ export function RolesPermissionsPanel() {
         const data = await res.json();
         setRoles(data);
         if (!selectedRoleId && data.length > 0) {
-          setSelectedRoleId(data[0].id);
+          // Skip GodAdmin (hidden from UI)
+          const firstVisible = data.find((r: RoleRecord) => r.name !== "GodAdmin");
+          if (firstVisible) setSelectedRoleId(firstVisible.id);
         }
       }
     } catch (error) {
@@ -270,32 +273,52 @@ export function RolesPermissionsPanel() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {roles.map((role) => (
-            <button
-              key={role.id}
-              onClick={() => setSelectedRoleId(role.id)}
-              className={`w-full flex items-center gap-2 px-2 py-2 text-left text-[12px] border-b border-[#e8e8e8] transition-colors ${
-                selectedRoleId === role.id
-                  ? "bg-[#0078d4] text-white"
-                  : "text-[#333] hover:bg-[#e0e0e0]"
-              }`}
-            >
-              {getRoleIcon(role.name)}
-              <div className="flex-1 min-w-0">
-                <div className="truncate font-medium">{role.name === "GodAdmin" ? "Admin" : role.name}</div>
-                {role.isSystem && (
-                  <div className={`text-[9px] ${selectedRoleId === role.id ? "text-white/70" : "text-[#999]"}`}>
-                    System
+          {roles
+            .filter((role) => role.name !== "GodAdmin")
+            .map((role) => {
+              const displayName = role.name === "User" ? "Standard User" : role.name;
+              return (
+                <button
+                  key={role.id}
+                  onClick={() => setSelectedRoleId(role.id)}
+                  className={`w-full flex items-center gap-2 px-2 py-2 text-left text-[12px] border-b border-[#e8e8e8] transition-colors ${
+                    selectedRoleId === role.id
+                      ? "bg-[#0078d4] text-white"
+                      : "text-[#333] hover:bg-[#e0e0e0]"
+                  }`}
+                >
+                  {getRoleIcon(role.name)}
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium">{displayName}</div>
+                    {role.isSystem && (
+                      <div className={`text-[9px] ${selectedRoleId === role.id ? "text-white/70" : "text-[#999]"}`}>
+                        System
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </button>
-          ))}
+                </button>
+              );
+            })}
         </div>
-        {isGodAdmin && selectedRole && !selectedRole.isSystem && (
+        {selectedRole && !selectedRole.isSystem && (
           <div className="px-2 py-2 border-t border-[#d0d0d0]">
             <button
-              onClick={() => { setDialogError(""); setShowDeleteConfirm(true); }}
+              onClick={async () => {
+                setDialogError("");
+                // Pre-check user count for this role
+                try {
+                  const res = await fetch(`/api/roles/user-count?role=${encodeURIComponent(selectedRole.name)}`);
+                  if (res.ok) {
+                    const data = await res.json();
+                    setDeleteUserCount(data.count || 0);
+                  } else {
+                    setDeleteUserCount(0);
+                  }
+                } catch {
+                  setDeleteUserCount(0);
+                }
+                setShowDeleteConfirm(true);
+              }}
               className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] text-[#c45c5c] hover:bg-[#fde8e8] rounded border border-[#e0e0e0]"
             >
               <Trash2 className="w-3 h-3" />
@@ -314,7 +337,7 @@ export function RolesPermissionsPanel() {
               <div>
                 <div className="flex items-center gap-2">
                   {getRoleIcon(selectedRole.name)}
-                  <span className="font-semibold text-[14px]">{selectedRole.name === "GodAdmin" ? "Admin" : selectedRole.name}</span>
+                  <span className="font-semibold text-[14px]">{selectedRole.name === "GodAdmin" ? "Admin" : selectedRole.name === "User" ? "Standard User" : selectedRole.name}</span>
                   {selectedRole.isSystem && (
                     <span className="text-[9px] px-1.5 py-0.5 bg-[#f0f0f0] text-[#666] rounded border border-[#ddd]">System</span>
                   )}
@@ -508,7 +531,7 @@ export function RolesPermissionsPanel() {
       {/* Delete Confirmation */}
       {showDeleteConfirm && selectedRole && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[70]">
-          <div className="bg-[#ece9d8] border border-[#808080] shadow-lg" style={{ width: "340px", fontSize: "11px" }}>
+          <div className="bg-[#ece9d8] border border-[#808080] shadow-lg" style={{ width: "380px", fontSize: "11px" }}>
             <div className="bg-gradient-to-r from-[#0a246a] to-[#a6caf0] px-2 py-1 flex items-center justify-between">
               <span className="text-white font-bold text-[12px]">Delete Role</span>
               <button onClick={() => setShowDeleteConfirm(false)} className="text-white hover:bg-[#c45c5c] px-1 rounded">
@@ -519,26 +542,51 @@ export function RolesPermissionsPanel() {
               {dialogError && (
                 <div className="p-2 mb-3 bg-red-100 border border-red-300 text-red-700 text-[11px] rounded">{dialogError}</div>
               )}
-              <div className="flex items-start gap-3 mb-4">
-                <Trash2 className="w-5 h-5 text-[#c45c5c] flex-shrink-0 mt-0.5" />
-                <p className="text-[12px]">
-                  Delete role <strong>&quot;{selectedRole.name}&quot;</strong> and all its permissions?
-                </p>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={handleDeleteRole}
-                  className="px-4 py-1 text-[11px] bg-[#c45c5c] text-white border border-[#a03030] hover:bg-[#b04040] min-w-[70px]"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-1 text-[11px] bg-[#e0e0e0] border border-[#808080] hover:bg-[#d0d0d0] min-w-[70px]"
-                >
-                  Cancel
-                </button>
-              </div>
+              {deleteUserCount > 0 ? (
+                <>
+                  <div className="flex items-start gap-3 mb-4">
+                    <ShieldAlert className="w-5 h-5 text-[#e6a817] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[12px] font-medium mb-1">Cannot delete this role</p>
+                      <p className="text-[12px]">
+                        <strong>{deleteUserCount}</strong> active user{deleteUserCount !== 1 ? "s are" : " is"} currently assigned to{" "}
+                        <strong>&quot;{selectedRole.name}&quot;</strong>. Reassign them to a different role before deleting.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-4 py-1 text-[11px] bg-[#e0e0e0] border border-[#808080] hover:bg-[#d0d0d0] min-w-[70px]"
+                    >
+                      OK
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-start gap-3 mb-4">
+                    <Trash2 className="w-5 h-5 text-[#c45c5c] flex-shrink-0 mt-0.5" />
+                    <p className="text-[12px]">
+                      Delete role <strong>&quot;{selectedRole.name}&quot;</strong> and all its permissions? This cannot be undone.
+                    </p>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={handleDeleteRole}
+                      className="px-4 py-1 text-[11px] bg-[#c45c5c] text-white border border-[#a03030] hover:bg-[#b04040] min-w-[70px]"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-4 py-1 text-[11px] bg-[#e0e0e0] border border-[#808080] hover:bg-[#d0d0d0] min-w-[70px]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

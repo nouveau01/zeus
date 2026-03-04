@@ -2,6 +2,7 @@
 
 import { FieldType } from "@/lib/detail-registry/types";
 import { DynamicSelect } from "@/components/ui/DynamicSelect";
+import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
 
 interface DetailFieldProps {
   fieldName: string;
@@ -21,6 +22,7 @@ interface DetailFieldProps {
   picklistFieldName?: string;
   fallbackOptions?: string[];
   format?: string;
+  onAddressSelect?: (addr: AddressSelection) => void;
 }
 
 export function DetailField({
@@ -41,6 +43,7 @@ export function DetailField({
   picklistFieldName,
   fallbackOptions,
   format,
+  onAddressSelect,
 }: DetailFieldProps) {
   const isReadOnly = readOnly || type === "readonly" || !isEditing;
 
@@ -162,6 +165,18 @@ export function DetailField({
 
       // text, phone, email, url — all render as text inputs
       default:
+        if (onAddressSelect && !isReadOnly) {
+          return (
+            <AddressAutocomplete
+              value={value || ""}
+              onChange={onChange}
+              onAddressSelect={onAddressSelect}
+              className={inputClass}
+              placeholder={placeholder}
+              disabled={isReadOnly}
+            />
+          );
+        }
         return (
           <input
             type={type === "email" ? "email" : type === "url" ? "url" : "text"}

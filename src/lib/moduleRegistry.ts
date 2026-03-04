@@ -373,6 +373,19 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
       { fieldName: "createdBy", label: "Created By" },
     ],
   },
+  // Reports
+  {
+    pageId: "saved-reports",
+    label: "Saved Reports",
+    section: "Reports",
+    fields: [
+      { fieldName: "name", label: "Report Name" },
+      { fieldName: "prompt", label: "Prompt" },
+      { fieldName: "createdBy", label: "Created By" },
+      { fieldName: "createdAt", label: "Date Created" },
+      { fieldName: "isPublic", label: "Visibility" },
+    ],
+  },
   // Global (shared picklists)
   {
     pageId: "_global",

@@ -141,6 +141,7 @@ export default function JobTemplatesPage() {
           await fetchTemplates();
           setHasChanges(false);
           setIsEditing(false);
+          await xpAlert("Template saved successfully");
         } else {
           const error = await response.json();
           await xpAlert(error.error || "Failed to save template");
@@ -157,6 +158,7 @@ export default function JobTemplatesPage() {
           setSelectedTemplate(created);
           setHasChanges(false);
           setIsEditing(false);
+          await xpAlert("Template created successfully");
         } else {
           const error = await response.json();
           await xpAlert(error.error || "Failed to create template");
