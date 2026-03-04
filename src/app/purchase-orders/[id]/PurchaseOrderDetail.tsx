@@ -5,6 +5,8 @@ import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 import {
   FileText,
   Save,
@@ -116,6 +118,7 @@ const mockVendors: Vendor[] = [
 export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { layout: poLayout, fieldDefs: poFieldDefs, reqMark } = useRequiredFields("purchase-orders-detail");
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
   const [printOnSave, setPrintOnSave] = useState(false);
@@ -151,6 +154,12 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
 
   // Save callback for the unsaved changes hook
   const handleSaveForHook = useCallback(async () => {
+    const formData: Record<string, any> = {
+      poNumber, date, dueDate, terms, fob, status, shipVia, freight,
+      createdBy, custom1, custom2, approved, description,
+    };
+    const missing = poLayout ? validateRequiredFields(poLayout, poFieldDefs, formData) : [];
+    if (missing.length > 0) throw new Error(`Please fill in required fields: ${missing.join(", ")}`);
     setSavingFromHook(true);
     try {
       // In real app, this would save to API
@@ -292,6 +301,15 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
 
   // Save handler
   const handleSave = async () => {
+    const formData: Record<string, any> = {
+      poNumber, date, dueDate, terms, fob, status, shipVia, freight,
+      createdBy, custom1, custom2, approved, description,
+    };
+    const missing = poLayout ? validateRequiredFields(poLayout, poFieldDefs, formData) : [];
+    if (missing.length > 0) {
+      await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+      return;
+    }
     setHasChanges(false);
     if (printOnSave) {
       await xpAlert("PO saved and sent to printer");
@@ -538,7 +556,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
             {/* Middle - Dates and Terms */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <label className="w-16 text-[12px]">Date</label>
+                <label className="w-16 text-[12px]">Date{reqMark("date")}</label>
                 <input
                   type="date"
                   value={date}
@@ -548,7 +566,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                 <button className="px-1 border border-[#7f9db9] bg-[#f0f0f0] text-[12px]">...</button>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-16 text-[12px]">Due</label>
+                <label className="w-16 text-[12px]">Due{reqMark("dueDate")}</label>
                 <input
                   type="date"
                   value={dueDate}
@@ -558,7 +576,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                 <button className="px-1 border border-[#7f9db9] bg-[#f0f0f0] text-[12px]">...</button>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-16 text-[12px]">Terms</label>
+                <label className="w-16 text-[12px]">Terms{reqMark("terms")}</label>
                 <select
                   value={terms}
                   onChange={(e) => { setTerms(e.target.value); setHasChanges(true); }}
@@ -571,7 +589,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-16 text-[12px]">FOB</label>
+                <label className="w-16 text-[12px]">FOB{reqMark("fob")}</label>
                 <input
                   type="text"
                   value={fob}
@@ -580,7 +598,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-16 text-[12px]">Status</label>
+                <label className="w-16 text-[12px]">Status{reqMark("status")}</label>
                 <select
                   value={status}
                   onChange={(e) => { setStatus(e.target.value); setHasChanges(true); }}
@@ -597,7 +615,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
             {/* Middle-Right - Ship Via, Freight, etc */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Ship Via</label>
+                <label className="w-20 text-[12px]">Ship Via{reqMark("shipVia")}</label>
                 <input
                   type="text"
                   value={shipVia}
@@ -606,7 +624,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Freight</label>
+                <label className="w-20 text-[12px]">Freight{reqMark("freight")}</label>
                 <input
                   type="number"
                   value={freight}
@@ -616,7 +634,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Created By</label>
+                <label className="w-20 text-[12px]">Created By{reqMark("createdBy")}</label>
                 <input
                   type="text"
                   value={createdBy}
@@ -625,7 +643,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom1</label>
+                <label className="w-20 text-[12px]">Custom1{reqMark("custom1")}</label>
                 <input
                   type="text"
                   value={custom1}
@@ -634,7 +652,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom2</label>
+                <label className="w-20 text-[12px]">Custom2{reqMark("custom2")}</label>
                 <input
                   type="text"
                   value={custom2}
@@ -647,13 +665,13 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
             {/* Right - PO # and Total */}
             <div className="flex flex-col gap-2 ml-auto">
               <div className="flex flex-col items-end">
-                <label className="text-[12px]">PO #</label>
+                <label className="text-[12px]">PO #{reqMark("poNumber")}</label>
                 <div className="bg-[#000080] text-white px-3 py-1 text-[14px] font-bold min-w-[80px] text-center">
                   {poNumber}
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <label className="text-[12px]">Total</label>
+                <label className="text-[12px]">Total{reqMark("total")}</label>
                 <input
                   type="text"
                   value={formatCurrency(total)}
@@ -669,7 +687,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
                   className="w-4 h-4"
                   id="approved-checkbox"
                 />
-                <label htmlFor="approved-checkbox" className="text-[12px] cursor-pointer">Approved</label>
+                <label htmlFor="approved-checkbox" className="text-[12px] cursor-pointer">Approved{reqMark("approved")}</label>
               </div>
             </div>
           </div>
@@ -728,7 +746,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
             </div>
           </div>
           <div className="flex-1">
-            <label className="text-[12px] font-medium">Description</label>
+            <label className="text-[12px] font-medium">Description{reqMark("description")}</label>
             <input
               type="text"
               value={description}

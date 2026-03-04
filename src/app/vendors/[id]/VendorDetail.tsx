@@ -5,6 +5,8 @@ import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import { useXPDialog } from "@/components/ui/XPDialog";
 import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 import {
   FileText,
   Save,
@@ -69,6 +71,10 @@ const US_STATES = [
 
 export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+
+  // Load saved layout from DB (for required field config + asterisks)
+  const { layout: vendorLayout, fieldDefs: vendorFieldDefs, reqMark } = useRequiredFields("vendors-detail");
+
   const [activeTab, setActiveTab] = useState("1 General");
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,6 +150,11 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
 
   // Save callback for the unsaved changes hook
   const handleSaveForHook = useCallback(async () => {
+    const allFormData = { ...formData, ...controlData, ...achData, ...customData };
+    const missing = vendorLayout ? validateRequiredFields(vendorLayout, vendorFieldDefs, allFormData) : [];
+    if (missing.length > 0) {
+      throw new Error(`Please fill in required fields: ${missing.join(", ")}`);
+    }
     setSavingFromHook(true);
     try {
       const response = await fetch(`/api/vendors/${vendorId}`, {
@@ -304,6 +315,13 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
 
   // Save handler
   const handleSave = async () => {
+    const allFormData = { ...formData, ...controlData, ...achData, ...customData };
+    const missing = vendorLayout ? validateRequiredFields(vendorLayout, vendorFieldDefs, allFormData) : [];
+    if (missing.length > 0) {
+      await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/vendors/${vendorId}`, {
         method: "PUT",
@@ -532,7 +550,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
             {/* Left Column */}
             <div className="flex flex-col gap-3 min-w-[300px]">
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">ID #</label>
+                <label className="w-20 text-[12px]">ID #{reqMark("vendorId")}</label>
                 <input
                   type="text"
                   value={formData.vendorId}
@@ -542,7 +560,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Name</label>
+                <label className="w-20 text-[12px]">Name{reqMark("name")}</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -552,7 +570,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Address</label>
+                <label className="w-20 text-[12px]">Address{reqMark("address")}</label>
                 <AddressAutocomplete
                   value={formData.address}
                   onChange={(val) => handleInputChange("address", val)}
@@ -568,7 +586,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">City</label>
+                <label className="w-20 text-[12px]">City{reqMark("city")}</label>
                 <input
                   type="text"
                   value={formData.city}
@@ -578,7 +596,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">State</label>
+                <label className="w-20 text-[12px]">State{reqMark("state")}</label>
                 <select
                   value={formData.state}
                   onChange={(e) => handleInputChange("state", e.target.value)}
@@ -588,7 +606,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                     <option key={state} value={state}>{state}</option>
                   ))}
                 </select>
-                <label className="text-[12px] ml-2">Zip</label>
+                <label className="text-[12px] ml-2">Zip{reqMark("zip")}</label>
                 <input
                   type="text"
                   value={formData.zip}
@@ -598,7 +616,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Country</label>
+                <label className="w-20 text-[12px]">Country{reqMark("country")}</label>
                 <input
                   type="text"
                   value={formData.country}
@@ -611,7 +629,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
             {/* Right Column */}
             <div className="flex flex-col gap-3 min-w-[300px]">
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Contact</label>
+                <label className="w-20 text-[12px]">Contact{reqMark("contact")}</label>
                 <input
                   type="text"
                   value={formData.contact}
@@ -621,7 +639,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Phone</label>
+                <label className="w-20 text-[12px]">Phone{reqMark("phone")}</label>
                 <input
                   type="text"
                   value={formData.phone}
@@ -632,7 +650,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Fax</label>
+                <label className="w-20 text-[12px]">Fax{reqMark("fax")}</label>
                 <input
                   type="text"
                   value={formData.fax}
@@ -643,7 +661,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Cellular</label>
+                <label className="w-20 text-[12px]">Cellular{reqMark("cellular")}</label>
                 <input
                   type="text"
                   value={formData.cellular}
@@ -654,7 +672,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">e-mail</label>
+                <label className="w-20 text-[12px]">e-mail{reqMark("email")}</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -664,7 +682,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Web Site</label>
+                <label className="w-20 text-[12px]">Web Site{reqMark("webSite")}</label>
                 <input
                   type="text"
                   value={formData.webSite}
@@ -674,7 +692,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-start gap-2">
-                <label className="w-20 text-[12px] pt-1">Remit To</label>
+                <label className="w-20 text-[12px] pt-1">Remit To{reqMark("remitTo")}</label>
                 <textarea
                   value={formData.remitTo}
                   onChange={(e) => handleInputChange("remitTo", e.target.value)}
@@ -690,7 +708,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
             {/* Left Column */}
             <div className="flex flex-col gap-3 min-w-[280px]">
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Status</label>
+                <label className="w-24 text-[12px]">Status{reqMark("status")}</label>
                 <select
                   value={controlData.status}
                   onChange={(e) => handleControlChange("status", e.target.value)}
@@ -702,7 +720,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Type</label>
+                <label className="w-24 text-[12px]">Type{reqMark("type")}</label>
                 <select
                   value={controlData.type}
                   onChange={(e) => handleControlChange("type", e.target.value)}
@@ -714,7 +732,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Credit Limit</label>
+                <label className="w-24 text-[12px]">Credit Limit{reqMark("creditLimit")}</label>
                 <input
                   type="text"
                   value={`$${controlData.creditLimit}`}
@@ -724,7 +742,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">1099</label>
+                <label className="w-24 text-[12px]">1099{reqMark("is1099")}</label>
                 <input
                   type="checkbox"
                   checked={controlData.is1099}
@@ -778,7 +796,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Fed ID#</label>
+                <label className="w-24 text-[12px]">Fed ID#{reqMark("fedId")}</label>
                 <input
                   type="text"
                   value={controlData.fedId}
@@ -788,7 +806,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Acct #</label>
+                <label className="w-24 text-[12px]">Acct #{reqMark("acctNumber")}</label>
                 <input
                   type="text"
                   value={controlData.acctNumber}
@@ -811,7 +829,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
             {/* Right Column */}
             <div className="flex flex-col gap-3 min-w-[300px]">
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Ship Via</label>
+                <label className="w-24 text-[12px]">Ship Via{reqMark("shipVia")}</label>
                 <input
                   type="text"
                   value={controlData.shipVia}
@@ -821,7 +839,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Default Acct</label>
+                <label className="w-24 text-[12px]">Default Acct{reqMark("defaultAcct")}</label>
                 <div className="flex-1 flex">
                   <select
                     value={controlData.defaultAcct}
@@ -837,7 +855,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Pay Style</label>
+                <label className="w-24 text-[12px]">Pay Style{reqMark("payStyle")}</label>
                 <select
                   value={controlData.payStyle}
                   onChange={(e) => handleControlChange("payStyle", e.target.value)}
@@ -850,7 +868,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Desired Bank</label>
+                <label className="w-24 text-[12px]">Desired Bank{reqMark("desiredBank")}</label>
                 <div className="flex-1 flex">
                   <select
                     value={controlData.desiredBank}
@@ -867,7 +885,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Terms</label>
+                <label className="w-24 text-[12px]">Terms{reqMark("terms")}</label>
                 <select
                   value={controlData.terms}
                   onChange={(e) => handleControlChange("terms", e.target.value)}
@@ -883,7 +901,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Discount</label>
+                <label className="w-24 text-[12px]">Discount{reqMark("discount")}</label>
                 <input
                   type="text"
                   value={controlData.discount}
@@ -894,7 +912,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">If Paid In</label>
+                <label className="w-24 text-[12px]">If Paid In{reqMark("ifPaidIn")}</label>
                 <input
                   type="text"
                   value={controlData.ifPaidIn}
@@ -983,7 +1001,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               {/* Column 1 */}
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <label className="w-16 text-[12px]">Custom1</label>
+                  <label className="w-16 text-[12px]">Custom1{reqMark("custom1")}</label>
                   <input
                     type="text"
                     value={customData.custom1}
@@ -992,7 +1010,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="w-16 text-[12px]">Custom2</label>
+                  <label className="w-16 text-[12px]">Custom2{reqMark("custom2")}</label>
                   <input
                     type="text"
                     value={customData.custom2}
@@ -1001,7 +1019,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="w-16 text-[12px]">Custom3</label>
+                  <label className="w-16 text-[12px]">Custom3{reqMark("custom3")}</label>
                   <input
                     type="text"
                     value={customData.custom3}
@@ -1010,7 +1028,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="w-16 text-[12px]">Custom4</label>
+                  <label className="w-16 text-[12px]">Custom4{reqMark("custom4")}</label>
                   <input
                     type="text"
                     value={customData.custom4}
@@ -1023,7 +1041,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               {/* Column 2 */}
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <label className="w-16 text-[12px]">Custom5</label>
+                  <label className="w-16 text-[12px]">Custom5{reqMark("custom5")}</label>
                   <input
                     type="text"
                     value={customData.custom5}
@@ -1032,7 +1050,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="w-16 text-[12px]">Custom6</label>
+                  <label className="w-16 text-[12px]">Custom6{reqMark("custom6")}</label>
                   <input
                     type="text"
                     value={customData.custom6}
@@ -1041,7 +1059,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="w-16 text-[12px]">Custom7</label>
+                  <label className="w-16 text-[12px]">Custom7{reqMark("custom7")}</label>
                   <input
                     type="text"
                     value={customData.custom7}
@@ -1050,7 +1068,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="w-16 text-[12px]">Custom8</label>
+                  <label className="w-16 text-[12px]">Custom8{reqMark("custom8")}</label>
                   <div className="flex">
                     <input
                       type="text"
@@ -1066,7 +1084,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               {/* Column 3 */}
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <label className="w-20 text-[12px]">Custom9</label>
+                  <label className="w-20 text-[12px]">Custom9{reqMark("custom9")}</label>
                   <div className="flex">
                     <input
                       type="text"
@@ -1078,7 +1096,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="w-20 text-[12px]">Custom10</label>
+                  <label className="w-20 text-[12px]">Custom10{reqMark("custom10")}</label>
                   <div className="flex">
                     <input
                       type="text"
@@ -1109,7 +1127,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
           <div className="p-6">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <label className="w-28 text-[12px]">Bank Account #</label>
+                <label className="w-28 text-[12px]">Bank Account #{reqMark("bankAccountNumber")}</label>
                 <input
                   type="text"
                   value={achData.bankAccountNumber}
@@ -1119,7 +1137,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-28 text-[12px]">Bank Route #</label>
+                <label className="w-28 text-[12px]">Bank Route #{reqMark("bankRouteNumber")}</label>
                 <input
                   type="text"
                   value={achData.bankRouteNumber}
@@ -1129,7 +1147,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="w-28 text-[12px]">Bank Acct Type</label>
+                <label className="w-28 text-[12px]">Bank Acct Type{reqMark("bankAcctType")}</label>
                 <select
                   value={achData.bankAcctType}
                   onChange={(e) => handleACHChange("bankAcctType", e.target.value)}

@@ -35,7 +35,7 @@ export const CUSTOMER_DETAIL: DetailPageDefinition = {
   },
   fields: [
     // General tab fields
-    { fieldName: "name", defaultLabel: "Name", type: "text", required: true, defaultLabelWidth: 64 },
+    { fieldName: "name", defaultLabel: "Name", type: "text", defaultLabelWidth: 64 },
     { fieldName: "address", defaultLabel: "Address", type: "text", defaultLabelWidth: 64 },
     { fieldName: "city", defaultLabel: "City", type: "text", defaultLabelWidth: 64 },
     {
@@ -124,7 +124,7 @@ export const CUSTOMER_DETAIL: DetailPageDefinition = {
             columns: 2,
             visible: true,
             fields: [
-              { fieldName: "name", label: "Name", column: 0, visible: true },
+              { fieldName: "name", label: "Name", column: 0, visible: true, required: true },
               { fieldName: "address", label: "Address", column: 0, visible: true },
               { fieldName: "city", label: "City", column: 0, visible: true },
               { fieldName: "state", label: "State", column: 0, visible: true },

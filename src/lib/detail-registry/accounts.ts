@@ -16,7 +16,7 @@ export const ACCOUNT_DETAIL: DetailPageDefinition = {
     // General tab — left column (address info)
     { fieldName: "premisesId", defaultLabel: "ID", type: "text", defaultLabelWidth: 64 },
     { fieldName: "name", defaultLabel: "Tag", type: "text", defaultLabelWidth: 64 },
-    { fieldName: "address", defaultLabel: "Address", type: "text", required: true, defaultLabelWidth: 64 },
+    { fieldName: "address", defaultLabel: "Address", type: "text", defaultLabelWidth: 64 },
     { fieldName: "city", defaultLabel: "City", type: "text", defaultLabelWidth: 64 },
     {
       fieldName: "state", defaultLabel: "State", type: "select", defaultLabelWidth: 64,

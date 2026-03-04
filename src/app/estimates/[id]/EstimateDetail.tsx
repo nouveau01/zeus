@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 import {
   FileText,
   Save,
@@ -62,6 +65,8 @@ interface EstimateDetailProps {
 
 export default function EstimateDetail({ estimateId, onClose }: EstimateDetailProps) {
   const { openTab } = useTabs();
+  const { alert: xpAlert, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { layout: estimateLayout, fieldDefs: estimateFieldDefs, reqMark } = useRequiredFields("estimates-detail");
   const [estimate, setEstimate] = useState<EstimateData | null>(null);
   const [activeTab, setActiveTab] = useState<"details" | "lineItems" | "notes" | "history">("details");
   const [selectedLineItem, setSelectedLineItem] = useState<string | null>(null);
@@ -122,7 +127,20 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (estimate) {
+      const formData: Record<string, any> = {
+        estimateNumber: estimate.estimateNumber, status: estimate.status,
+        expirationDate: estimate.expirationDate, salesperson: estimate.salesperson,
+        probability: estimate.probability, description: estimate.description,
+        taxRate: estimate.taxRate, terms: estimate.terms, notes: estimate.notes,
+      };
+      const missing = estimateLayout ? validateRequiredFields(estimateLayout, estimateFieldDefs, formData) : [];
+      if (missing.length > 0) {
+        await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+        return;
+      }
+    }
     // Save logic
   };
 
@@ -268,7 +286,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
                 </div>
                 <div className="p-3 grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2">
-                    <label className="text-[11px] w-[90px]">Estimate #</label>
+                    <label className="text-[11px] w-[90px]">Estimate #{reqMark("estimateNumber")}</label>
                     <input
                       type="text"
                       value={estimate.estimateNumber}
@@ -277,7 +295,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-[11px] w-[90px]">Status</label>
+                    <label className="text-[11px] w-[90px]">Status{reqMark("status")}</label>
                     <select
                       value={estimate.status}
                       onChange={(e) => setEstimate({ ...estimate, status: e.target.value })}
@@ -298,7 +316,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-[11px] w-[90px]">Expires</label>
+                    <label className="text-[11px] w-[90px]">Expires{reqMark("expirationDate")}</label>
                     <input
                       type="text"
                       value={estimate.expirationDate}
@@ -307,7 +325,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-[11px] w-[90px]">Salesperson</label>
+                    <label className="text-[11px] w-[90px]">Salesperson{reqMark("salesperson")}</label>
                     <select
                       value={estimate.salesperson}
                       onChange={(e) => setEstimate({ ...estimate, salesperson: e.target.value })}
@@ -319,7 +337,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
                     </select>
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-[11px] w-[90px]">Probability</label>
+                    <label className="text-[11px] w-[90px]">Probability{reqMark("probability")}</label>
                     <input
                       type="number"
                       value={estimate.probability}
@@ -331,7 +349,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
                     <span className="text-[11px]">%</span>
                   </div>
                   <div className="flex items-center gap-2 col-span-2">
-                    <label className="text-[11px] w-[90px]">Description</label>
+                    <label className="text-[11px] w-[90px]">Description{reqMark("description")}</label>
                     <input
                       type="text"
                       value={estimate.description}
@@ -400,7 +418,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
                     <span className="text-[11px] font-medium">{formatCurrency(estimate.subtotal)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <label className="text-[11px]">Tax ({estimate.taxRate}%)</label>
+                    <label className="text-[11px]">Tax ({estimate.taxRate}%){reqMark("taxRate")}</label>
                     <span className="text-[11px]">{formatCurrency(estimate.taxAmount)}</span>
                   </div>
                   <div className="border-t border-[#808080] pt-2 flex items-center justify-between">
@@ -416,7 +434,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
 
               <div className="border border-[#808080] bg-white">
                 <div className="bg-[#f0f0f0] px-2 py-1 border-b border-[#808080] font-medium text-[11px]">
-                  Terms
+                  Terms{reqMark("terms")}
                 </div>
                 <div className="p-3">
                   <select
@@ -562,6 +580,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
           {estimate.status}
         </span>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }

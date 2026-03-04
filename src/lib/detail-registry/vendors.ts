@@ -15,7 +15,7 @@ export const VENDOR_DETAIL: DetailPageDefinition = {
   fields: [
     // General tab — left column
     { fieldName: "vendorId", defaultLabel: "ID #", type: "readonly", defaultLabelWidth: 64 },
-    { fieldName: "name", defaultLabel: "Name", type: "text", required: true, defaultLabelWidth: 64 },
+    { fieldName: "name", defaultLabel: "Name", type: "text", defaultLabelWidth: 64 },
     { fieldName: "address", defaultLabel: "Address", type: "textarea", defaultLabelWidth: 64 },
     { fieldName: "city", defaultLabel: "City", type: "text", defaultLabelWidth: 64 },
     {
@@ -137,7 +137,7 @@ export const VENDOR_DETAIL: DetailPageDefinition = {
             visible: true,
             fields: [
               { fieldName: "vendorId", label: "ID #", column: 0, visible: true, readOnly: true },
-              { fieldName: "name", label: "Name", column: 0, visible: true },
+              { fieldName: "name", label: "Name", column: 0, visible: true, required: true },
               { fieldName: "address", label: "Address", column: 0, visible: true },
               { fieldName: "city", label: "City", column: 0, visible: true },
               { fieldName: "state", label: "State", column: 0, visible: true },

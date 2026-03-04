@@ -22,6 +22,7 @@ import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import { getCustomerById } from "@/lib/actions/customers";
 import { useDetailLayout } from "@/hooks/useDetailLayout";
 import { DetailLayout } from "@/components/detail/DetailLayout";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
 import { useXPDialog } from "@/components/ui/XPDialog";
 
 interface Contact {
@@ -170,8 +171,11 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
 
   // Unsaved changes handling
   const handleSaveForHook = useCallback(async () => {
-    if (!formData.name?.trim()) {
-      throw new Error("Customer name is required");
+    if (layout) {
+      const missing = validateRequiredFields(layout, fieldDefs, formData as Record<string, any>);
+      if (missing.length > 0) {
+        throw new Error(`Please fill in required fields: ${missing.join(", ")}`);
+      }
     }
     if (isNew) {
       const response = await fetch("/api/customers", {
@@ -196,7 +200,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         setFormData(data);
       }
     }
-  }, [formData, isNew, customerId, onClose, openTab]);
+  }, [formData, isNew, customerId, onClose, openTab, layout, fieldDefs]);
 
   const {
     isDirty,
@@ -246,9 +250,12 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   }, []);
 
   const handleSave = async () => {
-    if (!formData.name?.trim()) {
-      await xpAlert("Customer name is required");
-      return;
+    if (layout) {
+      const missing = validateRequiredFields(layout, fieldDefs, formData as Record<string, any>);
+      if (missing.length > 0) {
+        await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+        return;
+      }
     }
 
     try {

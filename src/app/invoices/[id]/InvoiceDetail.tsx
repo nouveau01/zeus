@@ -5,6 +5,8 @@ import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 
 interface InvoiceItem {
   id: string;
@@ -87,6 +89,7 @@ const TABS = ["Account/General", "Taxes/Job Remarks"];
 export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { layout: invoiceLayout, fieldDefs: invoiceFieldDefs, reqMark } = useRequiredFields("invoices-detail");
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [isNew, setIsNew] = useState(invoiceId === "new");
@@ -126,6 +129,16 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
   const handleSaveForHook = useCallback(async () => {
     setSavingFromHook(true);
     try {
+      const allFormData = {
+        ...formData,
+        taxRegion1, taxRate1, taxRegion2, taxRate2, taxFactor,
+        jobRemarks, reg: regHours, ot: otHours, ot17: ot17Hours, dt: dtHours, tt: ttHours,
+      };
+      const missing = invoiceLayout ? validateRequiredFields(invoiceLayout, invoiceFieldDefs, allFormData) : [];
+      if (missing.length > 0) {
+        throw new Error(`Please fill in required fields: ${missing.join(", ")}`);
+      }
+
       const saveBody = {
         ...formData,
         items,
@@ -172,7 +185,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
     } finally {
       setSavingFromHook(false);
     }
-  }, [isNew, invoiceId, formData, items, taxRegion1, taxRate1, taxRegion2, taxRate2, taxFactor, jobRemarks, regHours, otHours, ot17Hours, dtHours, ttHours, onClose, openTab]);
+  }, [isNew, invoiceId, formData, items, taxRegion1, taxRate1, taxRegion2, taxRate2, taxFactor, jobRemarks, regHours, otHours, ot17Hours, dtHours, ttHours, onClose, openTab, invoiceLayout, invoiceFieldDefs]);
 
   // Unsaved changes hook
   const {
@@ -253,6 +266,17 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
   const handleSave = async () => {
     try {
+      const allFormData = {
+        ...formData,
+        taxRegion1, taxRate1, taxRegion2, taxRate2, taxFactor,
+        jobRemarks, reg: regHours, ot: otHours, ot17: ot17Hours, dt: dtHours, tt: ttHours,
+      };
+      const missing = invoiceLayout ? validateRequiredFields(invoiceLayout, invoiceFieldDefs, allFormData) : [];
+      if (missing.length > 0) {
+        await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+        return;
+      }
+
       const saveBody = {
         ...formData,
         items,
@@ -513,7 +537,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         {/* Middle Section - Fields */}
         <div className="flex flex-col gap-2 min-w-[180px]">
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Posting</label>
+            <label className="w-16 text-right text-[12px]">Posting{reqMark("postingDate")}</label>
             <input
               type="date"
               value={formatDateForInput(formData.postingDate as string)}
@@ -522,7 +546,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Date</label>
+            <label className="w-16 text-right text-[12px]">Date{reqMark("date")}</label>
             <input
               type="date"
               value={formatDateForInput(formData.date as string)}
@@ -545,7 +569,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Type</label>
+            <label className="w-16 text-right text-[12px]">Type{reqMark("type")}</label>
             <select
               value={formData.type || "Other"}
               onChange={(e) => handleInputChange("type", e.target.value)}
@@ -558,7 +582,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Terms</label>
+            <label className="w-16 text-right text-[12px]">Terms{reqMark("terms")}</label>
             <select
               value={formData.terms || "Net 30 Days"}
               onChange={(e) => handleInputChange("terms", e.target.value)}
@@ -571,7 +595,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Inv. Price</label>
+            <label className="w-16 text-right text-[12px]">Inv. Price{reqMark("priceLevel")}</label>
             <select
               value={formData.priceLevel || "Price Level"}
               onChange={(e) => handleInputChange("priceLevel", e.target.value)}
@@ -588,7 +612,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         {/* Right-Middle Section - More Fields */}
         <div className="flex flex-col gap-2 min-w-[180px]">
           <div className="flex items-center gap-2">
-            <label className="w-20 text-right text-[12px]">PO #</label>
+            <label className="w-20 text-right text-[12px]">PO #{reqMark("poNumber")}</label>
             <input
               type="text"
               value={formData.poNumber || ""}
@@ -597,7 +621,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-20 text-right text-[12px]">Mech/Sales</label>
+            <label className="w-20 text-right text-[12px]">Mech/Sales{reqMark("mechSales")}</label>
             <select
               value={formData.mechSales || ""}
               onChange={(e) => handleInputChange("mechSales", e.target.value)}
@@ -607,7 +631,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-20 text-right text-[12px]">Credit Req</label>
+            <label className="w-20 text-right text-[12px]">Credit Req{reqMark("creditReq")}</label>
             <input
               type="text"
               value={formData.creditReq || ""}
@@ -616,7 +640,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-20 text-right text-[12px]">Status</label>
+            <label className="w-20 text-right text-[12px]">Status{reqMark("status")}</label>
             <input
               type="text"
               value=""
@@ -625,7 +649,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-20 text-right text-[12px]">Backup</label>
+            <label className="w-20 text-right text-[12px]">Backup{reqMark("backup")}</label>
             <input
               type="text"
               value={formData.backup || ""}
@@ -669,7 +693,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
       {/* Invoice Description */}
       <div className="mx-2 mb-2">
-        <label className="text-[12px] font-medium">Invoice Description</label>
+        <label className="text-[12px] font-medium">Invoice Description{reqMark("description")}</label>
         <textarea
           value={formData.description || ""}
           onChange={(e) => handleInputChange("description", e.target.value)}
@@ -772,7 +796,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         {/* Left Column - Tax Fields */}
         <div className="flex flex-col gap-2 min-w-[180px]">
           <div className="flex items-center gap-2">
-            <label className="w-24 text-right text-[12px]">Tax Region 1</label>
+            <label className="w-24 text-right text-[12px]">Tax Region 1{reqMark("taxRegion1")}</label>
             <input
               type="text"
               value={taxRegion1}
@@ -781,7 +805,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-24 text-right text-[12px]">Tax Rate 1</label>
+            <label className="w-24 text-right text-[12px]">Tax Rate 1{reqMark("taxRate1")}</label>
             <input
               type="text"
               value={taxRate1}
@@ -790,7 +814,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-24 text-right text-[12px]">Tax Region 2</label>
+            <label className="w-24 text-right text-[12px]">Tax Region 2{reqMark("taxRegion2")}</label>
             <input
               type="text"
               value={taxRegion2}
@@ -799,7 +823,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-24 text-right text-[12px]">Tax Rate 2</label>
+            <label className="w-24 text-right text-[12px]">Tax Rate 2{reqMark("taxRate2")}</label>
             <input
               type="text"
               value={taxRate2}
@@ -808,7 +832,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-24 text-right text-[12px]">Tax Factor</label>
+            <label className="w-24 text-right text-[12px]">Tax Factor{reqMark("taxFactor")}</label>
             <input
               type="text"
               value={taxFactor}
@@ -820,7 +844,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
 
         {/* Middle Column - Job Remarks */}
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-[12px] font-medium">Job Remarks</label>
+          <label className="text-[12px] font-medium">Job Remarks{reqMark("jobRemarks")}</label>
           <textarea
             value={jobRemarks}
             onChange={(e) => { setJobRemarks(e.target.value); setIsDirty(true); }}
@@ -832,7 +856,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         {/* Right Column - Hours */}
         <div className="flex flex-col gap-2 min-w-[100px]">
           <div className="flex items-center gap-2">
-            <label className="w-10 text-right text-[12px]">Reg</label>
+            <label className="w-10 text-right text-[12px]">Reg{reqMark("reg")}</label>
             <input
               type="text"
               value={regHours}
@@ -841,7 +865,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-10 text-right text-[12px]">OT</label>
+            <label className="w-10 text-right text-[12px]">OT{reqMark("ot")}</label>
             <input
               type="text"
               value={otHours}
@@ -850,7 +874,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-10 text-right text-[12px]">1.7</label>
+            <label className="w-10 text-right text-[12px]">1.7{reqMark("ot17")}</label>
             <input
               type="text"
               value={ot17Hours}
@@ -859,7 +883,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-10 text-right text-[12px]">DT</label>
+            <label className="w-10 text-right text-[12px]">DT{reqMark("dt")}</label>
             <input
               type="text"
               value={dtHours}
@@ -868,7 +892,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-10 text-right text-[12px]">TT</label>
+            <label className="w-10 text-right text-[12px]">TT{reqMark("tt")}</label>
             <input
               type="text"
               value={ttHours}

@@ -26,6 +26,7 @@ interface DetailSectionProps {
   onDropOnColumn?: (sectionId: string, targetColumn: 0 | 1, e: React.DragEvent) => void;
   // Field editing controls
   onToggleFieldVisibility?: (sectionId: string, fieldName: string) => void;
+  onToggleFieldRequired?: (sectionId: string, fieldName: string) => void;
   onSwitchFieldColumn?: (sectionId: string, fieldName: string) => void;
   onMoveField?: (sectionId: string, fieldName: string, direction: "up" | "down") => void;
 }
@@ -42,6 +43,7 @@ export function DetailSection({
   onFieldDrop,
   onDropOnColumn,
   onToggleFieldVisibility,
+  onToggleFieldRequired,
   onSwitchFieldColumn,
   onMoveField,
 }: DetailSectionProps) {
@@ -133,6 +135,20 @@ export function DetailSection({
               ) : (
                 <EyeOff className="w-3 h-3 text-[#999]" />
               )}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFieldRequired?.(section.id, placement.fieldName);
+              }}
+              className={`w-5 h-5 flex items-center justify-center bg-white border rounded-sm shadow-sm text-[11px] font-bold leading-none ${
+                (placement.required ?? def.required)
+                  ? "border-[#c45c5c] text-[#c45c5c] hover:bg-[#fde8e8]"
+                  : "border-[#c0c0c0] text-[#ccc] hover:bg-[#e8f0f8] hover:border-[#0078d4]"
+              }`}
+              title={(placement.required ?? def.required) ? "Make optional" : "Make required"}
+            >
+              *
             </button>
           </div>
 

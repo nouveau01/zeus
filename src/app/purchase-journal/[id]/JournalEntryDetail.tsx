@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 import {
   FileText,
   Save,
@@ -63,6 +65,7 @@ const mockVendors = [
 export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { layout: journalLayout, fieldDefs: journalFieldDefs, reqMark } = useRequiredFields("purchase-journal-detail");
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
@@ -107,6 +110,15 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
 
   // Handlers
   const handleSave = async () => {
+    const formData: Record<string, any> = {
+      refNumber, postingDate, date, dueDate, dueIn, discPercent, ifPaidIn,
+      status, poNumber, custom1, custom2, description,
+    };
+    const missing = journalLayout ? validateRequiredFields(journalLayout, journalFieldDefs, formData) : [];
+    if (missing.length > 0) {
+      await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+      return;
+    }
     setHasChanges(false);
     await xpAlert("AP Invoice saved successfully");
   };
@@ -324,7 +336,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
             {/* Left Column - Vendor and Ref */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <label className="text-[#0000ff] text-[12px] font-medium w-14">Vendor</label>
+                <label className="text-[#0000ff] text-[12px] font-medium w-14">Vendor{reqMark("vendor")}</label>
                 <select
                   value={vendorId}
                   onChange={(e) => handleVendorChange(e.target.value)}
@@ -337,7 +349,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
                 <button className="px-1 border border-[#7f9db9] bg-[#f0f0f0] hover:bg-[#e0e0e0] text-[12px]">...</button>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-14">Ref #</label>
+                <label className="text-[12px] w-14">Ref #{reqMark("refNumber")}</label>
                 <input
                   type="text"
                   value={refNumber}
@@ -350,7 +362,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
             {/* Middle Column - Dates */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-14">Posting</label>
+                <label className="text-[12px] w-14">Posting{reqMark("postingDate")}</label>
                 <input
                   type="date"
                   value={postingDate}
@@ -360,7 +372,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
                 <button className="px-1 border border-[#7f9db9] bg-[#f0f0f0] text-[12px]">...</button>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-14">Date</label>
+                <label className="text-[12px] w-14">Date{reqMark("date")}</label>
                 <input
                   type="date"
                   value={date}
@@ -370,7 +382,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
                 <button className="px-1 border border-[#7f9db9] bg-[#f0f0f0] text-[12px]">...</button>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-14">Due</label>
+                <label className="text-[12px] w-14">Due{reqMark("dueDate")}</label>
                 <input
                   type="date"
                   value={dueDate}
@@ -384,7 +396,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
             {/* Middle-Right Column - Due In, Disc, etc */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-16">Due In</label>
+                <label className="text-[12px] w-16">Due In{reqMark("dueIn")}</label>
                 <input
                   type="number"
                   value={dueIn}
@@ -393,7 +405,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-16">% Disc</label>
+                <label className="text-[12px] w-16">% Disc{reqMark("discPercent")}</label>
                 <input
                   type="number"
                   value={discPercent}
@@ -403,7 +415,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-16">If Paid In</label>
+                <label className="text-[12px] w-16">If Paid In{reqMark("ifPaidIn")}</label>
                 <input
                   type="number"
                   value={ifPaidIn}
@@ -416,7 +428,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
             {/* Right Column - Status, PO, Custom */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-14">Status</label>
+                <label className="text-[12px] w-14">Status{reqMark("status")}</label>
                 <select
                   value={status}
                   onChange={(e) => { setStatus(e.target.value); setHasChanges(true); }}
@@ -443,7 +455,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[12px] w-14">Custom1</label>
+                <label className="text-[12px] w-14">Custom1{reqMark("custom1")}</label>
                 <input
                   type="text"
                   value={custom1}
@@ -456,7 +468,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
             {/* Far Right - Total and Custom2 */}
             <div className="flex flex-col gap-2 ml-auto">
               <div className="flex items-center gap-2">
-                <label className="text-[12px]">Custom2</label>
+                <label className="text-[12px]">Custom2{reqMark("custom2")}</label>
                 <input
                   type="text"
                   value={custom2}
@@ -482,7 +494,7 @@ export default function JournalEntryDetail({ entryId, onClose }: JournalEntryDet
 
         {/* Description */}
         <div className="mb-2">
-          <label className="text-[12px]">Description</label>
+          <label className="text-[12px]">Description{reqMark("description")}</label>
           <textarea
             value={description}
             onChange={(e) => { setDescription(e.target.value); setHasChanges(true); }}

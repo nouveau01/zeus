@@ -19,6 +19,8 @@ import { getAccountById } from "@/lib/actions/accounts";
 import { useOffices } from "@/context/OfficesContext";
 import { useXPDialog } from "@/components/ui/XPDialog";
 import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 
 interface Unit {
   id: string;
@@ -98,6 +100,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   const { openTab, closeTab } = useTabs();
   const { offices, selectedOfficeIds } = useOffices();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+
+  // Load saved layout from DB (for required field config + asterisks)
+  const { layout: accountLayout, fieldDefs: accountFieldDefs, reqMark } = useRequiredFields("accounts-detail");
 
   // Parse URL params for new account creation
   const isNew = accountId.startsWith("new");
@@ -202,8 +207,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   // Save callback for the unsaved changes hook
   const handleSaveForHook = useCallback(async () => {
-    if (!formData.address?.trim()) {
-      throw new Error("Address is required");
+    const missing = accountLayout ? validateRequiredFields(accountLayout, accountFieldDefs, formData as Record<string, any>) : [];
+    if (missing.length > 0) {
+      throw new Error(`Please fill in required fields: ${missing.join(", ")}`);
     }
     setSavingFromHook(true);
     try {
@@ -408,16 +414,13 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
   };
 
   const handleSave = async () => {
-    if (!formData.address?.trim()) {
-      await xpAlert("Address is required");
+    const missing = accountLayout ? validateRequiredFields(accountLayout, accountFieldDefs, formData as Record<string, any>) : [];
+    if (missing.length > 0) {
+      await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
       return;
     }
 
     const effectiveCustomerId = customerId || selectedCustomerId;
-    if (isNew && !effectiveCustomerId) {
-      await xpAlert("Please select a customer");
-      return;
-    }
 
     try {
       if (isNew) {
@@ -803,12 +806,11 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         <div className="flex flex-col gap-2 min-w-[280px]">
           {isNew && !customerId && (
             <div className="flex items-center gap-2">
-              <label className="w-16 text-right text-[12px] text-red-600 font-bold">Customer *</label>
+              <label className="w-16 text-right text-[12px]">Customer</label>
               <select
                 value={selectedCustomerId}
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
-                className={`flex-1 px-2 py-1 border text-[12px] bg-white ${!selectedCustomerId ? "border-red-500" : "border-[#a0a0a0]"}`}
-                required
+                className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
               >
                 <option value="">Select Customer...</option>
                 {customers.map((c) => (
@@ -818,7 +820,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             </div>
           )}
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">ID</label>
+            <label className="w-16 text-right text-[12px]">ID{reqMark("premisesId")}</label>
             <input
               type="text"
               value={formData.premisesId || ""}
@@ -827,7 +829,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Tag</label>
+            <label className="w-16 text-right text-[12px]">Tag{reqMark("name")}</label>
             <input
               type="text"
               value={formData.name || ""}
@@ -836,7 +838,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className={`w-16 text-right text-[12px] ${isNew ? "text-red-600 font-bold" : ""}`}>Address{isNew && " *"}</label>
+            <label className="w-16 text-right text-[12px]">Address{reqMark("address")}</label>
             <AddressAutocomplete
               value={formData.address || ""}
               onChange={(val) => handleInputChange("address", val)}
@@ -847,12 +849,11 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
                 handleInputChange("zipCode", addr.zipCode);
                 handleInputChange("country", addr.country);
               }}
-              className={`flex-1 px-2 py-1 border text-[12px] bg-white ${isNew && !formData.address ? "border-red-500" : "border-[#a0a0a0]"}`}
-              placeholder={isNew ? "Enter address..." : ""}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">City</label>
+            <label className="w-16 text-right text-[12px]">City{reqMark("city")}</label>
             <input
               type="text"
               value={formData.city || ""}
@@ -861,7 +862,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">State</label>
+            <label className="w-16 text-right text-[12px]">State{reqMark("state")}</label>
             <select
               value={formData.state || ""}
               onChange={(e) => handleInputChange("state", e.target.value)}
@@ -872,7 +873,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
                 <option key={st} value={st}>{st}</option>
               ))}
             </select>
-            <label className="text-[12px] ml-2">Zip</label>
+            <label className="text-[12px] ml-2">Zip{reqMark("zipCode")}</label>
             <input
               type="text"
               value={formData.zipCode || ""}
@@ -881,7 +882,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Country</label>
+            <label className="w-16 text-right text-[12px]">Country{reqMark("country")}</label>
             <input
               type="text"
               value={formData.country || "United States"}
@@ -909,7 +910,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         {/* Middle Column - Contact Info */}
         <div className="flex flex-col gap-2 min-w-[280px]">
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Contact</label>
+            <label className="w-16 text-right text-[12px]">Contact{reqMark("contact")}</label>
             <input
               type="text"
               value={formData.contact || ""}
@@ -918,7 +919,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Phone</label>
+            <label className="w-16 text-right text-[12px]">Phone{reqMark("phone")}</label>
             <input
               type="text"
               value={formData.phone || ""}
@@ -927,7 +928,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Fax</label>
+            <label className="w-16 text-right text-[12px]">Fax{reqMark("fax")}</label>
             <input
               type="text"
               value={formData.fax || ""}
@@ -936,7 +937,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Cellular</label>
+            <label className="w-16 text-right text-[12px]">Cellular{reqMark("cellular")}</label>
             <input
               type="text"
               value={formData.cellular || ""}
@@ -945,7 +946,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">e-mail</label>
+            <label className="w-16 text-right text-[12px]">e-mail{reqMark("email")}</label>
             <input
               type="text"
               value={formData.email || ""}
@@ -954,7 +955,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-right text-[12px]">Web Site</label>
+            <label className="w-16 text-right text-[12px]">Web Site{reqMark("website")}</label>
             <input
               type="text"
               value={formData.website || ""}
@@ -1275,7 +1276,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         {/* Left Column */}
         <div className="flex flex-col gap-2 min-w-[280px]">
           <div className="flex items-center gap-2">
-            <label className="w-28 text-right text-[12px]">Type</label>
+            <label className="w-28 text-right text-[12px]">Type{reqMark("type")}</label>
             <select
               value={formData.type || ""}
               onChange={(e) => handleInputChange("type", e.target.value)}
@@ -1290,7 +1291,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-28 text-right text-[12px]">Status</label>
+            <label className="w-28 text-right text-[12px]">Status{reqMark("isActive")}</label>
             <select
               value={formData.isActive ? "Active" : "Inactive"}
               onChange={(e) => handleInputChange("isActive", e.target.value === "Active")}

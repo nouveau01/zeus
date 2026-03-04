@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { getUnitById } from "@/lib/actions/units";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 
 // Convert a date string/object to YYYY-MM-DD for <input type="date">
 function toDateInputValue(d: string | Date | null | undefined): string {
@@ -98,6 +100,7 @@ interface UnitDetailProps {
 export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { layout: unitLayout, fieldDefs: unitFieldDefs, reqMark } = useRequiredFields("units-detail");
   const [activeTab, setActiveTab] = useState<"general" | "templateCustom" | "tests" | "remarks" | "unitCustom">("general");
   const [isEditing, setIsEditing] = useState(false);
   const [savingFromHook, setSavingFromHook] = useState(false);
@@ -199,6 +202,13 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
 
   // Save callback for the unsaved changes hook
   const handleSaveForHook = useCallback(async () => {
+    if (unitLayout) {
+      const formData = { ...unit, ...unitCustom, remarks } as Record<string, any>;
+      const missing = validateRequiredFields(unitLayout, unitFieldDefs, formData);
+      if (missing.length > 0) {
+        throw new Error(`Please fill in required fields: ${missing.join(", ")}`);
+      }
+    }
     setSavingFromHook(true);
     try {
       const response = await fetch(`/api/units/${unitId}`, {
@@ -278,7 +288,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
     } finally {
       setSavingFromHook(false);
     }
-  }, [unitId, unit, remarks, unitCustom]);
+  }, [unitId, unit, remarks, unitCustom, unitLayout, unitFieldDefs]);
 
   // Unsaved changes hook
   const {
@@ -373,6 +383,14 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   }, [unit, templateCustomFields, tests, remarks, unitCustom, originalUnit, originalTemplateCustom, originalTests, originalRemarks, originalUnitCustom]);
 
   const handleSave = async () => {
+    if (unitLayout) {
+      const formData = { ...unit, ...unitCustom, remarks } as Record<string, any>;
+      const missing = validateRequiredFields(unitLayout, unitFieldDefs, formData);
+      if (missing.length > 0) {
+        await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+        return;
+      }
+    }
     try {
       const response = await fetch(`/api/units/${unitId}`, {
         method: "PUT",
@@ -663,7 +681,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             {/* Left Column */}
             <div className="flex flex-col gap-2 min-w-[280px]">
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Unit</label>
+                <label className="w-20 text-[12px]">Unit{reqMark("unitNumber")}</label>
                 <input
                   type="text"
                   value={unit.unitNumber}
@@ -672,7 +690,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Description</label>
+                <label className="w-20 text-[12px]">Description{reqMark("description")}</label>
                 <input
                   type="text"
                   value={unit.description}
@@ -681,7 +699,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">State #</label>
+                <label className="w-20 text-[12px]">State #{reqMark("stateNumber")}</label>
                 <input
                   type="text"
                   value={unit.stateNumber}
@@ -690,7 +708,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Template</label>
+                <label className="w-20 text-[12px]">Template{reqMark("template")}</label>
                 <select
                   value={unit.template}
                   onChange={(e) => setUnit({ ...unit, template: e.target.value })}
@@ -700,7 +718,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Category</label>
+                <label className="w-20 text-[12px]">Category{reqMark("category")}</label>
                 <select
                   value={unit.category}
                   onChange={(e) => setUnit({ ...unit, category: e.target.value })}
@@ -710,7 +728,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Type</label>
+                <label className="w-20 text-[12px]">Type{reqMark("type")}</label>
                 <select
                   value={unit.type}
                   onChange={(e) => setUnit({ ...unit, type: e.target.value })}
@@ -720,7 +738,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Building</label>
+                <label className="w-20 text-[12px]">Building{reqMark("building")}</label>
                 <select
                   value={unit.building}
                   onChange={(e) => setUnit({ ...unit, building: e.target.value })}
@@ -730,7 +748,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Account</label>
+                <label className="w-20 text-[12px]">Account{reqMark("accountTag")}</label>
                 <div className="flex-1 flex gap-1">
                   <input
                     type="text"
@@ -744,7 +762,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Status</label>
+                <label className="w-20 text-[12px]">Status{reqMark("status")}</label>
                 <select
                   value={unit.status}
                   onChange={(e) => setUnit({ ...unit, status: e.target.value })}
@@ -758,7 +776,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             {/* Right Column */}
             <div className="flex flex-col gap-2 min-w-[280px]">
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Group</label>
+                <label className="w-24 text-[12px]">Group{reqMark("group")}</label>
                 <select
                   value={unit.group}
                   onChange={(e) => setUnit({ ...unit, group: e.target.value })}
@@ -770,7 +788,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">On Service Since</label>
+                <label className="w-24 text-[12px]">On Service Since{reqMark("onServiceSince")}</label>
                 <input
                   type="date"
                   value={unit.onServiceSince}
@@ -779,7 +797,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Last Service On</label>
+                <label className="w-24 text-[12px]">Last Service On{reqMark("lastServiceOn")}</label>
                 <input
                   type="date"
                   value={unit.lastServiceOn}
@@ -788,7 +806,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Installed</label>
+                <label className="w-24 text-[12px]">Installed{reqMark("installed")}</label>
                 <input
                   type="date"
                   value={unit.installed}
@@ -797,7 +815,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Installed By</label>
+                <label className="w-24 text-[12px]">Installed By{reqMark("installedBy")}</label>
                 <input
                   type="text"
                   value={unit.installedBy}
@@ -806,7 +824,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Manufacturer</label>
+                <label className="w-24 text-[12px]">Manufacturer{reqMark("manufacturer")}</label>
                 <input
                   type="text"
                   value={unit.manufacturer}
@@ -815,7 +833,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Serial Number</label>
+                <label className="w-24 text-[12px]">Serial Number{reqMark("serialNumber")}</label>
                 <input
                   type="text"
                   value={unit.serialNumber}
@@ -824,7 +842,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Price (S)</label>
+                <label className="w-24 text-[12px]">Price (S){reqMark("priceS")}</label>
                 <input
                   type="text"
                   value={unit.priceS}
@@ -833,7 +851,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-24 text-[12px]">Week</label>
+                <label className="w-24 text-[12px]">Week{reqMark("week")}</label>
                 <input
                   type="text"
                   value={unit.week}
@@ -961,7 +979,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             {/* Left Column */}
             <div className="flex flex-col gap-2 min-w-[280px]">
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Test Included</label>
+                <label className="w-32 text-[12px]">Test Included{reqMark("testIncluded")}</label>
                 <input
                   type="text"
                   value={unitCustom.testIncluded}
@@ -970,7 +988,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Test Custom Pricing</label>
+                <label className="w-32 text-[12px]">Test Custom Pricing{reqMark("testCustomPricing")}</label>
                 <input
                   type="text"
                   value={unitCustom.testCustomPricing}
@@ -979,7 +997,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Custom3</label>
+                <label className="w-32 text-[12px]">Custom3{reqMark("custom3")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom3}
@@ -988,7 +1006,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Custom4</label>
+                <label className="w-32 text-[12px]">Custom4{reqMark("custom4")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom4}
@@ -997,7 +1015,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Custom5</label>
+                <label className="w-32 text-[12px]">Custom5{reqMark("custom5")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom5}
@@ -1006,7 +1024,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Custom6</label>
+                <label className="w-32 text-[12px]">Custom6{reqMark("custom6")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom6}
@@ -1015,7 +1033,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Custom7</label>
+                <label className="w-32 text-[12px]">Custom7{reqMark("custom7")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom7}
@@ -1024,7 +1042,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Custom8</label>
+                <label className="w-32 text-[12px]">Custom8{reqMark("custom8")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom8}
@@ -1033,7 +1051,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Custom9</label>
+                <label className="w-32 text-[12px]">Custom9{reqMark("custom9")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom9}
@@ -1042,7 +1060,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-32 text-[12px]">Custom10</label>
+                <label className="w-32 text-[12px]">Custom10{reqMark("custom10")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom10}
@@ -1055,7 +1073,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             {/* Right Column */}
             <div className="flex flex-col gap-2 min-w-[280px]">
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom11</label>
+                <label className="w-20 text-[12px]">Custom11{reqMark("custom11")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom11}
@@ -1064,7 +1082,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom12</label>
+                <label className="w-20 text-[12px]">Custom12{reqMark("custom12")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom12}
@@ -1073,7 +1091,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom13</label>
+                <label className="w-20 text-[12px]">Custom13{reqMark("custom13")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom13}
@@ -1082,7 +1100,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom14</label>
+                <label className="w-20 text-[12px]">Custom14{reqMark("custom14")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom14}
@@ -1091,7 +1109,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom15</label>
+                <label className="w-20 text-[12px]">Custom15{reqMark("custom15")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom15}
@@ -1100,7 +1118,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom16</label>
+                <label className="w-20 text-[12px]">Custom16{reqMark("custom16")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom16}
@@ -1109,7 +1127,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom17</label>
+                <label className="w-20 text-[12px]">Custom17{reqMark("custom17")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom17}
@@ -1118,7 +1136,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom18</label>
+                <label className="w-20 text-[12px]">Custom18{reqMark("custom18")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom18}
@@ -1127,7 +1145,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom19</label>
+                <label className="w-20 text-[12px]">Custom19{reqMark("custom19")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom19}
@@ -1136,7 +1154,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="w-20 text-[12px]">Custom20</label>
+                <label className="w-20 text-[12px]">Custom20{reqMark("custom20")}</label>
                 <input
                   type="text"
                   value={unitCustom.custom20}

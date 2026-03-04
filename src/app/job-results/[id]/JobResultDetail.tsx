@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { getJobById } from "@/lib/actions/jobs";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 
 interface JobResultDetailProps {
   jobId: string;
@@ -68,6 +70,7 @@ const TABS = ["1 Summary & Hours Worked", "2 Job Costing Detail", "3 Job Costing
 
 export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps) {
   const { openTab } = useTabs();
+  const { layout: jobResultLayout, fieldDefs: jobResultFieldDefs, reqMark } = useRequiredFields("job-results-detail");
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("1 Summary & Hours Worked");
@@ -624,11 +627,11 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
         {/* Column 1 */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <label className="text-[12px] w-20 text-right">Supervisor</label>
+            <label className="text-[12px] w-20 text-right">Supervisor{reqMark("supervisor")}</label>
             <input type="text" className="px-2 py-1 border border-[#a0a0a0] text-[12px] flex-1 bg-white" />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-[12px] w-20 text-right">City #</label>
+            <label className="text-[12px] w-20 text-right">City #{reqMark("cityNumber")}</label>
             <input type="text" className="px-2 py-1 border border-[#a0a0a0] text-[12px] flex-1 bg-white" />
           </div>
           <div className="flex items-center gap-2">
@@ -672,19 +675,19 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
         {/* Column 3 */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <label className="text-[12px] w-20 text-right">Schedule</label>
+            <label className="text-[12px] w-20 text-right">Schedule{reqMark("schedule")}</label>
             <input type="text" className="px-2 py-1 border border-[#a0a0a0] text-[12px] flex-1 bg-white" />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-[12px] w-20 text-right">Billing Terms</label>
+            <label className="text-[12px] w-20 text-right">Billing Terms{reqMark("billingTerms")}</label>
             <input type="text" className="px-2 py-1 border border-[#a0a0a0] text-[12px] flex-1 bg-white" />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-[12px] w-20 text-right">Material</label>
+            <label className="text-[12px] w-20 text-right">Material{reqMark("material")}</label>
             <input type="text" className="px-2 py-1 border border-[#a0a0a0] text-[12px] flex-1 bg-white" />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-[12px] w-20 text-right">Paperless</label>
+            <label className="text-[12px] w-20 text-right">Paperless{reqMark("paperless")}</label>
             <input type="text" className="px-2 py-1 border border-[#a0a0a0] text-[12px] flex-1 bg-white" />
           </div>
           <div className="flex items-center gap-2">
@@ -723,7 +726,8 @@ export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps
       </div>
 
       {/* Remarks text area */}
-      <div className="border border-[#a0a0a0] bg-white">
+      <label className="text-[12px] font-medium">Remarks{reqMark("remarks")}</label>
+      <div className="border border-[#a0a0a0] bg-white mt-1">
         <textarea
           className="w-full h-48 px-2 py-1 text-[12px] resize-none border-none focus:outline-none"
           placeholder=""
@@ -812,7 +816,7 @@ WB COMP`}
         {/* Left Column */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <label className="w-16 text-[12px]">Job #</label>
+            <label className="w-16 text-[12px]">Job #{reqMark("externalId")}</label>
             <input
               type="text"
               value={job.externalId || ""}
@@ -821,7 +825,7 @@ WB COMP`}
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-16 text-[12px]">Type</label>
+            <label className="w-16 text-[12px]">Type{reqMark("type")}</label>
             <input
               type="text"
               value={job.type || ""}
@@ -848,7 +852,7 @@ WB COMP`}
         {/* Middle Column */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <label className="w-16 text-[12px]">Desc</label>
+            <label className="w-16 text-[12px]">Desc{reqMark("jobDescription")}</label>
             <input
               type="text"
               value={job.jobDescription || ""}
@@ -879,7 +883,7 @@ WB COMP`}
         {/* Right Column */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <label className="w-12 text-[12px]">Status</label>
+            <label className="w-12 text-[12px]">Status{reqMark("status")}</label>
             <input
               type="text"
               value={job.status || ""}

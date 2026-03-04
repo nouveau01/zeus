@@ -16,6 +16,8 @@ import {
   ChevronsRight,
   X,
 } from "lucide-react";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
 
 interface CashReceiptDetailProps {
   depositId: string;
@@ -51,6 +53,7 @@ export default function CashReceiptDetail({ depositId, onClose }: CashReceiptDet
   const [loading, setLoading] = useState(true);
   const [printOnSave, setPrintOnSave] = useState(false);
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const { layout: receiptLayout, fieldDefs: receiptFieldDefs, reqMark } = useRequiredFields("cash-receipts-detail");
 
   // Mock data for display
   const mockDeposit: CashReceipt = {
@@ -206,7 +209,7 @@ export default function CashReceiptDetail({ depositId, onClose }: CashReceiptDet
         {/* Left - Date & Dep # */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <label className="w-12 text-[12px]">Date</label>
+            <label className="w-12 text-[12px]">Date{reqMark("date")}</label>
             <input
               type="date"
               value={displayDeposit.date}
@@ -215,7 +218,7 @@ export default function CashReceiptDetail({ depositId, onClose }: CashReceiptDet
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-12 text-[12px]">Dep #</label>
+            <label className="w-12 text-[12px]">Dep #{reqMark("refNumber")}</label>
             <input
               type="text"
               value={displayDeposit.refNumber}
@@ -237,7 +240,7 @@ export default function CashReceiptDetail({ depositId, onClose }: CashReceiptDet
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="w-10 text-[12px]">Desc</label>
+            <label className="w-10 text-[12px]">Desc{reqMark("description")}</label>
             <input
               type="text"
               value={displayDeposit.description || ""}

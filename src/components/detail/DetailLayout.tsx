@@ -127,6 +127,25 @@ export function DetailLayout({
     [layout, activeTabId, onLayoutChange]
   );
 
+  const handleToggleFieldRequired = useCallback(
+    (sectionId: string, fieldName: string) => {
+      if (!onLayoutChange) return;
+      const newLayout = JSON.parse(JSON.stringify(layout)) as DetailLayoutConfig;
+      const tab = newLayout.tabs.find((t) => t.id === activeTabId);
+      if (!tab) return;
+      const section = tab.sections.find((s) => s.id === sectionId);
+      if (!section) return;
+      const field = section.fields.find((f) => f.fieldName === fieldName);
+      if (!field) return;
+      // If placement.required is undefined, look up the field def default
+      const def = fieldDefMap.get(fieldName);
+      const currentRequired = field.required ?? def?.required ?? false;
+      field.required = !currentRequired;
+      onLayoutChange(newLayout);
+    },
+    [layout, activeTabId, onLayoutChange, fieldDefMap]
+  );
+
   const handleSwitchFieldColumn = useCallback(
     (sectionId: string, fieldName: string) => {
       if (!onLayoutChange) return;
@@ -291,7 +310,7 @@ export function DetailLayout({
           <Wrench className="w-3.5 h-3.5 text-[#2b5f8a]" />
           <span className="text-[11px] font-semibold text-[#2b5f8a]">Layout Editor</span>
           <span className="text-[11px] text-[#555] ml-2">
-            Drag to reorder &bull; Toggle visibility &bull; Switch columns
+            Drag to reorder &bull; Toggle visibility &bull; Toggle required &bull; Switch columns
           </span>
           <div className="flex-1" />
           <button
@@ -390,6 +409,7 @@ export function DetailLayout({
                 onFieldDrop={isLayoutEditMode ? handleFieldDrop : undefined}
                 onDropOnColumn={isLayoutEditMode ? handleDropOnColumn : undefined}
                 onToggleFieldVisibility={isLayoutEditMode ? handleToggleFieldVisibility : undefined}
+                onToggleFieldRequired={isLayoutEditMode ? handleToggleFieldRequired : undefined}
                 onSwitchFieldColumn={isLayoutEditMode ? handleSwitchFieldColumn : undefined}
                 onMoveField={isLayoutEditMode ? handleMoveField : undefined}
               />

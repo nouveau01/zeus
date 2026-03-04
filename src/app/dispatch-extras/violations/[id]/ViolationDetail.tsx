@@ -16,6 +16,8 @@ import {
   Printer,
   Check,
 } from "lucide-react";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
 
 interface ViolationData {
   id: string;
@@ -80,6 +82,7 @@ interface ViolationDetailProps {
 export default function ViolationDetail({ violationId, onClose }: ViolationDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { layout: violationLayout, fieldDefs: violationFieldDefs, reqMark } = useRequiredFields("violations-detail");
   const [hasChanges, setHasChanges] = useState(false);
 
   const [violation, setViolation] = useState<ViolationData>({
@@ -201,6 +204,13 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
   }, [violation, originalViolation]);
 
   const handleSave = async () => {
+    if (violationLayout) {
+      const missing = validateRequiredFields(violationLayout, violationFieldDefs, violation);
+      if (missing.length > 0) {
+        await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+        return;
+      }
+    }
     setOriginalViolation({ ...violation });
     setHasChanges(false);
     await xpAlert("Violation saved successfully!");
@@ -357,7 +367,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-20 text-[11px]">Violation #</label>
+              <label className="w-20 text-[11px]">Violation #{reqMark("violationNumber")}</label>
               <input
                 type="text"
                 value={violation.violationNumber}
@@ -366,7 +376,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-20 text-[11px]">Unit</label>
+              <label className="w-20 text-[11px]">Unit{reqMark("unit")}</label>
               <input
                 type="text"
                 value={violation.unit}
@@ -375,7 +385,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-20 text-[11px]">Violation Date</label>
+              <label className="w-20 text-[11px]">Violation Date{reqMark("violationDate")}</label>
               <input
                 type="text"
                 value={violation.violationDate}
@@ -385,7 +395,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               <button className="px-1 border border-[#808080] bg-white text-[11px]">...</button>
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-20 text-[11px]">Status</label>
+              <label className="w-20 text-[11px]">Status{reqMark("status")}</label>
               <select
                 value={violation.status}
                 onChange={(e) => setViolation({ ...violation, status: e.target.value })}
@@ -410,7 +420,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-16 text-[11px]">Quote</label>
+              <label className="w-16 text-[11px]">Quote{reqMark("quote")}</label>
               <input
                 type="text"
                 value={violation.quote}
@@ -446,7 +456,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-16 text-[11px]">Price</label>
+              <label className="w-16 text-[11px]">Price{reqMark("price")}</label>
               <input
                 type="text"
                 value={violation.price}
@@ -462,7 +472,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
           {/* Left - Dates */}
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">File Permit</label>
+              <label className="w-24 text-[11px]">File Permit{reqMark("filePermit")}</label>
               <input
                 type="text"
                 value={violation.filePermit}
@@ -471,7 +481,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">Permit Approved</label>
+              <label className="w-24 text-[11px]">Permit Approved{reqMark("permitApproved")}</label>
               <input
                 type="text"
                 value={violation.permitApproved}
@@ -480,7 +490,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">NEI DATE SENT</label>
+              <label className="w-24 text-[11px]">NEI DATE SENT{reqMark("neiDateSent")}</label>
               <input
                 type="text"
                 value={violation.neiDateSent}
@@ -489,7 +499,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">Forms to DOB</label>
+              <label className="w-24 text-[11px]">Forms to DOB{reqMark("formsToDob")}</label>
               <input
                 type="text"
                 value={violation.formsToDob}
@@ -498,7 +508,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">Inspection</label>
+              <label className="w-24 text-[11px]">Inspection{reqMark("inspection")}</label>
               <input
                 type="text"
                 value={violation.inspection}
@@ -507,7 +517,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">Hearing</label>
+              <label className="w-24 text-[11px]">Hearing{reqMark("hearing")}</label>
               <input
                 type="text"
                 value={violation.hearing}
@@ -516,7 +526,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">Cure / Due Date</label>
+              <label className="w-24 text-[11px]">Cure / Due Date{reqMark("cureDueDate")}</label>
               <input
                 type="text"
                 value={violation.cureDueDate}
@@ -525,7 +535,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">Forms to Cust</label>
+              <label className="w-24 text-[11px]">Forms to Cust{reqMark("formsToCust")}</label>
               <input
                 type="text"
                 value={violation.formsToCust}
@@ -534,7 +544,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">Recv from Cust</label>
+              <label className="w-24 text-[11px]">Recv from Cust{reqMark("recvFromCust")}</label>
               <input
                 type="text"
                 value={violation.recvFromCust}
@@ -543,7 +553,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="w-24 text-[11px]">Cancel Contract</label>
+              <label className="w-24 text-[11px]">Cancel Contract{reqMark("cancelContract")}</label>
               <input
                 type="text"
                 value={violation.cancelContract}
@@ -562,7 +572,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.assignedDiv5}
                   onChange={(e) => setViolation({ ...violation, assignedDiv5: e.target.checked })}
                 />
-                Assigned Div # 5
+                Assigned Div # 5{reqMark("assignedDiv5")}
               </label>
               <label className="text-[11px] w-16">Link</label>
               <input
@@ -579,7 +589,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.assignedDiv2}
                   onChange={(e) => setViolation({ ...violation, assignedDiv2: e.target.checked })}
                 />
-                Assigned Div # 2
+                Assigned Div # 2{reqMark("assignedDiv2")}
               </label>
               <label className="text-[11px] w-16">Notes</label>
               <input
@@ -596,7 +606,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.jobCreated}
                   onChange={(e) => setViolation({ ...violation, jobCreated: e.target.checked })}
                 />
-                Job Created
+                Job Created{reqMark("jobCreated")}
               </label>
               <div className="w-[132px]" />
             </div>
@@ -607,7 +617,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.assignedMod}
                   onChange={(e) => setViolation({ ...violation, assignedMod: e.target.checked })}
                 />
-                Assigned Mod
+                Assigned Mod{reqMark("assignedMod")}
               </label>
               <div className="w-[132px]" />
             </div>
@@ -618,7 +628,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.assignedDiv1}
                   onChange={(e) => setViolation({ ...violation, assignedDiv1: e.target.checked })}
                 />
-                Assigned Div # 1
+                Assigned Div # 1{reqMark("assignedDiv1")}
               </label>
               <div className="w-[132px]" />
             </div>
@@ -629,7 +639,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.assignedDiv3}
                   onChange={(e) => setViolation({ ...violation, assignedDiv3: e.target.checked })}
                 />
-                Assigned Div # 3
+                Assigned Div # 3{reqMark("assignedDiv3")}
               </label>
               <div className="w-[132px]" />
             </div>
@@ -640,7 +650,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.assignedRepair}
                   onChange={(e) => setViolation({ ...violation, assignedRepair: e.target.checked })}
                 />
-                Assigned Repair
+                Assigned Repair{reqMark("assignedRepair")}
               </label>
               <div className="w-[132px]" />
             </div>
@@ -651,7 +661,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.assignedCode}
                   onChange={(e) => setViolation({ ...violation, assignedCode: e.target.checked })}
                 />
-                Assigned Code
+                Assigned Code{reqMark("assignedCode")}
               </label>
               <label className="text-[11px] w-16">BLDG Resp</label>
               <input
@@ -668,7 +678,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.assignedDiv4}
                   onChange={(e) => setViolation({ ...violation, assignedDiv4: e.target.checked })}
                 />
-                Assigned Div # 4
+                Assigned Div # 4{reqMark("assignedDiv4")}
               </label>
               <label className="text-[11px] w-16">ELV29 Status</label>
               <input
@@ -685,7 +695,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
                   checked={violation.columbiaUniv}
                   onChange={(e) => setViolation({ ...violation, columbiaUniv: e.target.checked })}
                 />
-                Columbia Univ
+                Columbia Univ{reqMark("columbiaUniv")}
               </label>
               <label className="text-[11px] w-16">Dismissal Date</label>
               <input
@@ -701,7 +711,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
         {/* Bottom Section - Remarks */}
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="text-[11px] font-medium">Remarks 1</label>
+            <label className="text-[11px] font-medium">Remarks 1{reqMark("remarks1")}</label>
             <textarea
               value={violation.remarks1}
               onChange={(e) => setViolation({ ...violation, remarks1: e.target.value })}
@@ -709,7 +719,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
             />
           </div>
           <div className="flex-1">
-            <label className="text-[11px] font-medium">Remarks 2</label>
+            <label className="text-[11px] font-medium">Remarks 2{reqMark("remarks2")}</label>
             <textarea
               value={violation.remarks2}
               onChange={(e) => setViolation({ ...violation, remarks2: e.target.value })}

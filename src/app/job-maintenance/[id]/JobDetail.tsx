@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { getJobById } from "@/lib/actions/jobs";
 import { useTabs } from "@/context/TabContext";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 
 interface Job {
   id: string;
@@ -90,6 +92,7 @@ const TABS = ["TFM Custom", "Specifications", "Job Budgets", "Custom/Remarks", "
 export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { layout: jobLayout, fieldDefs: jobFieldDefs, reqMark } = useRequiredFields("jobs-detail");
   const isNew = jobId === "new";
   const [job, setJob] = useState<Job | null>(isNew ? {
     id: "",
@@ -189,6 +192,10 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
 
   // Save callback for the unsaved changes hook
   const handleSaveForHook = useCallback(async () => {
+    const missing = jobLayout ? validateRequiredFields(jobLayout, jobFieldDefs, formData) : [];
+    if (missing.length > 0) {
+      throw new Error(`Please fill in required fields: ${missing.join(", ")}`);
+    }
     if (isNew) {
       if (!selectedAccountId) {
         throw new Error("Please select an account");
@@ -222,7 +229,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
       setJob(updated);
       setFormData(updated);
     }
-  }, [formData, jobId, isNew, selectedAccountId, onClose, openTab]);
+  }, [formData, jobId, isNew, selectedAccountId, onClose, openTab, jobLayout, jobFieldDefs]);
 
   // Unsaved changes hook
   const {
@@ -243,6 +250,11 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
 
   const handleSave = async () => {
     try {
+      const missing = jobLayout ? validateRequiredFields(jobLayout, jobFieldDefs, formData) : [];
+      if (missing.length > 0) {
+        await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+        return;
+      }
       if (isNew) {
         if (!selectedAccountId) {
           await xpAlert("Please select an account");
@@ -354,14 +366,14 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
           {/* Left - Job Info */}
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <label className={labelClass}>Job #</label>
+              <label className={labelClass}>Job #{reqMark("externalId")}</label>
               <input
                 type="text"
                 value={formData.externalId || ""}
                 onChange={(e) => onChange("externalId", e.target.value)}
                 className={`${inputClass} w-[70px] bg-[#ffff00] font-bold`}
               />
-              <label className={labelClass}>Template</label>
+              <label className={labelClass}>Template{reqMark("template")}</label>
               <select
                 value={formData.template || ""}
                 onChange={(e) => onChange("template", e.target.value)}
@@ -378,7 +390,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
             <div className="flex items-center gap-2">
               <label className={labelClass} style={{ width: "35px" }}></label>
               <div style={{ width: "70px" }}></div>
-              <label className={labelClass}>Type</label>
+              <label className={labelClass}>Type{reqMark("type")}</label>
               <select
                 value={formData.type || ""}
                 onChange={(e) => onChange("type", e.target.value)}
@@ -397,7 +409,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
             <div className="flex items-center gap-2">
               <label className={labelClass} style={{ width: "35px" }}></label>
               <div style={{ width: "70px" }}></div>
-              <label className={labelClass}>Status (S)</label>
+              <label className={labelClass}>Status (S){reqMark("status")}</label>
               <select
                 value={formData.status || "Open"}
                 onChange={(e) => onChange("status", e.target.value)}
@@ -505,7 +517,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
               <legend className={legendClass}>GENERAL</legend>
               <div className="flex flex-col gap-2 pt-1">
                 <div className="flex items-center">
-                  <label className={labelClass} style={{ width: "100px" }}>Contract Type</label>
+                  <label className={labelClass} style={{ width: "100px" }}>Contract Type{reqMark("contractType")}</label>
                   <select
                     value={formData.contractType || ""}
                     onChange={(e) => onChange("contractType", e.target.value)}
@@ -552,7 +564,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
                   </select>
                 </div>
                 <div className="flex items-center">
-                  <label className={labelClass} style={{ width: "100px" }}>Contract Date</label>
+                  <label className={labelClass} style={{ width: "100px" }}>Contract Date{reqMark("date")}</label>
                   <input
                     type="date"
                     value={formatDate(formData.date as string)}
@@ -561,7 +573,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
                   />
                 </div>
                 <div className="flex items-center">
-                  <label className={labelClass} style={{ width: "100px" }}>Default Level</label>
+                  <label className={labelClass} style={{ width: "100px" }}>Default Level{reqMark("level")}</label>
                   <select
                     value={formData.level || ""}
                     onChange={(e) => onChange("level", e.target.value)}
@@ -574,7 +586,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
                   </select>
                 </div>
                 <div className="flex items-center">
-                  <label className={labelClass} style={{ width: "100px" }}>Estimated Date</label>
+                  <label className={labelClass} style={{ width: "100px" }}>Estimated Date{reqMark("scheduleDate")}</label>
                   <input
                     type="date"
                     value={formatDate(formData.scheduleDate as string)}
@@ -583,7 +595,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
                   />
                 </div>
                 <div className="flex items-center">
-                  <label className={labelClass} style={{ width: "100px" }}>Due Date</label>
+                  <label className={labelClass} style={{ width: "100px" }}>Due Date{reqMark("dueDate")}</label>
                   <input
                     type="date"
                     value={formatDate(formData.dueDate as string)}
@@ -662,7 +674,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
                   onChange={(e) => onChange("chargeable", e.target.checked)}
                   className="mr-2"
                 />
-                <label className="text-[11px]">Chargeable</label>
+                <label className="text-[11px]">Chargeable{reqMark("chargeable")}</label>
               </div>
               <div className="flex items-center">
                 <input type="checkbox" className="mr-2" />
@@ -804,7 +816,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
 
             {/* Remarks fieldset */}
             <fieldset className={`${fieldsetClass} flex-1`}>
-              <legend className={legendClass}>Remarks</legend>
+              <legend className={legendClass}>Remarks{reqMark("sRemarks")}</legend>
               <textarea
                 value={formData.sRemarks || ""}
                 onChange={(e) => onChange("sRemarks", e.target.value)}

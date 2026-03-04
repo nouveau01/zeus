@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useTabs } from "@/context/TabContext";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
 
 interface QuoteLineItem {
   id: string;
@@ -96,6 +98,7 @@ const mockQuoteDetail: Quote = {
 export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { layout: quoteLayout, fieldDefs: quoteFieldDefs, reqMark } = useRequiredFields("quotes-detail");
   const [activeTab, setActiveTab] = useState<"details" | "lineItems" | "notes" | "history">("details");
   const [quote] = useState<Quote>(mockQuoteDetail);
 
@@ -305,7 +308,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
               </h2>
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[11px]">
                 <div>
-                  <span className="text-[#606060]">Quote Number:</span>
+                  <span className="text-[#606060]">Quote Number:{reqMark("quoteNumber")}</span>
                   <span className="ml-2 font-medium">{quote.quoteNumber}</span>
                 </div>
                 <div>
@@ -315,7 +318,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#606060]">Subject:</span>
+                  <span className="text-[#606060]">Subject:{reqMark("subject")}</span>
                   <span className="ml-2">{quote.subject}</span>
                 </div>
                 <div>
@@ -323,7 +326,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
                   <span className="ml-2">{quote.salesRep}</span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-[#606060]">Description:</span>
+                  <span className="text-[#606060]">Description:{reqMark("description")}</span>
                   <p className="mt-1 text-[#000]">{quote.description}</p>
                 </div>
                 <div>
@@ -335,7 +338,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
                   <span className="ml-2">{formatDate(quote.sentDate)}</span>
                 </div>
                 <div>
-                  <span className="text-[#606060]">Expires:</span>
+                  <span className="text-[#606060]">Expires:{reqMark("expirationDate")}</span>
                   <span className="ml-2">{formatDate(quote.expirationDate)}</span>
                 </div>
                 <div>
@@ -343,7 +346,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
                   <span className="ml-2">{quote.validDays}</span>
                 </div>
                 <div>
-                  <span className="text-[#606060]">Terms:</span>
+                  <span className="text-[#606060]">Terms:{reqMark("terms")}</span>
                   <span className="ml-2">{quote.terms}</span>
                 </div>
               </div>
@@ -414,7 +417,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
                     <span>{formatCurrency(quote.subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#606060]">Tax ({quote.taxRate}%):</span>
+                    <span className="text-[#606060]">Tax ({quote.taxRate}%):{reqMark("taxRate")}</span>
                     <span>{formatCurrency(quote.tax)}</span>
                   </div>
                   <div className="flex justify-between pt-1 border-t border-[#c0c0c0] font-bold">
@@ -495,7 +498,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
               className="bg-white border border-[#808080] p-3"
               style={{ boxShadow: "inset -1px -1px 0 #fff, inset 1px 1px 0 #404040" }}
             >
-              <h2 className="text-[12px] font-bold text-[#000] mb-2">Customer Notes</h2>
+              <h2 className="text-[12px] font-bold text-[#000] mb-2">Customer Notes{reqMark("notes")}</h2>
               <p className="text-[11px] text-[#606060] mb-2">These notes will appear on the quote sent to customer</p>
               <textarea
                 className="w-full h-24 px-2 py-1 text-[11px] border border-[#808080] resize-none"
@@ -508,7 +511,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
               className="bg-white border border-[#808080] p-3"
               style={{ boxShadow: "inset -1px -1px 0 #fff, inset 1px 1px 0 #404040" }}
             >
-              <h2 className="text-[12px] font-bold text-[#000] mb-2">Internal Notes</h2>
+              <h2 className="text-[12px] font-bold text-[#000] mb-2">Internal Notes{reqMark("internalNotes")}</h2>
               <p className="text-[11px] text-[#606060] mb-2">These notes are for internal use only</p>
               <textarea
                 className="w-full h-24 px-2 py-1 text-[11px] border border-[#808080] resize-none"

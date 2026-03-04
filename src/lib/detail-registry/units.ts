@@ -6,7 +6,7 @@ export const UNIT_DETAIL: DetailPageDefinition = {
   entityName: "Unit",
   fields: [
     // General tab — left column
-    { fieldName: "unitNumber", defaultLabel: "Unit #", type: "text", required: true, defaultLabelWidth: 80 },
+    { fieldName: "unitNumber", defaultLabel: "Unit #", type: "text", defaultLabelWidth: 80 },
     { fieldName: "description", defaultLabel: "Description", type: "text", defaultLabelWidth: 80 },
     { fieldName: "stateNumber", defaultLabel: "State #", type: "text", defaultLabelWidth: 80 },
     {
@@ -121,7 +121,7 @@ export const UNIT_DETAIL: DetailPageDefinition = {
             columns: 2,
             visible: true,
             fields: [
-              { fieldName: "unitNumber", label: "Unit #", column: 0, visible: true },
+              { fieldName: "unitNumber", label: "Unit #", column: 0, visible: true, required: true },
               { fieldName: "description", label: "Description", column: 0, visible: true },
               { fieldName: "stateNumber", label: "State #", column: 0, visible: true },
               { fieldName: "template", label: "Template", column: 0, visible: true },

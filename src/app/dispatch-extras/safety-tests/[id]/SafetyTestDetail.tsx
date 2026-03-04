@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useTabs } from "@/context/TabContext";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
+import { useXPDialog } from "@/components/ui/XPDialog";
 import {
   FileText,
   Save,
@@ -78,6 +81,8 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
   const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
   const [selectedHistory, setSelectedHistory] = useState<HistoryEntry | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const { layout: safetyLayout, fieldDefs: safetyFieldDefs, reqMark } = useRequiredFields("safety-tests-detail");
+  const { alert: xpAlert, DialogComponent: XPDialogComponent } = useXPDialog();
 
   // Test type options
   const testTypes = [
@@ -185,7 +190,14 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
     openTab("New Violation", `/dispatch-extras/violations/new`);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (safetyLayout && testData) {
+      const missing = validateRequiredFields(safetyLayout, safetyFieldDefs, testData);
+      if (missing.length > 0) {
+        await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+        return;
+      }
+    }
     setIsEditing(false);
     // API call would go here
   };
@@ -274,7 +286,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
               </div>
               <div className="p-3 grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[80px]">Test Type</label>
+                  <label className="text-[11px] w-[80px]">Test Type{reqMark("testType")}</label>
                   <select
                     value={testData.testType}
                     onChange={(e) => setTestData({ ...testData, testType: e.target.value })}
@@ -304,7 +316,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[80px]">State #</label>
+                  <label className="text-[11px] w-[80px]">State #{reqMark("stateNumber")}</label>
                   <input
                     type="text"
                     value={testData.stateNumber}
@@ -338,7 +350,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
               </div>
               <div className="p-3 grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Last Tested On</label>
+                  <label className="text-[11px] w-[100px]">Last Tested On{reqMark("lastTestedOn")}</label>
                   <input
                     type="text"
                     value={testData.lastTestedOn}
@@ -347,7 +359,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Test Due Date</label>
+                  <label className="text-[11px] w-[100px]">Test Due Date{reqMark("testDueDate")}</label>
                   <input
                     type="text"
                     value={testData.testDueDate}
@@ -356,7 +368,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Last Due Date</label>
+                  <label className="text-[11px] w-[100px]">Last Due Date{reqMark("lastDueDate")}</label>
                   <input
                     type="text"
                     value={testData.lastDueDate}
@@ -365,7 +377,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Status</label>
+                  <label className="text-[11px] w-[100px]">Status{reqMark("status")}</label>
                   <select
                     value={testData.status}
                     onChange={(e) => setTestData({ ...testData, status: e.target.value })}
@@ -383,7 +395,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                     onChange={(e) => setTestData({ ...testData, chargeForTest: e.target.checked })}
                     className="mr-1"
                   />
-                  <label className="text-[11px]">Charge for Test</label>
+                  <label className="text-[11px]">Charge for Test{reqMark("chargeForTest")}</label>
                 </div>
               </div>
             </div>
@@ -500,7 +512,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
               </div>
               <div className="p-3 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">WITNESS</label>
+                  <label className="text-[11px] w-[100px]">WITNESS{reqMark("witnessDropdown")}</label>
                   <select
                     value={testData.witnessDropdown}
                     onChange={(e) => setTestData({ ...testData, witnessDropdown: e.target.value })}
@@ -514,7 +526,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">2012-2019 Billing</label>
+                  <label className="text-[11px] w-[100px]">2012-2019 Billing{reqMark("billing2012To2019")}</label>
                   <input
                     type="text"
                     value={testData.billing2012To2019}
@@ -523,7 +535,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Special Skill</label>
+                  <label className="text-[11px] w-[100px]">Special Skill{reqMark("specialSkill")}</label>
                   <input
                     type="text"
                     value={testData.specialSkill}
@@ -532,7 +544,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Custom 10</label>
+                  <label className="text-[11px] w-[100px]">Custom 10{reqMark("custom10")}</label>
                   <input
                     type="text"
                     value={testData.custom10}
@@ -541,7 +553,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Custom 11</label>
+                  <label className="text-[11px] w-[100px]">Custom 11{reqMark("custom11")}</label>
                   <input
                     type="text"
                     value={testData.custom11}
@@ -550,7 +562,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Custom 12</label>
+                  <label className="text-[11px] w-[100px]">Custom 12{reqMark("custom12")}</label>
                   <input
                     type="text"
                     value={testData.custom12}
@@ -559,7 +571,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Custom 13</label>
+                  <label className="text-[11px] w-[100px]">Custom 13{reqMark("custom13")}</label>
                   <input
                     type="text"
                     value={testData.custom13}
@@ -568,7 +580,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Town</label>
+                  <label className="text-[11px] w-[100px]">Town{reqMark("town")}</label>
                   <input
                     type="text"
                     value={testData.town}
@@ -577,7 +589,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] w-[100px]">Townships</label>
+                  <label className="text-[11px] w-[100px]">Townships{reqMark("townships")}</label>
                   <input
                     type="text"
                     value={testData.townships}
@@ -663,6 +675,7 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
           {testData.status}
         </span>
       </div>
+      <XPDialogComponent />
     </div>
   );
 }
