@@ -51,25 +51,35 @@ The database indicator (`DB_TYPE`) tells you which syntax to use. You will be to
 - `is_active` (bool), `premises_id`, `created_at`, `updated_at`
 
 #### `units` (SQL Server: Elev)
-- `id` (text PK), `unit_name` (display name), `car` (car number)
-- `building`, `category`, `type`, `manufacturer`, `serial`, `description`
+- `id` (text PK, cuid), `unit_number` (text, display number), `state` (text, state registration number)
+- `building` (text), `category` (text), `unit_type` (text), `manufacturer` (text), `serial` (text), `description` (text)
 - `status` (text, "Active"/"Inactive"), `price` (decimal)
 - `install_date`, `since_date`, `last_date`
+- `remarks` (text)
 - `custom1`-`custom20`
 - `premises_id` (FK to premises.id)
 - `is_active` (bool), `created_at`, `updated_at`
+- NOTE: The column is `unit_number` NOT `unit_name`. The type column is `unit_type` NOT `type`. There is NO `car` column.
 
 #### `tickets` (SQL Server: TicketO for open, TicketD for completed)
-- `id` (text PK), `legacy_id` (int, original ticket number)
-- `c_date` (created), `d_date` (dispatched), `e_date` (completed, null if open)
-- `f_desc` (scope of work), `type` (text: "Service","Repair","Maintenance","PM","Violation")
+- `id` (text PK, cuid), `ticket_number` (int, unique — the display ticket number)
+- `work_order_number` (int, nullable)
+- `date` (timestamp, creation date), `scheduled_date` (timestamp, dispatch date), `completed_date` (timestamp, null if open)
+- `scope_of_work` (text, description of work — old name: fDesc)
+- `type` (text: "Service","Repair","Maintenance","PM","Violation","Other")
+- `category` (text), `level` (text)
 - `status` (text: "Open","Assigned","En Route","On Site","Completed")
-- `who` (caller), `f_by` (taken by), `r_by` (resolved by)
-- `mechanic` (text, mechanic/crew name), `mechanic_id` (int)
-- `reg`, `ot`, `dt`, `tt`, `total` (decimal, hours)
-- `resolution`, `parts_used`, `recommendations`
-- `customer_id` (FK), `premises_id` (FK), `unit_id` (FK), `job_id` (FK)
+- `account_id` (text, display account tag), `name_address` (text)
+- `mech_crew` (text, mechanic/crew name)
+- `called_in_by` (text), `taken_by` (text), `resolved_by` (text)
+- `hours` (decimal), `overtime_hours` (decimal), `double_time_hours` (decimal), `travel_hours` (decimal), `total_hours` (decimal)
+- `resolution` (text), `parts_used` (text), `description` (text)
+- `bill` (bool), `reviewed` (bool), `pr` (bool), `vd` (bool), `inv` (bool)
+- `internal_comments` (text), `email_status` (text)
+- `customer_id` (FK to customers.id), `premises_id` (FK to premises.id), `unit_id` (FK to units.id), `job_id` (FK to jobs.id)
+- `invoice_id` (FK to invoices.id, nullable)
 - `created_at`, `updated_at`
+- NOTE: There is NO `legacy_id` column. The ticket number column is `ticket_number`.
 
 #### `invoices` (SQL Server: Invoice)
 - `id` (text PK), `ref` (int, invoice reference number), `invoice_number` (int)
@@ -97,19 +107,27 @@ The database indicator (`DB_TYPE`) tells you which syntax to use. You will be to
 - `created_at`, `updated_at`
 
 #### `employees` (SQL Server: Emp)
-- `id` (int PK), `name` (full name LAST, FIRST), `f_first`, `last`
+- `id` (text PK, cuid), `name` (full name LAST, FIRST), `f_first` (first name), `last` (last name)
 - `title`, `status` (int, 1=active), `field` (int, field employee flag)
-- `sales` (int, sales flag), `pager` (email)
-- `d_hired`, `d_fired`, `d_birth`, `state`, `level`
-- `salary` (decimal), `pay_period`
+- `sales` (int, sales flag), `pager` (email), `rol` (int)
+- `d_hired`, `d_fired`, `d_birth`, `d_review`, `d_last`, `state`, `level`
+- `salary` (decimal), `pay_period`, `ref`
+- `in_use` (int), `cat_sign`, `f_status`, `f_allow`
+- `created_at`, `updated_at`
 
 #### `job_types`
-- `id` (text PK), `legacy_id` (int), `name`, `description`, `count`, `is_active`
+- `id` (text PK, cuid), `legacy_id` (int), `name` (text), `description` (text)
+- `count` (int), `color` (text), `remarks` (text), `sort_order` (int)
+- `is_active` (bool), `created_at`, `updated_at`
 
 #### `chart_accounts` (GL Chart of Accounts)
-- `id` (text PK), `legacy_id` (int), `account_number` (int), `name`
-- `type` (text: "Asset","Liability","Equity","Revenue","Expense")
-- `sub_type`, `balance` (decimal), `is_active`
+- `id` (text PK, cuid), `legacy_id` (int), `acct` (int, account number), `f_desc` (text, description)
+- `name` (text), `account_number` (int)
+- `type` (text: "Asset","Liability","Equity","Revenue","Expense"), `cat` (text, category)
+- `bal` (decimal, balance), `status` (int), `budget` (decimal), `budget_m` (decimal)
+- `bank` (int), `bank_type` (int), `report_o` (int), `in_use` (int)
+- `is_active` (bool), `created_at`, `updated_at`
+- NOTE: The description column is `f_desc` and the name column is `name`. Balance is `bal` NOT `balance`.
 
 ---
 
@@ -170,10 +188,38 @@ The database indicator (`DB_TYPE`) tells you which syntax to use. You will be to
 ### Shared Rules
 1. Always use LEFT JOINs (data may not always have matching records)
 2. Always alias columns clearly for display
-3. Completed tickets filter by completion date (`e_date` / `EDate`), open tickets by creation date
+3. Completed tickets filter by `completed_date`, open tickets by `date` (creation date). There is NO `e_date`/`c_date`/`d_date` column — those are the SQL Server names.
 4. Prefix all column references with table aliases when joining
 5. Remember: "accounts" means premises/locations, NOT GL accounts
 6. Default to LIMIT/TOP 500 unless user specifies otherwise
+7. CRITICAL: Only use column names listed in the PostgreSQL schema above. Do NOT invent columns. If unsure, use a simpler query.
+
+---
+
+## COMMON COLUMN NAME MISTAKES — DO NOT MAKE THESE
+
+| WRONG (does not exist) | CORRECT column name | Table |
+|------------------------|---------------------|-------|
+| `legacy_id` | `ticket_number` | tickets |
+| `f_desc` | `scope_of_work` | tickets |
+| `mechanic` | `mech_crew` | tickets |
+| `who` | `called_in_by` | tickets |
+| `f_by` | `taken_by` | tickets |
+| `r_by` | `resolved_by` | tickets |
+| `c_date` | `date` | tickets |
+| `d_date` | `scheduled_date` | tickets |
+| `e_date` | `completed_date` | tickets |
+| `total` (for hours) | `total_hours` | tickets |
+| `reg` (for hours) | `hours` | tickets |
+| `ot` | `overtime_hours` | tickets |
+| `dt` | `double_time_hours` | tickets |
+| `tt` | `travel_hours` | tickets |
+| `unit_name` | `unit_number` | units |
+| `car` | (does not exist) | units |
+| `type` (for unit type) | `unit_type` | units |
+| `category` (for unit) | `category` | units |
+| `balance` | `bal` | chart_accounts |
+| `sub_type` | `cat` | chart_accounts |
 
 ---
 

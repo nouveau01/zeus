@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { DetailSectionConfig, DetailFieldPlacement, FieldDefinition } from "@/lib/detail-registry/types";
 import { DetailField } from "./DetailField";
+import { AddressSelection } from "@/components/ui/AddressAutocomplete";
 
 interface DetailSectionProps {
   section: DetailSectionConfig;
@@ -297,6 +298,17 @@ export function DetailSection({
     </div>
   );
 
+  const makeAddressSelectHandler = (fieldName: string): ((addr: AddressSelection) => void) | undefined => {
+    if (fieldName !== "address") return undefined;
+    return (addr: AddressSelection) => {
+      onFieldChange("address", addr.address);
+      onFieldChange("city", addr.city);
+      onFieldChange("state", addr.state);
+      onFieldChange("zipCode", addr.zipCode);
+      onFieldChange("country", addr.country);
+    };
+  };
+
   const renderField = (placement: typeof visibleFields[0]) => {
     const def = fieldDefs.get(placement.fieldName);
     if (!def) return null;
@@ -325,6 +337,7 @@ export function DetailSection({
         picklistFieldName={def.picklistFieldName || placement.fieldName}
         fallbackOptions={def.fallbackOptions}
         format={def.format}
+        onAddressSelect={makeAddressSelectHandler(placement.fieldName)}
       />
     );
   };

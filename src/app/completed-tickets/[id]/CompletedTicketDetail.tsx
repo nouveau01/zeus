@@ -283,6 +283,7 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
         setTicket(updated);
         setFormData(updated);
         setIsDirty(false);
+        await xpAlert("Ticket saved successfully");
       } else {
         const error = await response.json();
         await xpAlert(error.error || "Failed to save ticket");

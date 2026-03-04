@@ -394,6 +394,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
         setOriginalUnitCustom(unitCustom ? { ...unitCustom } : null);
         setHasChanges(false);
         setIsEditing(false);
+        await xpAlert("Unit saved successfully");
       } else {
         const error = await response.json();
         await xpAlert(error.error || "Failed to save unit");

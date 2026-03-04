@@ -104,7 +104,16 @@ Rules:
 - Boolean fields use true/false, case-insensitive search uses ILIKE
 - Remember: "accounts" means premises/locations, NOT GL accounts
 - If the request is ambiguous, make reasonable assumptions for an elevator service company
-- Always use LEFT JOINs when combining tables`,
+- Always use LEFT JOINs when combining tables
+- IMPORTANT: Always include a hidden "_id" column for each main entity in the query so the UI can link to records. Use these exact alias names:
+  - For premises/accounts: include "p.id as _premises_id"
+  - For customers: include "c.id as _customer_id"
+  - For jobs: include "j.id as _job_id"
+  - For invoices: include "i.id as _invoice_id"
+  - For units: include "u.id as _unit_id"
+  - For tickets: include "t.id as _ticket_id"
+  - These _id columns should NOT appear in the "columns" array (they are hidden, used only for linking)
+  - Always include whichever _id columns are relevant to the tables being queried`,
         messages: [
           { role: "user", content: prompt },
         ],
@@ -166,13 +175,13 @@ Rules:
       );
     }
 
-    // Step 2: Execute against PostgreSQL
+    // Step 2: Execute against PostgreSQL (with auto-retry on failure)
     let rows: Record<string, unknown>[] = [];
+    let finalQueryPlan = queryPlan;
 
-    try {
-      console.log("Executing report query:", queryPlan.sql);
-      const results = await prisma.$queryRawUnsafe(queryPlan.sql);
-      rows = (results as Record<string, unknown>[]).map((row) => {
+    const executeQuery = async (sql: string): Promise<Record<string, unknown>[]> => {
+      const results = await prisma.$queryRawUnsafe(sql);
+      return (results as Record<string, unknown>[]).map((row) => {
         const cleaned: Record<string, unknown> = {};
         for (const [key, val] of Object.entries(row)) {
           if (typeof val === "bigint") {
@@ -187,22 +196,90 @@ Rules:
         }
         return cleaned;
       });
+    };
+
+    try {
+      console.log("Executing report query:", queryPlan.sql);
+      rows = await executeQuery(queryPlan.sql);
     } catch (dbError: unknown) {
       const errMsg = dbError instanceof Error ? dbError.message : String(dbError);
-      console.error("SQL execution error:", errMsg);
-      return NextResponse.json(
-        { error: `Database query failed: ${errMsg.substring(0, 300)}. Try rephrasing your request.` },
-        { status: 502 }
-      );
+      console.error("SQL execution error (attempt 1):", errMsg);
+
+      // Auto-retry: Feed error back to Claude for a corrected query
+      try {
+        console.log("Auto-retrying with error correction...");
+        const retryResponse = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 4096,
+            system: `You are a PostgreSQL query generator for the ZEUS business management system.
+
+Here is the full context about the database schema:
+
+${context}
+
+Your job: Fix a SQL query that failed with an error. Generate a corrected query.
+You MUST respond with ONLY valid JSON (no markdown, no code fences) in this exact format:
+
+{
+  "title": "Report Title",
+  "summary": "Brief description",
+  "sql": "SELECT ... (corrected PostgreSQL query)",
+  "columns": [
+    { "key": "column_alias", "label": "Display Label", "align": "left", "format": "text" }
+  ]
+}
+
+Column "format" values: "text" (default), "currency" (for monetary values), "number" (plain numeric).
+Do NOT format currency in SQL - return raw numbers and set format to "currency".
+Use table aliases and alias ALL selected columns with lowercase names.
+Use LIMIT 500 unless specified otherwise.
+Always use LEFT JOINs. Prefix all columns with table aliases.
+IMPORTANT: Include hidden _id columns (_premises_id, _customer_id, _job_id, _invoice_id, _unit_id, _ticket_id) for linking but NOT in the columns array.`,
+            messages: [
+              { role: "user", content: prompt },
+              { role: "assistant", content: `Here's my query:\n\n${queryPlan.sql}` },
+              { role: "user", content: `That query failed with this PostgreSQL error:\n\n${errMsg.substring(0, 500)}\n\nPlease fix the query. Remember: check the schema carefully — column and table names must match exactly. Common issues: tickets table uses "ticket_number" not "legacy_id", "scope_of_work" not "f_desc", "mech_crew" not "mechanic", "total_hours" not "total". Premises uses "loc_id" not "premises_id" for the display ID.` },
+            ],
+          }),
+        });
+
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          const retryContent = retryData.content?.[0]?.text;
+          if (retryContent) {
+            const cleaned = retryContent.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+            const retryPlan = JSON.parse(cleaned);
+            if (retryPlan.sql && isSafeQuery(retryPlan.sql)) {
+              console.log("Retry query:", retryPlan.sql);
+              rows = await executeQuery(retryPlan.sql);
+              finalQueryPlan = retryPlan;
+            }
+          }
+        }
+      } catch (retryError: unknown) {
+        const retryErrMsg = retryError instanceof Error ? retryError.message : String(retryError);
+        console.error("SQL retry also failed:", retryErrMsg);
+        return NextResponse.json(
+          { error: `Database query failed after retry. Try rephrasing your request.` },
+          { status: 502 }
+        );
+      }
     }
 
     return NextResponse.json({
-      title: queryPlan.title || "Report",
-      summary: queryPlan.summary || "",
-      columns: queryPlan.columns,
+      title: finalQueryPlan.title || "Report",
+      summary: finalQueryPlan.summary || "",
+      columns: finalQueryPlan.columns,
       rows,
       dataSource: "live",
-      sql: queryPlan.sql || null,
+      sql: finalQueryPlan.sql || null,
     });
   } catch (error) {
     console.error("AI Reports API error:", error);

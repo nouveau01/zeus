@@ -15,9 +15,7 @@ import {
   GitBranch,
   Building2,
   Wrench,
-  Columns,
   Boxes,
-  LayoutGrid,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { UserManagementPanel } from "@/components/settings/UserManagementPanel";
@@ -26,6 +24,7 @@ import { PicklistEditorPanel } from "@/components/settings/PicklistEditorPanel";
 import { StatusWorkflowEditorPanel } from "@/components/settings/StatusWorkflowEditorPanel";
 import { NotificationsPanel } from "@/components/settings/NotificationsPanel";
 import { OfficesPanel } from "@/components/settings/OfficesPanel";
+import { ObjectManagerPanel } from "@/components/settings/ObjectManagerPanel";
 
 // ============================================
 // TYPES
@@ -70,9 +69,7 @@ const settingsGroups: SettingsGroup[] = [
     items: [
       { id: "picklists", label: "Picklist Values", icon: List, minRole: "Admin" },
       { id: "workflows", label: "Status Workflows", icon: GitBranch, minRole: "Admin" },
-      { id: "field-manager", label: "Field Manager", icon: Columns, minRole: "Admin" },
       { id: "object-manager", label: "Object Manager", icon: Boxes, minRole: "Admin" },
-      { id: "page-layouts", label: "Page Layouts", icon: LayoutGrid, minRole: "Admin" },
     ],
   },
   {
@@ -151,12 +148,8 @@ export default function SettingsPage() {
         return <ComingSoon title="Database" description="View database status, run migrations, manage backups, and configure connections." />;
       case "system":
         return <ComingSoon title="System" description="Platform version, logs, diagnostics, and system-wide configuration." />;
-      case "field-manager":
-        return <ComingSoon title="Field Manager" description="Create, edit, and manage custom fields across all modules. Add new data fields to any object without code changes." />;
       case "object-manager":
-        return <ComingSoon title="Object Manager" description="View and manage all objects (modules) in the platform. See field counts, relationships, and configure object-level settings." />;
-      case "page-layouts":
-        return <ComingSoon title="Page Layouts" description="Customize the layout and field arrangement of detail pages for each module. Control which fields appear and in what order." />;
+        return <ObjectManagerPanel />;
       default:
         return null;
     }

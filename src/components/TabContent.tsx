@@ -45,6 +45,7 @@ import QuoteDetail from "@/app/quotes/[id]/QuoteDetail";
 import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
 import JobTemplatesPage from "@/app/job-templates/page";
 import AIReportsView from "@/app/ai-reports/AIReportsView";
+import SavedReportsView from "@/app/saved-reports/SavedReportsView";
 import EmailTemplatesView from "@/app/automation/emails/EmailTemplatesView";
 import EmailSequencesView from "@/app/automation/sequences/EmailSequencesView";
 import SettingsPage from "@/app/settings/page";
@@ -80,6 +81,7 @@ function getPageIdFromRoute(route: string): string | null {
     "/quotes": "quotes",
     "/automation/email-templates": "email-templates",
     "/automation/email-sequences": "email-sequences",
+    "/saved-reports": "saved-reports",
   };
 
   if (routeMap[path]) return routeMap[path];
@@ -483,9 +485,16 @@ export function TabContent() {
     );
   }
 
-  // Check for ai-reports / report-generator route
-  if (activeTab.route === "/ai-reports" || activeTab.route === "/report-generator") {
-    return <AIReportsView />;
+  // Check for ai-reports / report-generator route (with optional ?prompt= for saved report re-run)
+  if (activeTab.route === "/ai-reports" || activeTab.route === "/report-generator" || activeTab.route.startsWith("/ai-reports?")) {
+    const url = new URL(activeTab.route, "http://localhost");
+    const savedPrompt = url.searchParams.get("prompt") || undefined;
+    return <AIReportsView initialPrompt={savedPrompt} />;
+  }
+
+  // Check for saved-reports route
+  if (activeTab.route === "/saved-reports") {
+    return <SavedReportsView />;
   }
 
   // Check for automation routes

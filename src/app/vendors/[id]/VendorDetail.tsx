@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
 import {
   FileText,
   Save,
@@ -324,6 +325,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
           name: updated.name || formData.name,
           updatedAt: updated.updatedAt,
         } : null);
+        await xpAlert("Vendor saved successfully");
       } else {
         await xpAlert("Failed to save vendor");
       }
@@ -549,12 +551,19 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                 />
               </div>
 
-              <div className="flex items-start gap-2">
-                <label className="w-20 text-[12px] pt-1">Address</label>
-                <textarea
+              <div className="flex items-center gap-2">
+                <label className="w-20 text-[12px]">Address</label>
+                <AddressAutocomplete
                   value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white h-16 resize-none"
+                  onChange={(val) => handleInputChange("address", val)}
+                  onAddressSelect={(addr) => {
+                    handleInputChange("address", addr.address);
+                    handleInputChange("city", addr.city);
+                    handleInputChange("state", addr.state);
+                    handleInputChange("zip", addr.zipCode);
+                    handleInputChange("country", addr.country);
+                  }}
+                  className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
                 />
               </div>
 

@@ -164,13 +164,6 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
     isLoading: layoutLoading,
     activeTab,
     setActiveTab,
-    isLayoutEditMode,
-    setLayoutEditMode,
-    editingLayout,
-    updateEditingLayout,
-    saveLayout,
-    cancelLayoutEdit,
-    resetToDefault,
     gridColumns,
     updateGridColumns,
   } = useDetailLayout("customers-detail");
@@ -268,6 +261,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         if (response.ok) {
           const data = await response.json();
           setIsDirty(false);
+          await xpAlert(`Customer "${data.name}" created successfully`);
           if (onClose) onClose();
           openTab(data.name, `/customers/${data.id}`);
         } else {
@@ -285,6 +279,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
           setCustomer(data);
           setFormData(data);
           setIsDirty(false);
+          await xpAlert("Customer saved successfully");
         } else {
           const error = await response.json();
           await xpAlert(error.error || "Failed to update customer");
@@ -618,12 +613,6 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
           onTabChange={setActiveTab}
           renderTabContent={renderTabContent}
           renderTabHeader={renderTabHeader}
-          isLayoutEditMode={isLayoutEditMode}
-          onLayoutChange={updateEditingLayout}
-          onEnterEditMode={() => setLayoutEditMode(true)}
-          onSaveLayout={saveLayout}
-          onCancelEdit={cancelLayoutEdit}
-          onResetLayout={resetToDefault}
           gridColumns={gridColumns}
           gridDefs={registry?.grids}
           onUpdateGridColumns={updateGridColumns}

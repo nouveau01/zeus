@@ -16,6 +16,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
 
 interface OfficeRecord {
   id: string;
@@ -531,10 +532,15 @@ function OfficeFormDialog({
           {/* Row 2: Address */}
           <div>
             <label className="block text-[11px] font-medium mb-1">Address</label>
-            <input
-              type="text"
+            <AddressAutocomplete
               value={address}
-              onChange={(e) => onAddressChange(e.target.value)}
+              onChange={onAddressChange}
+              onAddressSelect={(addr) => {
+                onAddressChange(addr.address);
+                onCityChange(addr.city);
+                onStateChange(addr.state);
+                onZipChange(addr.zipCode);
+              }}
               className="w-full px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white"
               placeholder="e.g. 123 Main Street"
             />
