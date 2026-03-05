@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // GET /api/permissions/preview?role=RoleName — GodAdmin only, fetch permissions for any role
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const callerRole = (session?.user as any)?.role;
 
   if (callerRole !== "GodAdmin") {

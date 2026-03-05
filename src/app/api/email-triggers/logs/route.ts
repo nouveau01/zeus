@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // GET — fetch recent email logs
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const role = (session.user as any)?.role;

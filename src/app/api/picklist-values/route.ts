@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasRole } from "@/lib/auth";
 
 // GET /api/picklist-values?pageId=xxx&fieldName=yyy
 // Returns active picklist values sorted by sortOrder.
 // Falls back to _global if no values found for the specific pageId.
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -58,7 +57,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/picklist-values — create a new picklist value (Admin+ only)
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const role = (session?.user as any)?.role;
   if (!role || !hasRole(role, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

@@ -32,6 +32,33 @@ export function canBeGodAdmin(email: string): boolean {
   return GOD_ADMIN_EMAILS.includes(email.toLowerCase());
 }
 
+/** Returns true if authentication is currently required */
+export function isAuthRequired(): boolean {
+  return process.env.AUTH_REQUIRED !== "false";
+}
+
+/**
+ * Gets the session, or returns a mock admin session when auth is disabled.
+ * Use this instead of getServerSession in API routes to respect the auth toggle.
+ */
+export async function getSessionOrBypass() {
+  if (!isAuthRequired()) {
+    // Return a mock GodAdmin session so API routes work without login
+    // GodAdmin ensures full office scope (allOffices: true) bypassing office filtering
+    return {
+      user: {
+        id: "system",
+        name: "System",
+        email: "system@local",
+        role: "GodAdmin",
+        primaryOfficeId: null,
+      },
+    };
+  }
+  const { getServerSession } = await import("next-auth");
+  return getServerSession(authOptions);
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasRole } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // PUT — Update an office (Admin+)
@@ -8,7 +7,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
   if (!hasRole(user.role, "Admin")) {

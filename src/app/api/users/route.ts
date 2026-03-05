@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, hasRole, canBeGodAdmin } from "@/lib/auth";
+import { getSessionOrBypass, hasRole, canBeGodAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const role = (session?.user as any)?.role;
   if (!role || !hasRole(role, "Admin")) {
     return null;
@@ -158,7 +157,7 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE /api/users — delete a user (GodAdmin only)
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const callerRole = (session?.user as any)?.role;
   const callerId = (session?.user as any)?.id;
 

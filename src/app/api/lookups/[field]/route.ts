@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import { getOfficeScope, premisesOfficeWhere, customerOfficeWhere, childOfficeWhere } from "@/lib/officeScope";
 
 // GET /api/lookups/[field] - Get lookup values for filter fields
@@ -10,7 +9,7 @@ export async function GET(
   { params }: { params: { field: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSessionOrBypass();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

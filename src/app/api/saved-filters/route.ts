@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 async function getCurrentUserId(): Promise<string | null> {
   // Try session first
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const sessionUserId = (session?.user as any)?.id;
   if (sessionUserId) return sessionUserId;
 

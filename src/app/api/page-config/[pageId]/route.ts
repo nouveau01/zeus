@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { authOptions } from "@/lib/auth";
 
 interface FieldConfig {
   fieldName: string;
@@ -53,7 +52,7 @@ export async function PUT(
 ) {
   try {
     // Check if user is admin
-    const session = await getServerSession(authOptions);
+    const session = await getSessionOrBypass();
     if (!session?.user || (session.user as any).role !== "Admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -25,6 +25,7 @@ import { StatusWorkflowEditorPanel } from "@/components/settings/StatusWorkflowE
 import { NotificationsPanel } from "@/components/settings/NotificationsPanel";
 import { OfficesPanel } from "@/components/settings/OfficesPanel";
 import { ObjectManagerPanel } from "@/components/settings/ObjectManagerPanel";
+import { SystemPanel } from "@/components/settings/SystemPanel";
 
 // ============================================
 // TYPES
@@ -147,7 +148,7 @@ export default function SettingsPage() {
       case "database":
         return <ComingSoon title="Database" description="View database status, run migrations, manage backups, and configure connections." />;
       case "system":
-        return <ComingSoon title="System" description="Platform version, logs, diagnostics, and system-wide configuration." />;
+        return <SystemPanel />;
       case "object-manager":
         return <ObjectManagerPanel />;
       default:

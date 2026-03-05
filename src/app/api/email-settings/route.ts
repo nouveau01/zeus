@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // GET — fetch current SMTP settings (password masked)
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const role = (session.user as any)?.role;
@@ -33,7 +32,7 @@ export async function GET() {
 
 // PUT — update SMTP settings
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const role = (session.user as any)?.role;

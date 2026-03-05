@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasRole } from "@/lib/auth";
 
 // PUT /api/picklist-values/bulk — replace all values for a pageId+fieldName (Admin+ only)
 // Body: { pageId, fieldName, values: [{ value, label, sortOrder, isDefault, isActive, color, icon, metadata }] }
 export async function PUT(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const role = (session?.user as any)?.role;
   if (!role || !hasRole(role, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

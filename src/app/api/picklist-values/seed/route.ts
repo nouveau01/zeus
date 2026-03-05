@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions, isGodAdmin } from "@/lib/auth";
+import { getSessionOrBypass, isGodAdmin } from "@/lib/auth";
 
 // ============================================
 // SEED DATA DEFINITIONS
@@ -442,7 +441,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
 // Idempotent: uses upsert with @@unique([pageId, fieldName, value]).
 // ============================================
 export async function POST() {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const role = (session?.user as any)?.role;
   if (!role || !isGodAdmin(role)) {
     return NextResponse.json({ error: "Unauthorized — GodAdmin only" }, { status: 403 });

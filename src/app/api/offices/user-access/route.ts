@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasRole } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // GET — Get all users with their office assignments (Admin+)
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
   if (!hasRole(user.role, "Admin")) {
@@ -47,7 +46,7 @@ export async function GET(req: NextRequest) {
 // PUT — Set a user's office assignments (Admin+)
 // Body: { userId: string, officeIds: string[] }
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const currentUser = session.user as any;
   if (!hasRole(currentUser.role, "Admin")) {

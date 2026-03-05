@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasRole } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // GET /api/detail-layouts/[pageId] — get layout config
@@ -8,7 +7,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { pageId: string } }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -30,7 +29,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { pageId: string } }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const role = (session?.user as any)?.role;
   if (!role || !hasRole(role, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -64,7 +63,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { pageId: string } }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const role = (session?.user as any)?.role;
   if (!role || !hasRole(role, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

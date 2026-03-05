@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasRole } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // GET — List all offices (any authenticated user), or get user's assigned offices with ?mine=true
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const mine = req.nextUrl.searchParams.get("mine");
@@ -51,7 +50,7 @@ export async function GET(req: NextRequest) {
 
 // POST — Create a new office (Admin+)
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
   if (!hasRole(user.role, "Admin")) {
@@ -89,7 +88,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE — Delete an office (GodAdmin only)
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
   if (user.role !== "GodAdmin") {

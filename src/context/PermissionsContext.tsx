@@ -70,6 +70,8 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     if (status === "authenticated") {
       fetchPermissions();
     } else if (status === "unauthenticated") {
+      // When auth is disabled, grant full access without requiring login
+      setIsUnrestricted(true);
       setIsLoading(false);
     }
   }, [status, fetchPermissions]);

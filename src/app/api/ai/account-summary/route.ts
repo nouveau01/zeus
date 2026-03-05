@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 function formatDate(d: Date | null | undefined): string {
@@ -16,7 +15,7 @@ function formatCurrency(val: number | { toNumber?: () => number } | null | undef
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSessionOrBypass();
     if (!session?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
     }

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // ---------------------------------------------------------------------------
 // POST — Enroll contacts into a sequence
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = session.user as any;
@@ -90,7 +89,7 @@ export async function POST(req: NextRequest) {
 // PUT — Update enrollment status (pause, resume, remove, etc.)
 // ---------------------------------------------------------------------------
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
@@ -171,7 +170,7 @@ export async function PUT(req: NextRequest) {
 // DELETE — Remove enrollment (soft delete via status change)
 // ---------------------------------------------------------------------------
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(req.url);

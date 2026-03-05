@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasRole } from "@/lib/auth";
 
 // GET /api/status-workflows?pageId=xxx
 // Returns all active workflow transitions for the given module, sorted by sortOrder.
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/status-workflows — create a new workflow transition (Admin+ only)
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const role = (session?.user as any)?.role;
   if (!role || !hasRole(role, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -121,7 +120,7 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/status-workflows — delete a workflow by { pageId, fromStatus, toStatus } (Admin+ only)
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   const role = (session?.user as any)?.role;
   if (!role || !hasRole(role, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

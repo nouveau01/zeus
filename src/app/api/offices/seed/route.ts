@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 const DEFAULT_OFFICES = [
@@ -18,7 +17,7 @@ const DEFAULT_OFFICES = [
 
 // POST — Seed default offices (GodAdmin only)
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
   if (user.role !== "GodAdmin") {
