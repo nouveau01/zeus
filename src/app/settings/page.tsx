@@ -27,6 +27,7 @@ import { OfficesPanel } from "@/components/settings/OfficesPanel";
 import { ObjectManagerPanel } from "@/components/settings/ObjectManagerPanel";
 import { SystemPanel } from "@/components/settings/SystemPanel";
 import { IntegrationsPanel } from "@/components/settings/IntegrationsPanel";
+import { CompanyPanel } from "@/components/settings/CompanyPanel";
 
 // ============================================
 // TYPES
@@ -79,6 +80,7 @@ const settingsGroups: SettingsGroup[] = [
     icon: Globe,
     minRole: "Admin",
     items: [
+      { id: "company", label: "Company", icon: Building2, minRole: "Admin" },
       { id: "appearance", label: "Appearance", icon: Palette, minRole: "Admin" },
       { id: "notifications", label: "Notifications", icon: Bell, minRole: "Admin" },
       { id: "database", label: "Database", icon: Database, minRole: "Admin" },
@@ -140,6 +142,8 @@ export default function SettingsPage() {
         return <RolesPermissionsPanel />;
       case "workflows":
         return <StatusWorkflowEditorPanel />;
+      case "company":
+        return <CompanyPanel />;
       case "appearance":
         return <ComingSoon title="Appearance" description="Customize the platform theme, colors, and layout preferences." />;
       case "notifications":

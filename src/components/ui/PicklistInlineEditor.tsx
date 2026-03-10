@@ -25,6 +25,7 @@ interface EditableRow {
   isDefault: boolean;
   isActive: boolean;
   color: string | null;
+  metadata: Record<string, any> | null;
   isNew: boolean;
 }
 
@@ -62,6 +63,7 @@ export function PicklistInlineEditor({
   };
 
   const isStatusField = fieldName?.toLowerCase() === "status";
+  const showProbability = pageId === "opportunities" && fieldName === "stage";
   const displayField = fieldLabel || fieldName;
   const displayModule = moduleLabel || pageId;
 
@@ -87,6 +89,7 @@ export function PicklistInlineEditor({
         isDefault: v.isDefault,
         isActive: v.isActive,
         color: v.color,
+        metadata: v.metadata,
         isNew: false,
       }));
       setRows(editRows);
@@ -123,6 +126,7 @@ export function PicklistInlineEditor({
         isDefault: false,
         isActive: true,
         color: null,
+        metadata: showProbability ? { probability: 0 } : null,
         isNew: true,
       },
     ]);
@@ -175,6 +179,7 @@ export function PicklistInlineEditor({
             isDefault: r.isDefault,
             isActive: r.isActive,
             color: r.color || null,
+            metadata: r.metadata || null,
           })),
         }),
       });
@@ -194,6 +199,7 @@ export function PicklistInlineEditor({
         isDefault: v.isDefault,
         isActive: v.isActive,
         color: v.color,
+        metadata: v.metadata,
         isNew: false,
       }));
       setRows(newRows);
@@ -222,7 +228,7 @@ export function PicklistInlineEditor({
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-[#ece9d8] border border-[#0054e3] shadow-lg w-[440px] max-h-[520px] flex flex-col">
+      <div className={`relative bg-[#ece9d8] border border-[#0054e3] shadow-lg max-h-[520px] flex flex-col ${showProbability ? "w-[500px]" : "w-[440px]"}`}>
         {/* Title bar */}
         <div className="flex items-center justify-between px-2 py-1 bg-gradient-to-r from-[#0054e3] to-[#2990ea] text-white text-[12px] font-semibold select-none">
           <span className="truncate">
@@ -249,6 +255,7 @@ export function PicklistInlineEditor({
                 <div className="w-[130px] flex-shrink-0 px-1">Value</div>
                 <div className="w-[130px] flex-shrink-0 px-1">Label</div>
                 {isStatusField && <div className="w-[60px] flex-shrink-0 px-1">Color</div>}
+                {showProbability && <div className="w-[50px] flex-shrink-0 px-1">Prob %</div>}
                 <div className="w-[36px] flex-shrink-0 px-1 text-center">Def</div>
                 <div className="w-[36px] flex-shrink-0 px-1 text-center">Act</div>
                 <div className="w-[20px] flex-shrink-0"></div>
@@ -306,6 +313,22 @@ export function PicklistInlineEditor({
                               style={{ backgroundColor: row.color }}
                             />
                           )}
+                        </div>
+                      )}
+                      {showProbability && (
+                        <div className="w-[50px] flex-shrink-0 px-0.5">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={row.metadata?.probability ?? ""}
+                            onChange={(e) => {
+                              const prob = e.target.value === "" ? 0 : parseInt(e.target.value);
+                              updateRow(row._key, "metadata", { ...(row.metadata || {}), probability: prob });
+                            }}
+                            className="w-full px-1 py-0.5 border border-[#a0a0a0] bg-white text-[11px] text-center"
+                            placeholder="%"
+                          />
                         </div>
                       )}
                       <div className="w-[36px] flex-shrink-0 flex justify-center">

@@ -14,6 +14,7 @@ interface PicklistSeed {
     label?: string;
     color?: string;
     isDefault?: boolean;
+    metadata?: Record<string, any>;
   }[];
 }
 
@@ -282,6 +283,26 @@ const PICKLIST_SEEDS: PicklistSeed[] = [
   },
 
   // ------------------------------------------
+  // Proposals module
+  // ------------------------------------------
+  {
+    pageId: "proposals",
+    fieldName: "type",
+    values: [
+      { value: "Maintenance Agreement" },
+      { value: "Water Damage" },
+      { value: "Modernization" },
+      { value: "New Installation" },
+      { value: "Repair" },
+      { value: "Annual Inspection" },
+      { value: "Safety Test" },
+      { value: "Violation Correction" },
+      { value: "Consultation" },
+      { value: "Other" },
+    ],
+  },
+
+  // ------------------------------------------
   // Violations module
   // ------------------------------------------
   {
@@ -412,6 +433,31 @@ const PICKLIST_SEEDS: PicklistSeed[] = [
       { value: "Canada" },
     ],
   },
+  // Opportunities
+  {
+    pageId: "opportunities",
+    fieldName: "stage",
+    values: [
+      { value: "Prospecting", isDefault: true, metadata: { probability: 10 } },
+      { value: "Qualification", metadata: { probability: 25 } },
+      { value: "Proposal", metadata: { probability: 50 } },
+      { value: "Negotiation", metadata: { probability: 75 } },
+      { value: "Closed Won", metadata: { probability: 100 } },
+      { value: "Closed Lost", metadata: { probability: 0 } },
+    ],
+  },
+  {
+    pageId: "opportunities",
+    fieldName: "type",
+    values: [
+      { value: "New Client" },
+      { value: "Service Request" },
+      { value: "Modernization" },
+      { value: "New Installation" },
+      { value: "Repair" },
+      { value: "Other" },
+    ],
+  },
 ];
 
 // ------------------------------------------
@@ -469,6 +515,7 @@ export async function POST() {
             color: v.color || null,
             isDefault: v.isDefault || false,
             isActive: true,
+            ...(v.metadata ? { metadata: v.metadata } : {}),
           },
           create: {
             pageId: seed.pageId,
@@ -479,6 +526,7 @@ export async function POST() {
             color: v.color || null,
             isDefault: v.isDefault || false,
             isActive: true,
+            metadata: v.metadata || null,
           },
         });
         picklistCount++;

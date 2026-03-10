@@ -323,6 +323,14 @@ export default function PresentationBuilderView({ presentationId }: Presentation
                     : m
                 )
               );
+            } else if (event.type === "slides") {
+              // Zeus provider — slides generated directly, load into editor
+              const autoName = event.presentationName || undefined;
+              if (autoName) setPresentationName(autoName);
+              if (Array.isArray(event.slides) && event.slides.length > 0) {
+                setSlides(event.slides);
+                setSelectedSlideIndex(0);
+              }
             } else if (event.type === "presentation") {
               const autoName = event.presentationName || undefined;
               if (autoName) setPresentationName(autoName);

@@ -13,7 +13,7 @@ interface AutocompleteInputProps {
   value: string;
   onChange: (value: string) => void;
   onSelect: (result: AutocompleteResult) => void;
-  searchType: "accounts" | "customers" | "units" | "jobs";
+  searchType: "accounts" | "customers" | "units" | "jobs" | "contacts";
   filterParams?: Record<string, string>;
   placeholder?: string;
   className?: string;

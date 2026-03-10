@@ -327,6 +327,7 @@ model Customer {
   tickets       Ticket[]   @relation("CustomerTickets")
   activityLogs  ActivityLog[]
   presentations Presentation[]
+  opportunities Opportunity[]
 
   @@map("customers")
   // SQL Server: @@map("Owner") - but need to handle Rol join
@@ -355,6 +356,7 @@ model Contact {
 
   sequenceEnrollments SequenceEnrollment[]
   activityLogs  ActivityLog[]
+  opportunities Opportunity[]
 
   @@map("contacts")
 }
@@ -491,6 +493,7 @@ model Premises {
   contracts   Contract[]
   quotes      Quote[]
   activityLogs ActivityLog[]
+  opportunities Opportunity[]
 
   @@map("premises")
   // SQL Server: @@map("Loc")
@@ -650,6 +653,7 @@ model Unit {
   premises     Premises @relation(fields: [premisesId], references: [id])
   jobs         Job[]
   tickets      Ticket[]
+  opportunities Opportunity[] @relation("OpportunityUnits")
 
   @@map("units")
   // SQL Server: @@map("Elev")
@@ -2329,6 +2333,26 @@ model EmailSettings {
   @@map("email_settings")
 }
 
+model CompanySettings {
+  id              String   @id @default("singleton")
+  companyName     String   @default("") @map("company_name")
+  companySubtitle String   @default("") @map("company_subtitle")
+  address         String   @default("")
+  phone           String   @default("")
+  fax             String   @default("")
+  website         String   @default("")
+  logoBase64      String   @default("") @map("logo_base64") @db.Text
+  logoUrl         String   @default("") @map("logo_url")
+  removeLogoBg    Boolean  @default(false) @map("remove_logo_bg")
+  themeMode       String   @default("auto") @map("theme_mode")  // "auto" = extract from logo, "manual" = use brandColor
+  brandColor      String   @default("") @map("brand_color")
+  extractedColors String   @default("") @map("extracted_colors") // JSON array of hex colors extracted from logo
+
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("company_settings")
+}
+
 model EmailTemplate {
   id          String   @id @default(cuid())
   name        String   // Template name, e.g. "Welcome New Customer"
@@ -2617,4 +2641,80 @@ model ActivityLog {
   @@index([contactId])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+// ============================================
+// OPPORTUNITIES (Sales pipeline)
+// ============================================
+
+model Opportunity {
+  id                  String    @id @default(cuid())
+  opportunityNumber   Int       @unique @map("opportunity_number")
+  name                String
+  type                String?                              // Dynamic-select: New Client, Service Request, Modernization, etc.
+  stage               String    @default("Prospecting")    // Dynamic-select: Prospecting, Qualification, Proposal, Negotiation, Closed Won, Closed Lost
+  probability         Int?      @default(0)                // 0-100
+  estimatedValue      Decimal?  @db.Decimal(12, 2) @map("estimated_value")
+  expectedCloseDate   DateTime? @map("expected_close_date")
+  closedDate          DateTime? @map("closed_date")
+  lostReason          String?   @map("lost_reason")
+  owner               String?                              // Sales rep name
+  description         String?   @db.Text
+  nextStep            String?   @map("next_step")
+  remarks             String?   @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  customerId          String?   @map("customer_id")
+  customer            Customer? @relation(fields: [customerId], references: [id])
+  premisesId          String?   @map("premises_id_ref")
+  premises            Premises? @relation(fields: [premisesId], references: [id])
+  contactId           String?   @map("contact_id")
+  contact             Contact?  @relation(fields: [contactId], references: [id])
+
+  proposals           Proposal[]
+  units               Unit[]     @relation("OpportunityUnits")
+
+  @@index([customerId])
+  @@index([premisesId])
+  @@index([stage])
+  @@index([opportunityNumber])
+  @@map("opportunities")
+}
+
+// ============================================
+// PROPOSALS (Generated from Opportunities)
+// ============================================
+
+model Proposal {
+  id                  String    @id @default(cuid())
+  proposalNumber      Int       @unique @map("proposal_number")
+  title               String?
+  type                String?                              // Dynamic-select: Maintenance Agreement, Water Damage, Modernization, etc.
+  status              String    @default("Draft")          // Draft, Sent, Accepted, Rejected
+  workDescription     String?   @db.Text @map("work_description")
+  laborHours          Decimal?  @db.Decimal(10, 2) @map("labor_hours")
+  laborRate           Decimal?  @db.Decimal(10, 2) @map("labor_rate")
+  laborTotal          Decimal?  @db.Decimal(12, 2) @map("labor_total")
+  amount              Decimal?  @db.Decimal(12, 2)
+  taxNote             String?   @map("tax_note")
+  validDays           Int?      @default(30) @map("valid_days")
+  paymentTerms        String?   @map("payment_terms")
+  attn                String?
+  phone               String?
+  fax                 String?
+  email               String?
+  fromName            String?   @map("from_name")
+  sentDate            DateTime? @map("sent_date")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  opportunityId       String    @map("opportunity_id")
+  opportunity         Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+  @@index([proposalNumber])
+  @@map("proposals")
 }

@@ -14,6 +14,7 @@ import { CASH_RECEIPT_DETAIL } from "./cash-receipts";
 import { JOB_RESULT_DETAIL } from "./job-results";
 import { SAFETY_TEST_DETAIL } from "./safety-tests";
 import { VIOLATION_DETAIL } from "./violations";
+import { OPPORTUNITY_DETAIL } from "./opportunities";
 
 export const DETAIL_REGISTRY: Record<string, DetailPageDefinition> = {
   "customers-detail": CUSTOMER_DETAIL,
@@ -31,4 +32,5 @@ export const DETAIL_REGISTRY: Record<string, DetailPageDefinition> = {
   "job-results-detail": JOB_RESULT_DETAIL,
   "safety-tests-detail": SAFETY_TEST_DETAIL,
   "violations-detail": VIOLATION_DETAIL,
+  "opportunities-detail": OPPORTUNITY_DETAIL,
 };

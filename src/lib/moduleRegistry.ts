@@ -301,6 +301,21 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
   },
   // Sales
   {
+    pageId: "opportunities",
+    label: "Opportunities",
+    section: "Sales",
+    fields: [
+      { fieldName: "opportunityNumber", label: "Opp #" },
+      { fieldName: "name", label: "Name" },
+      { fieldName: "accountName", label: "Account" },
+      { fieldName: "type", label: "Type" },
+      { fieldName: "stage", label: "Stage" },
+      { fieldName: "estimatedValue", label: "Value" },
+      { fieldName: "expectedCloseDate", label: "Close Date" },
+      { fieldName: "owner", label: "Owner" },
+    ],
+  },
+  {
     pageId: "estimates",
     label: "Estimates",
     section: "Sales",
@@ -346,6 +361,20 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
       { fieldName: "expirationDate", label: "Expires" },
       { fieldName: "status", label: "Status" },
       { fieldName: "salesRep", label: "Sales Rep" },
+    ],
+  },
+  {
+    pageId: "proposals",
+    label: "Proposals",
+    section: "Sales",
+    fields: [
+      { fieldName: "proposalNumber", label: "Proposal #" },
+      { fieldName: "opportunityName", label: "Opportunity" },
+      { fieldName: "accountName", label: "Account" },
+      { fieldName: "status", label: "Status" },
+      { fieldName: "amount", label: "Amount" },
+      { fieldName: "createdAt", label: "Created" },
+      { fieldName: "sentDate", label: "Sent" },
     ],
   },
   // Automation

@@ -85,22 +85,31 @@ const TOOL_DEFINITIONS = [
   },
 ];
 
-const SYSTEM_PROMPT = `You are the Presentation Builder assistant for Nouveau Elevator, a full-service elevator maintenance and modernization company in New York/New Jersey.
+const SYSTEM_PROMPT = `You are the Presentation Builder assistant for Nouveau Elevator, a full-service elevator maintenance and modernization company serving New York, New Jersey, and the tri-state area.
 
-Your job is to help users create professional presentations through conversation. You have tools to search the customer database, look up locations, and generate slide decks.
+Your job is to help users create professional presentations through conversation. You have tools to search the customer database, look up locations, find similar customers for referrals, and generate slide decks.
 
 BEHAVIOR:
-- Be efficient — when the user gives you a name or location, immediately search for it. Don't ask "would you like me to search?" — just do it.
+- When the user gives a VAGUE request (like "build a proposal for a building manager" with no specifics), ask for key details: Who is it for? What building/location? Who are we presenting to? What type of presentation?
+- When the user gives SPECIFIC info (a customer name, building name, or location), immediately search for it — don't ask permission, just call the tool.
 - If the user says a name, search_customers first. If they mention a city/state, search_by_location first.
 - If you find exactly one match, proceed to get_customer_data. If multiple matches, briefly list them and ask which one.
+- ALWAYS use find_similar_customers or search_by_location to gather referrals and social proof to include in the slides.
 - Default to "general" presentation type unless the user specifies QBR, proposal, onboarding, or safety.
-- When you have enough context, call generate_presentation. Don't over-ask — one round of clarification is usually enough.
-- For PROSPECTS (no existing customer), gather details from the conversation (building type, elevator count, location, contact name) and use that as context for generate_presentation.
-- Keep your conversational responses short — 1-3 sentences. Let the tools do the heavy lifting.
-- After generating, tell the user their presentation is ready and they can preview it or export as PowerPoint. Keep it brief.
+
+CRITICAL RULE — NEVER generate and ask a question at the same time:
+- Either ask a question OR generate — NEVER both in the same response.
+- If the user provides enough info to build a presentation (building name, contact name, what they need), generate IMMEDIATELY. Do NOT ask follow-up questions.
+- "Enough info" means: you know who it's for and what building/location. That's it. Generate.
+- Only ask questions if the request is truly vague (no building name, no contact, no context at all).
+- One round of clarification max. After that, generate with what you have.
+
+- Keep responses short — 1-3 sentences. Let the tools do the heavy lifting.
+- Do NOT narrate what you are about to do (don't say "I'll search for..." or "Let me look up..."). Just call the tools directly.
+- AFTER generating, give a brief summary of what the presentation includes (slide count, key topics covered). Keep it to 1-2 sentences.
 
 PROSPECT SCENARIOS:
-When there's no existing customer, you can still build great presentations. Use search_by_location to find what we service nearby (for social proof), then build context from conversation details.`;
+When there's no existing customer, you can still build great presentations. Use search_by_location to find what we service nearby (for social proof and referrals), then build context from conversation details and generate.`;
 
 // ---- Tool execution ----
 
@@ -256,110 +265,226 @@ async function executeGetCustomerData(input: { customerId: string; premisesId?: 
   return parts.join("\n");
 }
 
+const ZEUS_SLIDE_SYSTEM_PROMPT = `You are a presentation generator for Nouveau Elevator, a full-service elevator maintenance and modernization company serving New York, New Jersey, and the tri-state area. Generate professional slide decks using real customer data.
+
+RULES:
+- Return ONLY a valid JSON array of slide objects. No markdown, no explanation, no code fences.
+- Generate 8-12 slides.
+- Each slide object has these fields:
+  - "layout": one of "title", "content", "bullets", "two-column"
+  - "title": slide title (string)
+  - "subtitle": optional subtitle (string, mainly for title slide)
+  - "body": optional body text (string)
+  - "bullets": optional array of bullet point strings (only for "bullets" layout)
+  - "leftContent": optional left column text (only for "two-column" layout)
+  - "rightContent": optional right column text (only for "two-column" layout)
+  - "notes": optional speaker notes (string)
+- First slide MUST be layout "title" with the presentation title and customer name.
+- Last slide should be a "Thank You" or "Next Steps" slide.
+- Use real data from the context — actual numbers, dates, equipment details.
+- When referencing similar customers, use the anonymized descriptions provided.
+- Keep bullet points concise (1 line each).
+- Body text should be 2-4 sentences max per slide.
+- Professional but approachable tone.`;
+
+const PRESENTATION_TYPE_HINTS: Record<string, string> = {
+  qbr: "Focus on: service performance, ticket volume trends, PM compliance, cost analysis, recommendations.",
+  proposal: "Focus on: equipment assessment, identified issues, proposed scope, investment/ROI, why Nouveau.",
+  onboarding: "Focus on: welcome, team intros, service levels, emergency procedures, portal access, maintenance schedule.",
+  safety: "Focus on: safety test history, compliance status, violations, upcoming inspections, improvement recommendations.",
+  general: "Focus on: account overview, service history, equipment portfolio, key metrics, recommendations.",
+};
+
 async function executeGeneratePresentation(input: {
   presentationType: string;
   customerName: string;
   dataContext: string;
   customInstructions?: string;
-}): Promise<{ generationId: string; downloadUrl?: string }> {
-  // Gamma is the presentation engine — Claude only handles conversation
+}): Promise<{ generationId?: string; downloadUrl?: string; slides?: any[] }> {
+  // Check provider setting — respect admin config
   const integrationSettings = await prisma.integrationSettings.findUnique({
     where: { id: "singleton" },
   });
-
+  const provider = integrationSettings?.presentationProvider || "zeus";
   const gammaApiKey = integrationSettings?.presentationApiKey;
-  if (!gammaApiKey) {
-    throw new Error("Presentation API key is not configured. An admin needs to add it in Settings > Integrations.");
-  }
 
-  const typeLabel = input.presentationType === "qbr" ? "Quarterly Business Review"
-    : input.presentationType === "proposal" ? "Service Proposal"
-    : input.presentationType === "onboarding" ? "New Customer Onboarding"
-    : input.presentationType === "safety" ? "Safety Compliance Report"
-    : "Partnership Overview";
+  // =============================================
+  // GAMMA PROVIDER — external API with polling
+  // =============================================
+  if (provider === "gamma" && gammaApiKey) {
+    // Fetch company name for branding (logo is injected during PPTX download)
+    let companySettings: any = null;
+    try {
+      companySettings = await prisma.companySettings.findUnique({
+        where: { id: "singleton" },
+      });
+    } catch (e) {
+      // Non-fatal — continue with defaults
+    }
 
-  const gammaInput = `${typeLabel} for ${input.customerName} — Nouveau Elevator\n\n${input.dataContext}${input.customInstructions ? `\n\nAdditional instructions: ${input.customInstructions}` : ""}`;
+    const companyName = companySettings?.companyName || "Nouveau Elevator Industries, Inc.";
+    const companySubtitle = companySettings?.companySubtitle || "Elevator Division";
 
-  const gammaRes = await fetch("https://public-api.gamma.app/v1.0/generations", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": gammaApiKey,
-    },
-    body: JSON.stringify({
+    const typeLabel = input.presentationType === "qbr" ? "Quarterly Business Review"
+      : input.presentationType === "proposal" ? "Service Proposal"
+      : input.presentationType === "onboarding" ? "New Customer Onboarding"
+      : input.presentationType === "safety" ? "Safety Compliance Report"
+      : "Partnership Overview";
+
+    const gammaInput = `${typeLabel} for ${input.customerName} — ${companyName}\n\n${input.dataContext}${input.customInstructions ? `\n\nAdditional instructions: ${input.customInstructions}` : ""}`;
+
+    // Minimal branding — let Gamma's AI handle design freely
+    // Logo is post-processed into the PPTX during download (see gamma-export route)
+    const gammaRequestBody: any = {
       inputText: gammaInput,
       textMode: "generate",
       format: "presentation",
       numCards: 10,
       exportAs: "pptx",
+      themeId: "default-light",
+      additionalInstructions: `Premium presentation by ${companyName}${companySubtitle ? ` — ${companySubtitle}` : ""}, a premier elevator maintenance and modernization company. Create visually stunning, executive-quality slides with bold imagery and polished modern design. Every slide should look like it belongs in a Fortune 500 boardroom.`,
       textOptions: {
         amount: "medium",
-        tone: "Professional yet approachable elevator service company",
+        tone: "Professional yet approachable",
         audience: "Building managers and property owners",
       },
-      imageOptions: { source: "pexels" },
       cardOptions: { dimensions: "16x9" },
+    };
+
+    const gammaRes = await fetch("https://public-api.gamma.app/v1.0/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": gammaApiKey,
+      },
+      body: JSON.stringify(gammaRequestBody),
+    });
+
+    if (!gammaRes.ok) {
+      const errText = await gammaRes.text();
+      console.error("Gamma API error:", gammaRes.status, errText);
+      throw new Error("GENERATION_FAILED: Gamma API returned an error. DO NOT RETRY this tool call.");
+    }
+
+    const gammaData = await gammaRes.json();
+    const generationId = gammaData.generationId;
+    if (!generationId) throw new Error("GENERATION_FAILED: Gamma did not return a generation ID. DO NOT RETRY.");
+
+    // Poll for completion (max ~120 seconds)
+    let downloadUrl: string | undefined;
+    let completed = false;
+
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const pollRes = await fetch(`https://public-api.gamma.app/v1.0/generations/${generationId}`, {
+        headers: { "X-API-KEY": gammaApiKey },
+      });
+      if (pollRes.ok) {
+        const pollData = await pollRes.json();
+        console.log(`Gamma poll ${i}: status=${pollData.status}`, pollData.status === "completed" ? JSON.stringify(Object.keys(pollData)) : "");
+        if (pollData.status === "completed") {
+          completed = true;
+          // Try all known field names for the download URL
+          downloadUrl = pollData.downloadLink || pollData.pptxUrl || pollData.exportUrl || pollData.url;
+          if (!downloadUrl) {
+            // Scan all string values for a pptx export URL
+            for (const [key, val] of Object.entries(pollData)) {
+              if (typeof val === "string" && (val.includes("gamma.app") || val.includes(".pptx"))) {
+                console.log(`Gamma field ${key}: ${val}`);
+                if (val.includes("export") || val.includes("pptx")) {
+                  downloadUrl = val;
+                  break;
+                }
+              }
+            }
+          }
+          break;
+        } else if (pollData.status === "generating" || pollData.status === "pending") {
+          // Still working — continue polling
+        } else {
+          throw new Error(`GENERATION_FAILED: Gamma returned status "${pollData.status}". DO NOT RETRY.`);
+        }
+      }
+    }
+
+    if (!completed) {
+      throw new Error("GENERATION_FAILED: Gamma timed out after 120 seconds. DO NOT RETRY this tool call — tell the user to try again.");
+    }
+
+    return { generationId, downloadUrl };
+  }
+
+  // =============================================
+  // ZEUS PROVIDER — fast Claude-based generation
+  // =============================================
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("GENERATION_FAILED: ANTHROPIC_API_KEY is not configured. DO NOT RETRY.");
+  }
+
+  const typeHint = PRESENTATION_TYPE_HINTS[input.presentationType] || PRESENTATION_TYPE_HINTS.general;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      system: `${ZEUS_SLIDE_SYSTEM_PROMPT}\n\n${typeHint}${input.customInstructions ? `\n\nAdditional user instructions: ${input.customInstructions}` : ""}`,
+      messages: [
+        {
+          role: "user",
+          content: `Generate a ${input.presentationType.toUpperCase()} presentation for ${input.customerName}:\n\n${input.dataContext}`,
+        },
+      ],
     }),
   });
 
-  if (!gammaRes.ok) {
-    const errText = await gammaRes.text();
-    console.error("Presentation API error:", gammaRes.status, errText);
-    throw new Error("Presentation generation failed. Check the API key in Settings.");
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("Claude slide generation error:", response.status, errorBody);
+    throw new Error("GENERATION_FAILED: Slide generation API error. DO NOT RETRY.");
   }
 
-  const gammaData = await gammaRes.json();
-  const generationId = gammaData.generationId;
-  if (!generationId) throw new Error("Presentation engine did not return a generation ID.");
+  const result = await response.json();
+  const text = result?.content?.[0]?.text || "";
 
-  // Poll for completion (max 120 seconds)
-  // PPTX export may lag behind status=completed, so keep polling for downloadLink
-  let downloadUrl: string | undefined;
-  let completed = false;
-
-  for (let i = 0; i < 60; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
-    const pollRes = await fetch(`https://public-api.gamma.app/v1.0/generations/${generationId}`, {
-      headers: { "X-API-KEY": gammaApiKey },
-    });
-    if (pollRes.ok) {
-      const pollData = await pollRes.json();
-      console.log("Gamma poll response:", JSON.stringify(pollData));
-
-      if (pollData.status === "completed") {
-        completed = true;
-        // Look for download URL in various possible field names
-        downloadUrl = pollData.downloadLink || pollData.pptxUrl || pollData.exportUrl;
-
-        // Also scan for any URL containing the export pattern
-        if (!downloadUrl) {
-          for (const [, val] of Object.entries(pollData)) {
-            if (typeof val === "string" && val.includes("assets.api.gamma.app/export/pptx/")) {
-              downloadUrl = val;
-              break;
-            }
-          }
-        }
-
-        // If we have the download URL, we're done
-        if (downloadUrl) break;
-
-        // PPTX export may still be processing — continue polling for up to 30s more
-        if (i > 55) break; // Don't wait forever
-      } else if (pollData.status !== "pending") {
-        throw new Error(`Presentation generation failed with status: ${pollData.status}`);
-      }
+  let slides: any[] = [];
+  try {
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      slides = JSON.parse(jsonMatch[0]);
     }
+  } catch (parseErr) {
+    console.error("Failed to parse AI slides:", parseErr);
+    throw new Error("GENERATION_FAILED: AI returned invalid slide format. DO NOT RETRY.");
   }
 
-  if (!completed) {
-    throw new Error("Presentation generation timed out. Try again.");
+  if (slides.length === 0) {
+    throw new Error("GENERATION_FAILED: No slides generated. DO NOT RETRY.");
   }
 
-  return { generationId, downloadUrl };
+  // Normalize slides
+  const normalizedSlides = slides.map((s: any, i: number) => ({
+    id: `slide-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+    layout: ["title", "content", "bullets", "two-column", "chart-placeholder", "image-placeholder", "blank"].includes(s.layout) ? s.layout : "content",
+    title: s.title || `Slide ${i + 1}`,
+    subtitle: s.subtitle || undefined,
+    body: s.body || undefined,
+    bullets: Array.isArray(s.bullets) ? s.bullets : undefined,
+    leftContent: s.leftContent || undefined,
+    rightContent: s.rightContent || undefined,
+    notes: s.notes || undefined,
+  }));
+
+  return { slides: normalizedSlides };
 }
 
-async function executeTool(name: string, input: any): Promise<{ result: string; generationId?: string; downloadUrl?: string; presentationName?: string }> {
+async function executeTool(name: string, input: any): Promise<{ result: string; generationId?: string; downloadUrl?: string; presentationName?: string; slides?: any[] }> {
   switch (name) {
     case "search_customers":
       return { result: await executeSearchCustomers(input) };
@@ -370,13 +495,24 @@ async function executeTool(name: string, input: any): Promise<{ result: string; 
     case "get_customer_data":
       return { result: await executeGetCustomerData(input) };
     case "generate_presentation": {
-      const { generationId, downloadUrl } = await executeGeneratePresentation(input);
+      const { generationId, downloadUrl, slides } = await executeGeneratePresentation(input);
       const typeLabel = input.presentationType === "qbr" ? "QBR"
         : input.presentationType === "proposal" ? "Proposal"
         : input.presentationType === "onboarding" ? "Onboarding"
         : input.presentationType === "safety" ? "Safety Review"
         : "Presentation";
       const autoName = `${typeLabel} for ${input.customerName}`;
+
+      if (slides && slides.length > 0) {
+        // Zeus provider — slides generated directly
+        return {
+          result: `Presentation generated successfully with ${slides.length} slides. The user can now preview and edit them in the editor.`,
+          slides,
+          presentationName: autoName,
+        };
+      }
+
+      // Gamma provider — external generation
       return {
         result: "Presentation generated successfully." + (downloadUrl ? " PPTX export is ready for download." : " PPTX export is being prepared."),
         generationId,
@@ -510,9 +646,14 @@ export async function POST(request: NextRequest) {
               send({ type: "tool_start", tool: toolCall.name, input: toolCall.input, summary });
 
               try {
-                const { result: toolResult, generationId, downloadUrl, presentationName } = await executeTool(toolCall.name, toolCall.input);
+                const { result: toolResult, generationId, downloadUrl, presentationName, slides: genSlides } = await executeTool(toolCall.name, toolCall.input);
 
-                // Send presentation data for download
+                // Send slides directly for zeus provider
+                if (genSlides && genSlides.length > 0) {
+                  send({ type: "slides", slides: genSlides, presentationName: presentationName || null });
+                }
+
+                // Send Gamma presentation data for download
                 if (generationId) {
                   send({ type: "presentation", generationId, downloadUrl: downloadUrl || null, presentationName: presentationName || null });
                 }
@@ -522,7 +663,7 @@ export async function POST(request: NextRequest) {
                   : toolCall.name === "search_by_location"
                   ? `Found ${(toolResult.match(/^Found (\d+)/)?.[0]) || "results"}`
                   : toolCall.name === "generate_presentation"
-                  ? generationId ? "Presentation ready" : "Generation failed"
+                  ? (generationId || genSlides?.length) ? "Presentation ready" : "Generation failed"
                   : "Done";
 
                 send({ type: "tool_result", tool: toolCall.name, summary: resultSummary });

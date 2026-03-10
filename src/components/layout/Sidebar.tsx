@@ -205,6 +205,7 @@ const navStructure: NavSection[] = [
       { name: "Award Job", href: "/award-job" },
       { name: "Bid Results", href: "/bid-results" },
       { name: "Quotes", href: "/quotes" },
+      { name: "Proposals", href: "/proposals" },
       { name: "Competitors", href: "/competitors" },
       { name: "Territories", href: "/territories" },
       { name: "Sales Setup", href: "/sales-setup" },

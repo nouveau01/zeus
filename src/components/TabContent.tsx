@@ -42,6 +42,11 @@ import AwardJobPage from "@/app/award-job/page";
 import BidResultsPage from "@/app/bid-results/page";
 import QuotesPage from "@/app/quotes/page";
 import QuoteDetail from "@/app/quotes/[id]/QuoteDetail";
+import OpportunitiesPage from "@/app/opportunities/page";
+import OpportunityDetail from "@/app/opportunities/[id]/OpportunityDetail";
+import ProposalsPage from "@/app/proposals/page";
+import ProposalDetail from "@/app/proposals/[id]/ProposalDetail";
+import ProposalPreview from "@/app/proposal-preview/[id]/ProposalPreview";
 import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
 import JobTemplatesPage from "@/app/job-templates/page";
 import AIReportsView from "@/app/ai-reports/AIReportsView";
@@ -81,6 +86,8 @@ function getPageIdFromRoute(route: string): string | null {
     "/estimates": "estimates",
     "/bid-results": "bid-results",
     "/quotes": "quotes",
+    "/opportunities": "opportunities",
+    "/proposals": "proposals",
     "/automation/email-templates": "email-templates",
     "/automation/email-sequences": "email-sequences",
     "/saved-reports": "saved-reports",
@@ -105,6 +112,9 @@ function getPageIdFromRoute(route: string): string | null {
   if (path.startsWith("/job-results/")) return "job-results";
   if (path.startsWith("/estimates/")) return "estimates";
   if (path.startsWith("/quotes/")) return "quotes";
+  if (path.startsWith("/opportunities/")) return "opportunities";
+  if (path.startsWith("/proposals/")) return "proposals";
+  if (path.startsWith("/proposal-preview/")) return "proposals";
 
   return null; // No permission check needed (settings, ai-reports, etc.)
 }
@@ -471,6 +481,52 @@ export function TabContent() {
     return (
       <QuoteDetail
         quoteId={quoteId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for opportunities route
+  if (activeTab.route === "/opportunities") {
+    return <OpportunitiesPage />;
+  }
+
+  // Check for opportunity detail route pattern: /opportunities/[id] (may include ?params for new)
+  const opportunityDetailMatch = activeTab.route.match(/^\/opportunities\/(.+)$/);
+  if (opportunityDetailMatch) {
+    const oppId = opportunityDetailMatch[1];
+    return (
+      <OpportunityDetail
+        opportunityId={oppId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for proposals route
+  if (activeTab.route === "/proposals") {
+    return <ProposalsPage />;
+  }
+
+  // Check for proposal detail route pattern: /proposals/[id]
+  const proposalDetailMatch = activeTab.route.match(/^\/proposals\/([^?]+)$/);
+  if (proposalDetailMatch) {
+    const propId = proposalDetailMatch[1];
+    return (
+      <ProposalDetail
+        proposalId={propId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for proposal preview route pattern: /proposal-preview/[id]
+  const proposalPreviewMatch = activeTab.route.match(/^\/proposal-preview\/([^?]+)$/);
+  if (proposalPreviewMatch) {
+    const propId = proposalPreviewMatch[1];
+    return (
+      <ProposalPreview
+        proposalId={propId}
         onClose={() => closeTab(activeTab.id)}
       />
     );

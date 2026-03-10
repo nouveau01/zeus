@@ -159,6 +159,8 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   } : {});
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
+  const [customerOpportunities, setCustomerOpportunities] = useState<any[]>([]);
+  const [selectedOpp, setSelectedOpp] = useState<string | null>(null);
 
   // Detail layout system
   const {
@@ -218,6 +220,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   useEffect(() => {
     if (!isNew) {
       fetchCustomer();
+      fetchCustomerOpportunities();
     }
   }, [customerId, isNew]);
 
@@ -233,6 +236,18 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       console.error("Error fetching customer:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCustomerOpportunities = async () => {
+    try {
+      const response = await fetch(`/api/opportunities?customerId=${customerId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCustomerOpportunities(data);
+      }
+    } catch (error) {
+      console.error("Error fetching opportunities:", error);
     }
   };
 
@@ -380,6 +395,78 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         </div>
       );
     }
+    if (tabId === "opportunities") {
+      return (
+        <div className="flex-1 flex flex-col gap-2">
+          <div className="flex items-center gap-2 py-1">
+            <button
+              onClick={() => !isNew && openTab("New Opportunity", `/opportunities/new?customerId=${customerId}`)}
+              disabled={isNew}
+              className="px-3 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+            >
+              New Opportunity
+            </button>
+            <button
+              onClick={() => fetchCustomerOpportunities()}
+              className="px-3 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]"
+            >
+              Refresh
+            </button>
+          </div>
+          <div className="bg-white border border-[#c0c0c0] flex-1 min-h-[120px] overflow-auto">
+            <table className="w-full border-collapse text-[12px]">
+              <thead>
+                <tr className="bg-[#f0f0f0]">
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "8%" }}>Opp #</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "22%" }}>Name</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "15%" }}>Account</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Stage</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "10%" }}>Type</th>
+                  <th className="px-2 py-1 text-right border border-[#c0c0c0] font-medium" style={{ width: "13%" }}>Est. Value</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "10%" }}>Close Date</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "10%" }}>Owner</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customerOpportunities.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-2 py-4 text-center text-[#808080] border border-[#d0d0d0] bg-white">
+                      No opportunities found
+                    </td>
+                  </tr>
+                ) : (
+                  customerOpportunities.map((opp) => (
+                    <tr
+                      key={opp.id}
+                      onClick={() => setSelectedOpp(opp.id)}
+                      onDoubleClick={() => openTab(opp.name || `Opp #${opp.opportunityNumber}`, `/opportunities/${opp.id}`)}
+                      className={`cursor-pointer ${
+                        selectedOpp === opp.id
+                          ? "bg-[#0078d4] text-white"
+                          : "bg-white hover:bg-[#f0f8ff]"
+                      }`}
+                    >
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{opp.opportunityNumber}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{opp.name}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{opp.accountName || ""}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{opp.stage}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{opp.type}</td>
+                      <td className="px-2 py-1 text-right border border-[#d0d0d0]">
+                        {opp.estimatedValue != null ? `$${Number(opp.estimatedValue).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : ""}
+                      </td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">
+                        {opp.expectedCloseDate ? new Date(opp.expectedCloseDate).toLocaleDateString() : ""}
+                      </td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{opp.owner}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
     if (tabId === "activity-history") {
       return !isNew && customer ? (
         <ActivityTimeline entityType="Customer" entityId={customer.id} />
@@ -391,7 +478,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       ) : null;
     }
     return null;
-  }, [customer?.contacts, selectedContact, isNew, customer]);
+  }, [customer?.contacts, selectedContact, isNew, customer, customerOpportunities, selectedOpp]);
 
   // Tab header — Add Date buttons for remarks tabs
   const renderTabHeader = useCallback((tabId: string): React.ReactNode | null => {
@@ -465,10 +552,13 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
     return def?.align || "left";
   }, [registry]);
 
-  // Inject Activity History + Field History tabs into layout if not already present
+  // Inject Opportunities + Activity History + Field History tabs into layout if not already present
   const layoutWithActivity = useMemo(() => {
     if (!layout) return layout;
     const tabs = [...layout.tabs];
+    if (!tabs.some(t => t.id === "opportunities")) {
+      tabs.push({ id: "opportunities", label: "Opportunities", visible: true, sections: [] });
+    }
     if (!tabs.some(t => t.id === "activity-history")) {
       tabs.push({ id: "activity-history", label: "Activity History", visible: true, sections: [] });
     }

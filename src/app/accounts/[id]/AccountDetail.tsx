@@ -89,7 +89,7 @@ interface AccountDetailProps {
   onClose: () => void;
 }
 
-const TABS = ["General", "Billing", "Control", "Custom", "PM Contracts", "Contacts", "Remarks", "Sales Remarks", "Activity History", "Field History"];
+const TABS = ["General", "Billing", "Control", "Custom", "PM Contracts", "Contacts", "Opportunities", "Remarks", "Sales Remarks", "Activity History", "Field History"];
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -195,6 +195,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
 
   // PM contracts data
   const [pmContracts, setPmContracts] = useState<any[]>([]);
+  const [accountOpportunities, setAccountOpportunities] = useState<any[]>([]);
+  const [selectedOpp, setSelectedOpp] = useState<string | null>(null);
   const [showAddContractDialog, setShowAddContractDialog] = useState(false);
   const [editingPMContract, setEditingPMContract] = useState<any>(null);
   const [newContract, setNewContract] = useState({
@@ -339,8 +341,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         if (data.customerId) {
           fetchContacts(data.customerId);
         }
-        // Fetch PM contracts for this account
+        // Fetch PM contracts and opportunities for this account
         fetchPMContracts();
+        fetchAccountOpportunities();
       }
     } catch (error) {
       console.error("Error fetching account:", error);
@@ -383,6 +386,18 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
       }
     } catch (error) {
       console.error("Error fetching PM contracts:", error);
+    }
+  };
+
+  const fetchAccountOpportunities = async () => {
+    try {
+      const response = await fetch(`/api/opportunities?premisesId=${accountId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAccountOpportunities(data);
+      }
+    } catch (error) {
+      console.error("Error fetching opportunities:", error);
     }
   };
 
@@ -1605,6 +1620,78 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
     </>
   );
 
+  // Opportunities Tab Content
+  const renderOpportunitiesTab = () => (
+    <>
+      <div className="flex-1 flex flex-col mx-2 mt-2 mb-2 overflow-hidden">
+        <div className="flex items-center gap-2 py-1 bg-white">
+          <button
+            onClick={() => openTab("New Opportunity", `/opportunities/new?premisesId=${accountId}&customerId=${account?.customerId || ""}`)}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]"
+          >
+            New Opportunity
+          </button>
+          <button
+            onClick={() => fetchAccountOpportunities()}
+            className="px-3 py-1 text-[11px] border border-[#a0a0a0] bg-[#f0f0f0] hover:bg-[#e0e0e0]"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div className="flex-1 border border-[#a0a0a0] bg-white overflow-auto">
+          <table className="w-full border-collapse text-[12px]">
+            <thead className="bg-[#f0f0f0] sticky top-0">
+              <tr>
+                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "10%" }}>Opp #</th>
+                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "25%" }}>Name</th>
+                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "14%" }}>Stage</th>
+                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "12%" }}>Type</th>
+                <th className="px-2 py-1 text-right font-medium border border-[#c0c0c0]" style={{ width: "13%" }}>Est. Value</th>
+                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "13%" }}>Close Date</th>
+                <th className="px-2 py-1 text-left font-medium border border-[#c0c0c0]" style={{ width: "13%" }}>Owner</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accountOpportunities.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-2 py-4 text-center text-[#808080] border border-[#d0d0d0]">
+                    No opportunities found for this account
+                  </td>
+                </tr>
+              ) : (
+                accountOpportunities.map((opp) => (
+                  <tr
+                    key={opp.id}
+                    onClick={() => setSelectedOpp(opp.id)}
+                    onDoubleClick={() => openTab(opp.name || `Opp #${opp.opportunityNumber}`, `/opportunities/${opp.id}`)}
+                    className={`cursor-pointer ${
+                      selectedOpp === opp.id
+                        ? "bg-[#0078d4] text-white"
+                        : "hover:bg-[#f0f8ff]"
+                    }`}
+                  >
+                    <td className="px-2 py-1 border border-[#d0d0d0]">{opp.opportunityNumber}</td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]">{opp.name}</td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]">{opp.stage}</td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]">{opp.type}</td>
+                    <td className="px-2 py-1 text-right border border-[#d0d0d0]">
+                      {opp.estimatedValue != null ? `$${Number(opp.estimatedValue).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : ""}
+                    </td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]">
+                      {opp.expectedCloseDate ? new Date(opp.expectedCloseDate).toLocaleDateString() : ""}
+                    </td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]">{opp.owner}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+
   // Contacts Tab Content
   const renderContactsTab = () => (
     <>
@@ -1805,6 +1892,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         return renderPMContractsTab();
       case "Contacts":
         return renderContactsTab();
+      case "Opportunities":
+        return renderOpportunitiesTab();
       case "Remarks":
         return renderRemarksTab();
       case "Sales Remarks":
