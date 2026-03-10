@@ -19,8 +19,21 @@ export async function GET() {
       }
     }
 
+    const twilioConfigured = !!(
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_API_KEY_SID &&
+      process.env.TWILIO_API_KEY_SECRET &&
+      process.env.TWILIO_TWIML_APP_SID
+    );
+
     return NextResponse.json({
       authRequired: process.env.AUTH_REQUIRED !== "false",
+      softphoneEnabled: process.env.SOFTPHONE_ENABLED === "true",
+      twilioConfigured,
+      twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || "",
+      twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER || "",
+      twilioWebhookUrl: process.env.TWILIO_WEBHOOK_URL || "",
+      callRecording: process.env.CALL_RECORDING_ENABLED === "true",
     });
   } catch (error) {
     console.error("Error fetching system settings:", error);
@@ -68,12 +81,63 @@ export async function PUT(request: NextRequest) {
         fs.writeFileSync(envPath, envContent, "utf-8");
       } catch (fsError) {
         console.error("Could not persist to .env file:", fsError);
-        // Still works in-memory even if file write fails
       }
     }
 
+    // Softphone settings
+    const envUpdates: Record<string, string> = {};
+
+    if (body.softphoneEnabled !== undefined) {
+      const val = body.softphoneEnabled ? "true" : "false";
+      process.env.SOFTPHONE_ENABLED = val;
+      envUpdates["SOFTPHONE_ENABLED"] = val;
+    }
+    if (body.callRecording !== undefined) {
+      const val = body.callRecording ? "true" : "false";
+      process.env.CALL_RECORDING_ENABLED = val;
+      envUpdates["CALL_RECORDING_ENABLED"] = val;
+    }
+    if (body.twilioWebhookUrl !== undefined) {
+      process.env.TWILIO_WEBHOOK_URL = body.twilioWebhookUrl;
+      envUpdates["TWILIO_WEBHOOK_URL"] = body.twilioWebhookUrl;
+    }
+
+    // Persist env vars to .env
+    if (Object.keys(envUpdates).length > 0) {
+      try {
+        const envPath = path.resolve(process.cwd(), ".env");
+        let envContent = fs.readFileSync(envPath, "utf-8");
+
+        for (const [key, value] of Object.entries(envUpdates)) {
+          const regex = new RegExp(`${key}="[^"]*"`);
+          if (envContent.match(regex)) {
+            envContent = envContent.replace(regex, `${key}="${value}"`);
+          } else {
+            envContent += `\n${key}="${value}"`;
+          }
+        }
+
+        fs.writeFileSync(envPath, envContent, "utf-8");
+      } catch (fsError) {
+        console.error("Could not persist settings to .env:", fsError);
+      }
+    }
+
+    const twilioConfigured = !!(
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_API_KEY_SID &&
+      process.env.TWILIO_API_KEY_SECRET &&
+      process.env.TWILIO_TWIML_APP_SID
+    );
+
     return NextResponse.json({
       authRequired: process.env.AUTH_REQUIRED !== "false",
+      softphoneEnabled: process.env.SOFTPHONE_ENABLED === "true",
+      twilioConfigured,
+      twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || "",
+      twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER || "",
+      twilioWebhookUrl: process.env.TWILIO_WEBHOOK_URL || "",
+      callRecording: process.env.CALL_RECORDING_ENABLED === "true",
     });
   } catch (error) {
     console.error("Error updating system settings:", error);

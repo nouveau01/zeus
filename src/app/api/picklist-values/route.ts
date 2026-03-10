@@ -23,12 +23,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Admin+ can request inactive values too (for the editor)
+    const includeInactive = searchParams.get("includeInactive") === "true";
+    let showInactive = false;
+    if (includeInactive) {
+      const role = (session?.user as any)?.role;
+      if (role && hasRole(role, "Admin")) {
+        showInactive = true;
+      }
+    }
+
+    const activeFilter = showInactive ? {} : { isActive: true };
+
     // Try page-specific values first
     let values = await prisma.picklistValue.findMany({
       where: {
         pageId,
         fieldName,
-        isActive: true,
+        ...activeFilter,
       },
       orderBy: { sortOrder: "asc" },
     });
@@ -39,7 +51,7 @@ export async function GET(request: NextRequest) {
         where: {
           pageId: "_global",
           fieldName,
-          isActive: true,
+          ...activeFilter,
         },
         orderBy: { sortOrder: "asc" },
       });

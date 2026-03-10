@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrBypass } from "@/lib/auth";
 import { getOfficeScope, premisesOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
+import { trackChanges } from "@/lib/audit";
 
 // GET /api/premises/[id]
 export async function GET(
@@ -56,10 +57,9 @@ export async function PUT(
     }
     const scope = await getOfficeScope(session.user.id, session.user.role);
 
-    // Access check
+    // Fetch existing record for access check + audit trail
     const existing = await prisma.premises.findFirst({
       where: { id: params.id, ...premisesOfficeWhere(scope) },
-      select: { id: true },
     });
     if (!existing) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
@@ -124,6 +124,8 @@ export async function PUT(
         },
       },
     });
+
+    trackChanges("Account", params.id, existing as any, premises as any, session.user);
 
     return NextResponse.json(premises);
   } catch (error: any) {

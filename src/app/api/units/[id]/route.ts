@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionOrBypass } from "@/lib/auth";
 import { getOfficeScope, childOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
+import { trackChanges } from "@/lib/audit";
 
 export async function GET(
   request: Request,
@@ -59,10 +60,9 @@ export async function PUT(
     }
     const scope = await getOfficeScope(session.user.id, session.user.role);
 
-    // Access check
+    // Fetch existing record for access check + audit trail
     const existing = await prisma.unit.findFirst({
       where: { id: params.id, ...childOfficeWhere(scope) },
-      select: { id: true },
     });
     if (!existing) {
       return NextResponse.json({ error: "Unit not found" }, { status: 404 });
@@ -122,6 +122,8 @@ export async function PUT(
         },
       },
     });
+    trackChanges("Unit", params.id, existing as any, unit as any, session.user);
+
     return NextResponse.json(unit);
   } catch (error) {
     console.error("Error updating unit:", error);

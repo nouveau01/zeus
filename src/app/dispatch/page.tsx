@@ -37,6 +37,7 @@ import {
   Sparkles,
   RefreshCw,
 } from "lucide-react";
+import { ClickToCall } from "@/components/ui/ClickToCall";
 
 // Default field configuration for Dispatch/Call Manager
 const DISPATCH_DEFAULT_FIELDS = createDefaultFields({
@@ -1835,6 +1836,7 @@ export default function DispatchPage() {
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Phone #</label>
                     <input type="text" value={ticketDetail.phoneNumber} onChange={(e) => updateDetail("phoneNumber", e.target.value)} className="flex-1 px-1 py-0.5 border border-[#808080] text-[11px] bg-white w-[80px]" />
+                    <ClickToCall number={ticketDetail.phoneNumber} />
                   </div>
                   <div className="flex items-center gap-1">
                     <label className="w-14 text-[11px]">Taken By</label>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
 import {
   Save,
   Printer,
@@ -24,6 +26,7 @@ import { useDetailLayout } from "@/hooks/useDetailLayout";
 import { DetailLayout } from "@/components/detail/DetailLayout";
 import { validateRequiredFields } from "@/lib/detail-registry/validation";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { ClickToCall } from "@/components/ui/ClickToCall";
 
 interface Contact {
   id: string;
@@ -362,9 +365,9 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
                     >
                       <td className="px-2 py-1 border border-[#d0d0d0]">{contact.name}</td>
                       <td className="px-2 py-1 border border-[#d0d0d0]">{contact.title || ""}</td>
-                      <td className="px-2 py-1 border border-[#d0d0d0]">{contact.phone || ""}</td>
-                      <td className="px-2 py-1 border border-[#d0d0d0]">{contact.fax || ""}</td>
-                      <td className="px-2 py-1 border border-[#d0d0d0]">{contact.mobile || ""}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]"><span className="inline-flex items-center">{contact.phone || ""}<ClickToCall number={contact.phone} /></span></td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]"><span className="inline-flex items-center">{contact.fax || ""}<ClickToCall number={contact.fax} /></span></td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]"><span className="inline-flex items-center">{contact.mobile || ""}<ClickToCall number={contact.mobile} /></span></td>
                       <td className="px-2 py-1 border border-[#d0d0d0]">{contact.email || ""}</td>
                       <td className="px-2 py-1 border border-[#d0d0d0] text-center">{contact.inv ? "Y" : ""}</td>
                       <td className="px-2 py-1 border border-[#d0d0d0] text-center">{contact.es ? "Y" : ""}</td>
@@ -377,8 +380,18 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         </div>
       );
     }
+    if (tabId === "activity-history") {
+      return !isNew && customer ? (
+        <ActivityTimeline entityType="Customer" entityId={customer.id} />
+      ) : null;
+    }
+    if (tabId === "activity") {
+      return !isNew && customer ? (
+        <ActivityHistory entityType="Customer" entityId={customer.id} />
+      ) : null;
+    }
     return null;
-  }, [customer?.contacts, selectedContact]);
+  }, [customer?.contacts, selectedContact, isNew, customer]);
 
   // Tab header — Add Date buttons for remarks tabs
   const renderTabHeader = useCallback((tabId: string): React.ReactNode | null => {
@@ -451,6 +464,19 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
     const def = registry?.grids?.["account-listing"]?.find(d => d.fieldName === fieldName);
     return def?.align || "left";
   }, [registry]);
+
+  // Inject Activity History + Field History tabs into layout if not already present
+  const layoutWithActivity = useMemo(() => {
+    if (!layout) return layout;
+    const tabs = [...layout.tabs];
+    if (!tabs.some(t => t.id === "activity-history")) {
+      tabs.push({ id: "activity-history", label: "Activity History", visible: true, sections: [] });
+    }
+    if (!tabs.some(t => t.id === "activity")) {
+      tabs.push({ id: "activity", label: "Field History", visible: true, sections: [] });
+    }
+    return { ...layout, tabs };
+  }, [layout]);
 
   // Account listing grid — shared across all tabs
   const renderAccountListing = () => (
@@ -609,9 +635,9 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       </div>
 
       {/* Main Content — DetailLayout with Account Listing as children */}
-      {layout && (
+      {layoutWithActivity && (
         <DetailLayout
-          layout={layout}
+          layout={layoutWithActivity}
           fieldDefs={fieldDefs}
           formData={formData as Record<string, any>}
           onFieldChange={handleFieldChange}

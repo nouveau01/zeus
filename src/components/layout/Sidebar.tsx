@@ -276,6 +276,8 @@ const navStructure: NavSection[] = [
     children: [
       { name: "Report Builder", href: "/ai-reports" },
       { name: "Saved Reports", href: "/saved-reports" },
+      { name: "Presentation Builder", href: "/presentation-builder" },
+      { name: "Saved Presentations", href: "/saved-presentations" },
     ],
   },
   {

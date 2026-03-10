@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import {
   FileText,
   Save,
@@ -108,7 +109,7 @@ interface Props {
   onClose: () => void;
 }
 
-const TABS = ["1 Ticket Info", "2 Materials/Custom", "3 Workers/Signatures"];
+const TABS = ["1 Ticket Info", "2 Materials/Custom", "3 Workers/Signatures", "Field History"];
 
 export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
   const { openTab, tabs, activeTabId, updateTab } = useTabs();
@@ -588,6 +589,9 @@ export default function CompletedTicketDetail({ ticketId, onClose }: Props) {
         )}
         {activeTab === 1 && <MaterialsCustomTab />}
         {activeTab === 2 && <WorkersSignaturesTab />}
+        {activeTab === 3 && ticket && (
+          <ActivityHistory entityType="Completed Ticket" entityId={ticket.id} />
+        )}
       </div>
 
       {/* Status Bar */}

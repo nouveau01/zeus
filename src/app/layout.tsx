@@ -5,6 +5,7 @@ import { SessionProvider } from "@/components/providers/SessionProvider";
 import { PermissionsProvider } from "@/context/PermissionsContext";
 import { UIModeProvider } from "@/context/UIModeContext";
 import { OfficesProvider } from "@/context/OfficesContext";
+import { SoftphoneProvider } from "@/context/SoftphoneContext";
 
 export const metadata: Metadata = {
   title: "ZEUS",
@@ -23,7 +24,9 @@ export default function RootLayout({
           <PermissionsProvider>
             <OfficesProvider>
               <UIModeProvider>
-                <AppShell>{children}</AppShell>
+                <SoftphoneProvider>
+                  <AppShell>{children}</AppShell>
+                </SoftphoneProvider>
               </UIModeProvider>
             </OfficesProvider>
           </PermissionsProvider>

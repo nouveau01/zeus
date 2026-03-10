@@ -46,6 +46,8 @@ import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
 import JobTemplatesPage from "@/app/job-templates/page";
 import AIReportsView from "@/app/ai-reports/AIReportsView";
 import SavedReportsView from "@/app/saved-reports/SavedReportsView";
+import PresentationBuilderView from "@/app/presentation-builder/PresentationBuilderView";
+import SavedPresentationsView from "@/app/saved-presentations/SavedPresentationsView";
 import EmailTemplatesView from "@/app/automation/emails/EmailTemplatesView";
 import EmailSequencesView from "@/app/automation/sequences/EmailSequencesView";
 import SettingsPage from "@/app/settings/page";
@@ -82,6 +84,7 @@ function getPageIdFromRoute(route: string): string | null {
     "/automation/email-templates": "email-templates",
     "/automation/email-sequences": "email-sequences",
     "/saved-reports": "saved-reports",
+    "/saved-presentations": "saved-presentations",
   };
 
   if (routeMap[path]) return routeMap[path];
@@ -495,6 +498,21 @@ export function TabContent() {
   // Check for saved-reports route
   if (activeTab.route === "/saved-reports") {
     return <SavedReportsView />;
+  }
+
+  // Check for presentation-builder route (with optional ?id= param)
+  if (activeTab.route.startsWith("/presentation-builder")) {
+    let presId: string | null = null;
+    try {
+      const presUrl = new URL(activeTab.route, "http://localhost");
+      presId = presUrl.searchParams.get("id");
+    } catch {}
+    return <PresentationBuilderView presentationId={presId} />;
+  }
+
+  // Check for saved-presentations route
+  if (activeTab.route === "/saved-presentations") {
+    return <SavedPresentationsView />;
   }
 
   // Check for automation routes

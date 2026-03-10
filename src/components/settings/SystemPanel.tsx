@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Shield, RefreshCw } from "lucide-react";
+import { Shield, RefreshCw, Phone, Puzzle } from "lucide-react";
 import { useXPDialog } from "@/components/ui/XPDialog";
 
 export function SystemPanel() {
@@ -117,6 +117,20 @@ export function SystemPanel() {
               Authentication is currently OFF. The login screen is bypassed.
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Softphone — moved to Integrations */}
+      <div className="border border-[#d0d0d0] rounded bg-white mb-4">
+        <div className="bg-[#f0f0f0] px-3 py-2 border-b border-[#d0d0d0] flex items-center gap-2">
+          <Phone className="w-4 h-4 text-[#333]" />
+          <span className="font-semibold text-[12px]">Softphone (Twilio)</span>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center gap-2 text-[11px] text-[#666]">
+            <Puzzle className="w-3.5 h-3.5 text-[#0078d4] flex-shrink-0" />
+            Twilio softphone setup has moved to <strong>Settings &rarr; Integrations</strong>.
+          </div>
         </div>
       </div>
     </div>

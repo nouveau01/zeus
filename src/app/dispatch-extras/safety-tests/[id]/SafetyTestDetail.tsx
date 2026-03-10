@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useTabs } from "@/context/TabContext";
 import { useRequiredFields } from "@/hooks/useRequiredFields";
 import { validateRequiredFields } from "@/lib/detail-registry/validation";
@@ -77,6 +78,7 @@ interface SafetyTestDetailProps {
 
 export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailProps) {
   const { openTab } = useTabs();
+  const [activeTab, setActiveTab] = useState<"detail" | "activity">("detail");
   const [testData, setTestData] = useState<SafetyTestData | null>(null);
   const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
   const [selectedHistory, setSelectedHistory] = useState<HistoryEntry | null>(null);
@@ -274,6 +276,24 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
         </button>
       </div>
 
+      {/* Tab Bar */}
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
+        {(["Detail", "Field History"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab === "Detail" ? "detail" : "activity")}
+            className={`px-4 py-1.5 text-[12px] border-t border-l border-r rounded-t -mb-px ${
+              (tab === "Detail" ? "detail" : "activity") === activeTab
+                ? "bg-white border-[#a0a0a0] border-b-white z-10 font-medium"
+                : "bg-[#e8e8e8] border-[#c0c0c0] text-[#606060] hover:bg-[#f0f0f0]"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "detail" && (<>
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-3">
         <div className="flex gap-4">
@@ -675,6 +695,14 @@ export default function SafetyTestDetail({ testId, onClose }: SafetyTestDetailPr
           {testData.status}
         </span>
       </div>
+      </>)}
+
+      {activeTab === "activity" && (
+        <div className="flex-1 overflow-auto">
+          {testData && <ActivityHistory entityType="Safety Test" entityId={testData.id} />}
+        </div>
+      )}
+
       <XPDialogComponent />
     </div>
   );

@@ -132,6 +132,26 @@ export async function fireNotification(
         error: success ? null : "Email delivery failed",
       },
     });
+
+    // Auto-log email to Activity History
+    if (success) {
+      try {
+        await prisma.activityLog.create({
+          data: {
+            type: "email",
+            direction: "outbound",
+            subject,
+            body: html,
+            recipients: to,
+            emailStatus: "sent",
+            source: "email_trigger",
+            sourceId: trigger.id,
+          },
+        });
+      } catch {
+        // Don't let activity logging fail the notification
+      }
+    }
   } catch (error) {
     console.error(`Notification error for event "${event}":`, error);
 

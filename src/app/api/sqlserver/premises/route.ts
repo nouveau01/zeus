@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import sqlserver from "@/lib/sqlserver";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/sqlserver/premises - Get accounts/premises from SQL Server (READ ONLY)
 export async function GET(request: NextRequest) {
   try {

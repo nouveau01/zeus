@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getSessionOrBypass } from "@/lib/auth";
+import { trackChanges } from "@/lib/audit";
 
 export async function GET(
   request: Request,
@@ -30,6 +32,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSessionOrBypass();
+    const existing = await prisma.contact.findUnique({ where: { id: params.id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const contact = await prisma.contact.update({
       where: { id: params.id },
@@ -44,6 +52,8 @@ export async function PUT(
         es: body.es ?? false,
       },
     });
+    trackChanges("Contact", params.id, existing as any, contact as any, session?.user);
+
     return NextResponse.json(contact);
   } catch (error) {
     console.error("Error updating contact:", error);

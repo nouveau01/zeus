@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import { useXPDialog } from "@/components/ui/XPDialog";
@@ -87,7 +88,7 @@ const toolbarIcons = [
   { icon: Square, color: "#e74c3c", title: "Stop" },
 ];
 
-const TABS = ["TFM Custom", "Specifications", "Job Budgets", "Custom/Remarks", "Wage Categories", "Deduction Cat.", "Tech Alert"];
+const TABS = ["TFM Custom", "Specifications", "Job Budgets", "Custom/Remarks", "Wage Categories", "Deduction Cat.", "Tech Alert", "Field History"];
 
 export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   const { openTab } = useTabs();
@@ -923,6 +924,12 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
             />
           </div>
         )}
+
+        {activeTab === "Field History" && (
+          <div className="flex flex-col gap-2">
+            {job && <ActivityHistory entityType="Job" entityId={job.id} />}
+          </div>
+        )}
       </div>
 
       {/* Bottom Summary Bar */}
@@ -963,6 +970,7 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
           </button>
         </div>
       </div>
+
 
       {/* Unsaved Changes Dialog */}
       <UnsavedChangesDialog

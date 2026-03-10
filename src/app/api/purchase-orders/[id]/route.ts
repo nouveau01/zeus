@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getSessionOrBypass } from "@/lib/auth";
+import { trackChanges } from "@/lib/audit";
 
 export async function GET(
   request: Request,
@@ -33,6 +35,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSessionOrBypass();
+    const existing = await prisma.purchaseOrder.findUnique({ where: { id: params.id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Purchase order not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const purchaseOrder = await prisma.purchaseOrder.update({
       where: { id: params.id },
@@ -56,6 +64,8 @@ export async function PUT(
         vendor: true,
       },
     });
+    trackChanges("Purchase Order", params.id, existing as any, purchaseOrder as any, session?.user);
+
     return NextResponse.json(purchaseOrder);
   } catch (error) {
     console.error("Error updating purchase order:", error);

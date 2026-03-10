@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
@@ -101,7 +102,7 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const { layout: unitLayout, fieldDefs: unitFieldDefs, reqMark } = useRequiredFields("units-detail");
-  const [activeTab, setActiveTab] = useState<"general" | "templateCustom" | "tests" | "remarks" | "unitCustom">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "templateCustom" | "tests" | "remarks" | "unitCustom" | "activity">("general");
   const [isEditing, setIsEditing] = useState(false);
   const [savingFromHook, setSavingFromHook] = useState(false);
 
@@ -669,6 +670,16 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
             }`}
           >
             4 Remarks
+          </button>
+          <button
+            onClick={() => setActiveTab("activity")}
+            className={`px-4 py-1 border border-b-0 text-[12px] ${
+              activeTab === "activity"
+                ? "bg-white border-[#808080] font-medium -mb-px z-10"
+                : "bg-[#d4d0c8] border-[#808080] text-[#606060]"
+            }`}
+          >
+            Field History
           </button>
         </div>
       </div>
@@ -1250,6 +1261,12 @@ export default function UnitDetail({ unitId, onClose }: UnitDetailProps) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === "activity" && unit && (
+        <div className="flex-1 overflow-auto">
+          <ActivityHistory entityType="Unit" entityId={unit.id} />
         </div>
       )}
 

@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type"); // accounts, customers, units, jobs
   const q = searchParams.get("q") || "";
   const premisesId = searchParams.get("premisesId") || undefined;
+  const customerId = searchParams.get("customerId") || undefined;
   const limit = 20; // Keep autocomplete results small and fast
 
   if (!type) {
@@ -27,6 +28,9 @@ export async function GET(request: NextRequest) {
     switch (type) {
       case "accounts": {
         const accountWhere: any = {};
+        if (customerId) {
+          accountWhere.customerId = customerId;
+        }
         if (q) {
           accountWhere.OR = [
             { premisesId: { contains: q, mode: "insensitive" } },

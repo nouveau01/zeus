@@ -41,19 +41,20 @@ export function isAuthRequired(): boolean {
  * Gets the session, or returns a mock admin session when auth is disabled.
  * Use this instead of getServerSession in API routes to respect the auth toggle.
  */
+// Cache the bypass user so we don't hit the DB on every request
+let _bypassUser: { id: string; name: string; email: string; role: string; primaryOfficeId: string | null } | null = null;
+
 export async function getSessionOrBypass() {
   if (!isAuthRequired()) {
-    // Return a mock GodAdmin session so API routes work without login
-    // GodAdmin ensures full office scope (allOffices: true) bypassing office filtering
-    return {
-      user: {
-        id: "system",
-        name: "System",
-        email: "system@local",
-        role: "GodAdmin",
-        primaryOfficeId: null,
-      },
-    };
+    // Look up the real GodAdmin user from DB so audit trails show the right name
+    if (!_bypassUser) {
+      const godAdmin = await prisma.user.findFirst({
+        where: { email: { in: GOD_ADMIN_EMAILS } },
+        select: { id: true, name: true, email: true, role: true, primaryOfficeId: true },
+      });
+      _bypassUser = godAdmin || { id: "system", name: "System", email: "system@local", role: "GodAdmin", primaryOfficeId: null };
+    }
+    return { user: _bypassUser };
   }
   const { getServerSession } = await import("next-auth");
   return getServerSession(authOptions);

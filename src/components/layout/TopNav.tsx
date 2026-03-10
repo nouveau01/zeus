@@ -18,12 +18,14 @@ import {
   EyeOff,
   Building2,
   Check as CheckIcon,
+  Phone,
 } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { useSession, signOut } from "next-auth/react";
 import { usePermissions } from "@/context/PermissionsContext";
 import { useUIMode } from "@/context/UIModeContext";
 import { useOffices } from "@/context/OfficesContext";
+import { useSoftphone } from "@/context/SoftphoneContext";
 
 export function TopNav() {
   const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab, openTab } = useTabs();
@@ -43,6 +45,7 @@ export function TopNav() {
   const officeMenuRef = useRef<HTMLDivElement>(null);
 
   const { offices, selectedOfficeIds, setSelectedOfficeIds, allSelected, primaryOfficeId } = useOffices();
+  const { config: softphoneConfig, registrationStatus, callState, panelOpen, setPanelOpen, setPanelMinimized } = useSoftphone();
 
   const user = session?.user as any;
   const userInitials = user?.name
@@ -334,6 +337,28 @@ export function TopNav() {
           <button className="p-1.5 hover:bg-[#c8ccd1] rounded-full" title="Help">
             <HelpCircle className="w-4 h-4 text-[#5f6368]" />
           </button>
+          {softphoneConfig.enabled && (
+            <button
+              className={`relative p-1.5 rounded-full ${
+                panelOpen ? "bg-[#d3e8fc]" : "hover:bg-[#c8ccd1]"
+              }`}
+              title="Phone"
+              onClick={() => {
+                setPanelOpen(!panelOpen);
+                setPanelMinimized(false);
+              }}
+            >
+              <Phone className="w-4 h-4 text-[#5f6368]" />
+              {/* Status dot */}
+              {registrationStatus === "registered" && (
+                <div className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-[#16a34a] border border-white" />
+              )}
+              {/* Incoming call pulse */}
+              {callState === "incoming" && (
+                <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#dc2626] border border-white animate-ping" />
+              )}
+            </button>
+          )}
           <button
             className="p-1.5 hover:bg-[#c8ccd1] rounded-full"
             title="Settings"

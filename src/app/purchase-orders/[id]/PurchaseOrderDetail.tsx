@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
@@ -119,6 +120,7 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const { layout: poLayout, fieldDefs: poFieldDefs, reqMark } = useRequiredFields("purchase-orders-detail");
+  const [activeTab, setActiveTab] = useState<"detail" | "activity">("detail");
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
   const [printOnSave, setPrintOnSave] = useState(false);
@@ -518,6 +520,24 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
         </label>
       </div>
 
+      {/* Tab Bar */}
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
+        {(["Detail", "Field History"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab === "Detail" ? "detail" : "activity")}
+            className={`px-4 py-1.5 text-[12px] border-t border-l border-r rounded-t -mb-px ${
+              (tab === "Detail" ? "detail" : "activity") === activeTab
+                ? "bg-white border-[#a0a0a0] border-b-white z-10 font-medium"
+                : "bg-[#e8e8e8] border-[#c0c0c0] text-[#606060] hover:bg-[#f0f0f0]"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "detail" && (<>
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-2">
         {/* Header Section */}
@@ -1028,6 +1048,13 @@ export default function PurchaseOrderDetail({ poId, onClose }: PurchaseOrderDeta
         <span className="flex-1" />
         <span className="px-2 border-l border-[#808080]">{totalUnits} Units, {formatCurrency(total)} total</span>
       </div>
+      </>)}
+
+      {activeTab === "activity" && (
+        <div className="flex-1 overflow-auto">
+          {poId && poId !== "new" && <ActivityHistory entityType="Purchase Order" entityId={poId} />}
+        </div>
+      )}
 
       {/* New Vendor Dialog */}
       {showNewVendorDialog && (

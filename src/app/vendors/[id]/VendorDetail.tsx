@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
 import { useXPDialog } from "@/components/ui/XPDialog";
 import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
 import { validateRequiredFields } from "@/lib/detail-registry/validation";
 import { useRequiredFields } from "@/hooks/useRequiredFields";
+import { ClickToCall } from "@/components/ui/ClickToCall";
 import {
   FileText,
   Save,
@@ -59,7 +61,7 @@ interface VendorDetailProps {
   onClose: () => void;
 }
 
-const TABS = ["1 General", "2 Control", "3 Contacts", "4 Custom", "5 ACH"];
+const TABS = ["1 General", "2 Control", "3 Contacts", "4 Custom", "5 ACH", "Field History"];
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -647,6 +649,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
                   placeholder="(718) 000-0000"
                 />
+                <ClickToCall number={formData.phone} />
               </div>
 
               <div className="flex items-center gap-2">
@@ -658,6 +661,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
                   placeholder="(718) 000-0000"
                 />
+                <ClickToCall number={formData.fax} />
               </div>
 
               <div className="flex items-center gap-2">
@@ -669,6 +673,7 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                   className="flex-1 px-2 py-1 border border-[#7f9db9] text-[12px] bg-white"
                   placeholder="(718) 000-0000"
                 />
+                <ClickToCall number={formData.cellular} />
               </div>
 
               <div className="flex items-center gap-2">
@@ -974,9 +979,9 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                     >
                       <td className="px-2 py-1 border border-[#e0e0e0]">{contact.name}</td>
                       <td className="px-2 py-1 border border-[#e0e0e0]">{contact.title}</td>
-                      <td className="px-2 py-1 border border-[#e0e0e0]">{contact.phone}</td>
-                      <td className="px-2 py-1 border border-[#e0e0e0]">{contact.fax}</td>
-                      <td className="px-2 py-1 border border-[#e0e0e0]">{contact.mobile}</td>
+                      <td className="px-2 py-1 border border-[#e0e0e0]"><span className="inline-flex items-center">{contact.phone}<ClickToCall number={contact.phone} /></span></td>
+                      <td className="px-2 py-1 border border-[#e0e0e0]"><span className="inline-flex items-center">{contact.fax}<ClickToCall number={contact.fax} /></span></td>
+                      <td className="px-2 py-1 border border-[#e0e0e0]"><span className="inline-flex items-center">{contact.mobile}<ClickToCall number={contact.mobile} /></span></td>
                       <td className="px-2 py-1 border border-[#e0e0e0]">{contact.email}</td>
                       <td className="px-2 py-1 border border-[#e0e0e0] text-center">{contact.isPOContact ? "✓" : ""}</td>
                     </tr>
@@ -1158,6 +1163,12 @@ export default function VendorDetail({ vendorId, onClose }: VendorDetailProps) {
                 </select>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === "Field History" && (
+          <div className="flex-1 overflow-auto">
+            {vendor && <ActivityHistory entityType="Vendor" entityId={vendor.id} />}
           </div>
         )}
       </div>

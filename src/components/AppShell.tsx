@@ -7,6 +7,8 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import { TabContent } from "@/components/TabContent";
 import { useUIMode } from "@/context/UIModeContext";
+import { SoftphonePanel } from "@/components/softphone/SoftphonePanel";
+import { ActiveCallBanner } from "@/components/softphone/ActiveCallBanner";
 
 // Pages that should NOT show the app shell (sidebar/topnav)
 const STANDALONE_PAGES = ["/login"];
@@ -26,6 +28,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Top navigation with ZEUS logo and tabs - spans full width */}
         <TopNav />
 
+        {/* Active call banner (shows when panel is minimized/closed during call) */}
+        <ActiveCallBanner />
+
         {/* Main area: Sidebar + Content side by side */}
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
@@ -36,6 +41,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <TabContent />
           </main>
         </div>
+
+        {/* Hidden audio element for SIP.js remote audio */}
+        <audio id="remoteAudio" autoPlay style={{ display: "none" }} />
+
+        {/* Softphone floating panel */}
+        <SoftphonePanel />
       </div>
     </TabProvider>
   );

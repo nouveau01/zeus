@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useTabs } from "@/context/TabContext";
 import { useXPDialog } from "@/components/ui/XPDialog";
 import {
@@ -83,6 +84,7 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const { layout: violationLayout, fieldDefs: violationFieldDefs, reqMark } = useRequiredFields("violations-detail");
+  const [activeTab, setActiveTab] = useState<"detail" | "activity">("detail");
   const [hasChanges, setHasChanges] = useState(false);
 
   const [violation, setViolation] = useState<ViolationData>({
@@ -331,6 +333,24 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
         </button>
       </div>
 
+      {/* Tab Bar */}
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
+        {(["Detail", "Field History"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab === "Detail" ? "detail" : "activity")}
+            className={`px-4 py-1.5 text-[12px] border-t border-l border-r rounded-t -mb-px ${
+              (tab === "Detail" ? "detail" : "activity") === activeTab
+                ? "bg-white border-[#a0a0a0] border-b-white z-10 font-medium"
+                : "bg-[#e8e8e8] border-[#c0c0c0] text-[#606060] hover:bg-[#f0f0f0]"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "detail" && (<>
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-3">
         {/* Top Row - Account, Violation Info, Related Records */}
@@ -739,6 +759,14 @@ export default function ViolationDetail({ violationId, onClose }: ViolationDetai
         <span className="flex-1" />
         {hasChanges && <span className="text-[#c00] mr-4">Unsaved changes</span>}
       </div>
+      </>)}
+
+      {activeTab === "activity" && (
+        <div className="flex-1 overflow-auto">
+          {violation && <ActivityHistory entityType="Violation" entityId={violation.id} />}
+        </div>
+      )}
+
       <XPDialogComponent />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
@@ -84,7 +85,7 @@ interface InvoiceDetailProps {
   onClose: () => void;
 }
 
-const TABS = ["Account/General", "Taxes/Job Remarks"];
+const TABS = ["Account/General", "Taxes/Job Remarks", "Field History"];
 
 export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps) {
   const { openTab } = useTabs();
@@ -912,6 +913,8 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
         return renderAccountGeneralTab();
       case "Taxes/Job Remarks":
         return renderTaxesJobRemarksTab();
+      case "Field History":
+        return invoice ? <ActivityHistory entityType="Invoice" entityId={invoice.id} /> : null;
       default:
         return renderAccountGeneralTab();
     }
@@ -1146,6 +1149,7 @@ export default function InvoiceDetail({ invoiceId, onClose }: InvoiceDetailProps
           </div>
         </div>
       )}
+
       <XPDialogComponent />
     </div>
   );

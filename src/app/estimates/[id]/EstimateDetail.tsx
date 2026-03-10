@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useTabs } from "@/context/TabContext";
 import { useXPDialog } from "@/components/ui/XPDialog";
 import { validateRequiredFields } from "@/lib/detail-registry/validation";
@@ -68,7 +69,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
   const { alert: xpAlert, DialogComponent: XPDialogComponent } = useXPDialog();
   const { layout: estimateLayout, fieldDefs: estimateFieldDefs, reqMark } = useRequiredFields("estimates-detail");
   const [estimate, setEstimate] = useState<EstimateData | null>(null);
-  const [activeTab, setActiveTab] = useState<"details" | "lineItems" | "notes" | "history">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "lineItems" | "notes" | "history" | "activity">("details");
   const [selectedLineItem, setSelectedLineItem] = useState<string | null>(null);
 
   const statusOptions = ["Draft", "Sent", "Accepted", "Rejected", "Expired"];
@@ -255,7 +256,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
 
       {/* Tabs */}
       <div className="bg-white flex items-end px-2 pt-1 border-b border-[#808080]">
-        {(["details", "lineItems", "notes", "history"] as const).map((tab) => (
+        {(["details", "lineItems", "notes", "history", "activity"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -269,6 +270,7 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
             {tab === "lineItems" && "Line Items"}
             {tab === "notes" && "Notes"}
             {tab === "history" && "History"}
+            {tab === "activity" && "Field History"}
           </button>
         ))}
       </div>
@@ -565,6 +567,10 @@ export default function EstimateDetail({ estimateId, onClose }: EstimateDetailPr
               </tbody>
             </table>
           </div>
+        )}
+
+        {activeTab === "activity" && estimate && (
+          <ActivityHistory entityType="Estimate" entityId={estimate.id} />
         )}
       </div>
 

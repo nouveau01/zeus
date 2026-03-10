@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { useTabs } from "@/context/TabContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedChangesDialog } from "@/components/ui/UnsavedChangesDialog";
@@ -21,6 +23,7 @@ import { useXPDialog } from "@/components/ui/XPDialog";
 import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
 import { validateRequiredFields } from "@/lib/detail-registry/validation";
 import { useRequiredFields } from "@/hooks/useRequiredFields";
+import { ClickToCall } from "@/components/ui/ClickToCall";
 
 interface Unit {
   id: string;
@@ -86,7 +89,7 @@ interface AccountDetailProps {
   onClose: () => void;
 }
 
-const TABS = ["General", "Billing", "Control", "Custom", "PM Contracts", "Contacts", "Remarks", "Sales Remarks"];
+const TABS = ["General", "Billing", "Control", "Custom", "PM Contracts", "Contacts", "Remarks", "Sales Remarks", "Activity History", "Field History"];
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -926,6 +929,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
               onChange={(e) => handleInputChange("phone", e.target.value)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
+            <ClickToCall number={formData.phone} />
           </div>
           <div className="flex items-center gap-2">
             <label className="w-16 text-right text-[12px]">Fax{reqMark("fax")}</label>
@@ -935,6 +939,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
               onChange={(e) => handleInputChange("fax", e.target.value)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
+            <ClickToCall number={formData.fax} />
           </div>
           <div className="flex items-center gap-2">
             <label className="w-16 text-right text-[12px]">Cellular{reqMark("cellular")}</label>
@@ -944,6 +949,7 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
               onChange={(e) => handleInputChange("cellular", e.target.value)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
+            <ClickToCall number={formData.cellular} />
           </div>
           <div className="flex items-center gap-2">
             <label className="w-16 text-right text-[12px]">e-mail{reqMark("email")}</label>
@@ -1668,9 +1674,9 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
                   >
                     <td className="px-2 py-1 border border-[#d0d0d0]">{contact.name}</td>
                     <td className="px-2 py-1 border border-[#d0d0d0]">{contact.title || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]">{contact.phone || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]">{contact.fax || ""}</td>
-                    <td className="px-2 py-1 border border-[#d0d0d0]">{contact.mobile || ""}</td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]"><span className="inline-flex items-center gap-0.5">{contact.phone || ""}<ClickToCall number={contact.phone} /></span></td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]"><span className="inline-flex items-center gap-0.5">{contact.fax || ""}<ClickToCall number={contact.fax} /></span></td>
+                    <td className="px-2 py-1 border border-[#d0d0d0]"><span className="inline-flex items-center gap-0.5">{contact.mobile || ""}<ClickToCall number={contact.mobile} /></span></td>
                     <td className="px-2 py-1 border border-[#d0d0d0]">{contact.email || ""}</td>
                     <td className="px-2 py-1 text-center border border-[#d0d0d0]">
                       <input type="checkbox" checked={contact.inv} readOnly className="w-3 h-3" />
@@ -1803,6 +1809,16 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
         return renderRemarksTab();
       case "Sales Remarks":
         return renderSalesRemarksTab();
+      case "Activity History":
+        return account ? (
+          <ActivityTimeline
+            entityType="Account"
+            entityId={account.id}
+            contacts={contacts.map((c) => ({ id: c.id, name: c.name }))}
+          />
+        ) : null;
+      case "Field History":
+        return account ? <ActivityHistory entityType="Account" entityId={account.id} /> : null;
       default:
         return renderGeneralTab();
     }

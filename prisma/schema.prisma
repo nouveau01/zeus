@@ -57,10 +57,14 @@ model User {
   savedFilters   SavedFilter[]
   savedReports   SavedReport[]
   reportFolders  ReportFolder[]
+  presentations  Presentation[]
+  presentationFolders PresentationFolder[]
 
   offices          UserOffice[]
   ownedSequences   Sequence[]      @relation("SequenceOwner")
   sequenceShares   SequenceShare[]
+  fieldHistory     FieldHistory[]
+  activityLogs     ActivityLog[]  @relation("activityLogs")
 
   @@map("users")
 }
@@ -199,6 +203,53 @@ model ReportFolder {
 }
 
 // ============================================
+// PRESENTATIONS (AI-powered sales decks)
+// ============================================
+
+model Presentation {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  customerId        String?  @map("customer_id")
+  premisesId        String?  @map("premises_id_ref")
+  generationPrompt  String?  @map("generation_prompt")
+  presentationType  String   @default("general") @map("presentation_type")
+  slides            Json     @default("[]")
+  slideCount        Int      @default(0) @map("slide_count")
+  isPublic          Boolean  @default(false) @map("is_public")
+  folderId          String?  @map("folder_id")
+  userId            String   @map("user_id")
+  provider          String   @default("zeus")
+  externalId        String?  @map("external_id")
+  externalUrl       String?  @map("external_url")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user     User                 @relation(fields: [userId], references: [id])
+  customer Customer?            @relation(fields: [customerId], references: [id])
+  folder   PresentationFolder?  @relation(fields: [folderId], references: [id])
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([folderId])
+  @@map("presentations")
+}
+
+model PresentationFolder {
+  id        String   @id @default(cuid())
+  name      String
+  isPublic  Boolean  @default(false) @map("is_public")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user          User           @relation(fields: [userId], references: [id])
+  presentations Presentation[]
+
+  @@index([userId])
+  @@map("presentation_folders")
+}
+
+// ============================================
 // CUSTOMERS (SQL Server: Owner + Rol tables)
 // ============================================
 // Legacy: Owner.ID is PK, Owner.Rol → Rol.ID for name/address/contact
@@ -274,6 +325,8 @@ model Customer {
   contacts      Contact[]
   contracts     Contract[]
   tickets       Ticket[]   @relation("CustomerTickets")
+  activityLogs  ActivityLog[]
+  presentations Presentation[]
 
   @@map("customers")
   // SQL Server: @@map("Owner") - but need to handle Rol join
@@ -301,6 +354,7 @@ model Contact {
   customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   sequenceEnrollments SequenceEnrollment[]
+  activityLogs  ActivityLog[]
 
   @@map("contacts")
 }
@@ -436,6 +490,7 @@ model Premises {
   tickets     Ticket[]
   contracts   Contract[]
   quotes      Quote[]
+  activityLogs ActivityLog[]
 
   @@map("premises")
   // SQL Server: @@map("Loc")
@@ -2243,6 +2298,23 @@ model EmailLog {
   @@map("email_logs")
 }
 
+// ============================================
+// INTEGRATION SETTINGS (External service providers)
+// ============================================
+
+model IntegrationSettings {
+  id                     String   @id @default("singleton")
+
+  // Presentation Provider
+  presentationProvider   String   @default("zeus") @map("presentation_provider")  // "zeus" | "gamma" | custom
+  presentationApiKey     String   @default("") @map("presentation_api_key")
+  presentationApiUrl     String   @default("") @map("presentation_api_url")       // For custom providers
+
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("integration_settings")
+}
+
 model EmailSettings {
   id            String   @id @default("singleton") // Only one row ever
   smtpHost      String   @default("") @map("smtp_host")
@@ -2464,4 +2536,85 @@ model SequenceShare {
 
   @@unique([sequenceId, userId])
   @@map("sequence_shares")
+}
+
+// ============================================
+// FIELD HISTORY (Polymorphic Audit Trail)
+// ============================================
+// Tracks field-level changes across ALL entity types.
+// One table for Customer, Account, Job, Unit, Invoice, etc.
+
+model FieldHistory {
+  id          String   @id @default(cuid())
+  entityType  String   @map("entity_type")    // "Customer", "Account", "Job", etc.
+  entityId    String   @map("entity_id")      // CUID of the changed record
+  batchId     String   @map("batch_id")       // Groups fields changed in one save
+  field       String                           // camelCase field name
+  fieldLabel  String   @map("field_label")    // Human-readable label
+  oldValue    String?  @map("old_value")
+  newValue    String?  @map("new_value")
+  userId      String?  @map("user_id")
+  userName    String?  @map("user_name")      // Denormalized for fast display
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("field_history")
+}
+
+// ============================================
+// ACTIVITY LOG (CRM Activity Timeline)
+// ============================================
+// Salesforce-style activity timeline — tracks emails, calls, notes, LinkedIn messages, etc.
+// Separate from FieldHistory (which tracks data changes). This tracks interactions.
+
+model ActivityLog {
+  id            String    @id @default(cuid())
+
+  // Entity links — an activity can relate to multiple entities
+  customerId    String?   @map("customer_id")
+  premisesId    String?   @map("premises_id")
+  contactId     String?   @map("contact_id")
+
+  // Activity type
+  type          String    // "email", "call", "note", "linkedin", "sms", "task"
+  direction     String?   // "inbound", "outbound"
+
+  // Content
+  subject       String?
+  body          String?   @db.Text
+
+  // Email-specific
+  recipients    String?
+  emailStatus   String?   @map("email_status") // "sent","delivered","opened","bounced","failed"
+
+  // Call-specific
+  callDuration  Int?      @map("call_duration")   // seconds
+  phoneNumber   String?   @map("phone_number")
+  callStatus    String?   @map("call_status")     // "answered","missed","declined"
+  recordingUrl  String?   @map("recording_url")
+
+  // Who performed it
+  userId        String?   @map("user_id")
+  userName      String?   @map("user_name")
+  contactName   String?   @map("contact_name")    // who was contacted
+
+  // Source
+  source        String    @default("manual") // "manual","twilio","email_trigger","sequence"
+  sourceId      String?   @map("source_id")
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user          User?     @relation("activityLogs", fields: [userId], references: [id])
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  premises      Premises? @relation(fields: [premisesId], references: [id])
+  contact       Contact?  @relation(fields: [contactId], references: [id])
+
+  @@index([customerId])
+  @@index([premisesId])
+  @@index([contactId])
+  @@index([createdAt])
+  @@map("activity_logs")
 }

@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { MODULE_REGISTRY, getModulesBySection } from "@/lib/moduleRegistry";
+import { MODULE_REGISTRY } from "@/lib/moduleRegistry";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+
+interface FieldEntry {
+  pageId: string;
+  fieldName: string;
+  moduleLabel: string;
+  fieldLabel: string;
+  count: number;
+}
 
 interface PicklistValue {
   id: string;
@@ -20,9 +28,8 @@ interface PicklistValue {
 }
 
 interface EditableRow {
-  /** Temp client key for React keys on new rows */
   _key: string;
-  id: string | null; // null for unsaved new rows
+  id: string | null;
   value: string;
   label: string;
   sortOrder: number;
@@ -32,193 +39,140 @@ interface EditableRow {
   isNew: boolean;
 }
 
-// A fallback module entry for the _global picklist bucket (used if not in registry)
-const GLOBAL_MODULE = {
-  pageId: "_global",
-  label: "Global (Shared)",
-  section: "_global",
-  fields: [] as { fieldName: string; label: string }[],
+// Section color pills for module tags
+const SECTION_COLORS: Record<string, string> = {
+  AR: "#0078d4",
+  AP: "#8b5cf6",
+  Dispatch: "#d97706",
+  "Dispatch Extras": "#b45309",
+  "Job Cost": "#059669",
+  Sales: "#dc2626",
+  Automation: "#7c3aed",
+  Reports: "#6b7280",
+  Global: "#475569",
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function PicklistEditorPanel() {
-  const modulesBySection = getModulesBySection();
+  // Field list state
+  const [fields, setFields] = useState<FieldEntry[]>([]);
+  const [loadingFields, setLoadingFields] = useState(true);
+  const [search, setSearch] = useState("");
 
-  // Selection state
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
-  const [selectedFieldName, setSelectedFieldName] = useState<string | null>(null);
+  // Selection
+  const [selectedKey, setSelectedKey] = useState<string | null>(null); // "pageId::fieldName"
 
-  // Data for the middle column: field name -> array of picklist values
-  const [fieldValuesMap, setFieldValuesMap] = useState<Record<string, PicklistValue[]>>({});
-  const [loadingFields, setLoadingFields] = useState(false);
-
-  // Data for the right column: the editable rows
+  // Right column: value editor
   const [editRows, setEditRows] = useState<EditableRow[]>([]);
   const [savedSnapshot, setSavedSnapshot] = useState<EditableRow[]>([]);
-
-  // Extra fields discovered from the DB (not in MODULE_REGISTRY)
-  const [extraFieldNames, setExtraFieldNames] = useState<string[]>([]);
-
-  // "Add New Field" dialog
-  const [showAddField, setShowAddField] = useState(false);
-  const [newFieldName, setNewFieldName] = useState("");
-
-  // Save / messages
+  const [loadingValues, setLoadingValues] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Collapsed sidebar sections
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  // "Add New Field" dialog
+  const [showAddField, setShowAddField] = useState(false);
+  const [newFieldPageId, setNewFieldPageId] = useState("");
+  const [newFieldName, setNewFieldName] = useState("");
 
-  // Unique key counter for new rows
   const keyCounter = useRef(0);
   const nextKey = () => {
     keyCounter.current += 1;
     return `_new_${keyCounter.current}`;
   };
 
-  // ── Helpers ─────────────────────────────────────────────────────────────
+  // ── Fetch flat field list ───────────────────────────────────────────────
 
-  const selectedModule =
-    selectedPageId === "_global"
-      ? GLOBAL_MODULE
-      : MODULE_REGISTRY.find((m) => m.pageId === selectedPageId) ?? null;
-
-  /** All field names for the currently selected module (from registry + DB extras) */
-  const allFieldNames: string[] = (() => {
-    if (!selectedModule) return [];
-    const registryNames = selectedModule.fields.map((f) => f.fieldName);
-    // Merge in extra fields from DB that aren't in registry
-    const combined = [...registryNames];
-    for (const ef of extraFieldNames) {
-      if (!combined.includes(ef)) combined.push(ef);
+  const fetchFields = useCallback(async () => {
+    setLoadingFields(true);
+    try {
+      const res = await fetch("/api/picklist-values/fields");
+      if (res.ok) {
+        const data: FieldEntry[] = await res.json();
+        setFields(data);
+      }
+    } catch (err) {
+      console.error("Error fetching picklist fields:", err);
+    } finally {
+      setLoadingFields(false);
     }
-    return combined;
-  })();
+  }, []);
 
-  const fieldLabel = (fieldName: string): string => {
-    if (!selectedModule) return fieldName;
-    const found = selectedModule.fields.find((f) => f.fieldName === fieldName);
-    return found ? found.label : fieldName;
-  };
+  useEffect(() => {
+    fetchFields();
+  }, [fetchFields]);
 
-  const hasUnsavedChanges = (): boolean => {
-    return JSON.stringify(editRows) !== JSON.stringify(savedSnapshot);
-  };
+  // ── Derived ─────────────────────────────────────────────────────────────
 
-  // ── Fetch all picklist values for a given pageId ───────────────────────
+  const selectedField = selectedKey
+    ? fields.find((f) => `${f.pageId}::${f.fieldName}` === selectedKey) ?? null
+    : null;
 
-  const fetchAllFieldsForPage = useCallback(
-    async (pageId: string) => {
-      setLoadingFields(true);
-      setFieldValuesMap({});
-      setExtraFieldNames([]);
-
-      try {
-        const mod =
-          pageId === "_global"
-            ? GLOBAL_MODULE
-            : MODULE_REGISTRY.find((m) => m.pageId === pageId);
-
-        const knownFields = mod ? mod.fields.map((f) => f.fieldName) : [];
-
-        // For known fields, fetch in parallel
-        const results: Record<string, PicklistValue[]> = {};
-        if (knownFields.length > 0) {
-          const promises = knownFields.map(async (fn) => {
-            const res = await fetch(
-              `/api/picklist-values?pageId=${encodeURIComponent(pageId)}&fieldName=${encodeURIComponent(fn)}`
-            );
-            if (res.ok) {
-              const data: PicklistValue[] = await res.json();
-              // Only include values that truly belong to this pageId (not fallback _global)
-              return { fieldName: fn, values: data.filter((v) => v.pageId === pageId) };
-            }
-            return { fieldName: fn, values: [] };
-          });
-          const settled = await Promise.all(promises);
-          for (const s of settled) {
-            results[s.fieldName] = s.values;
-          }
-        }
-
-        // For _global or to discover extra fields, we also need to check if there are
-        // fields stored in the DB that aren't in the registry. We can do a quick scan
-        // by checking a few common picklist field names.
-        if (pageId === "_global") {
-          const commonGlobalFields = ["status", "type", "category", "priority", "source"];
-          const globalPromises = commonGlobalFields.map(async (fn) => {
-            const res = await fetch(
-              `/api/picklist-values?pageId=_global&fieldName=${encodeURIComponent(fn)}`
-            );
-            if (res.ok) {
-              const data: PicklistValue[] = await res.json();
-              const filtered = data.filter((v) => v.pageId === "_global");
-              if (filtered.length > 0) {
-                return { fieldName: fn, values: filtered };
-              }
-            }
-            return null;
-          });
-          const globalResults = await Promise.all(globalPromises);
-          for (const r of globalResults) {
-            if (r) results[r.fieldName] = r.values;
-          }
-        }
-
-        setFieldValuesMap(results);
-
-        // Detect extra fields not in registry
-        const extras = Object.keys(results).filter(
-          (fn) => !knownFields.includes(fn)
+  const filteredFields = search.trim()
+    ? fields.filter((f) => {
+        const q = search.toLowerCase();
+        return (
+          f.fieldLabel.toLowerCase().includes(q) ||
+          f.fieldName.toLowerCase().includes(q) ||
+          f.moduleLabel.toLowerCase().includes(q) ||
+          f.pageId.toLowerCase().includes(q)
         );
-        setExtraFieldNames(extras);
+      })
+    : fields;
+
+  const isStatusField = selectedField?.fieldName?.toLowerCase() === "status";
+
+  const hasUnsavedChanges = JSON.stringify(editRows) !== JSON.stringify(savedSnapshot);
+
+  // ── Fetch values for selected field ─────────────────────────────────────
+
+  const fetchValues = useCallback(
+    async (pageId: string, fieldName: string) => {
+      setLoadingValues(true);
+      setMessage(null);
+      try {
+        const res = await fetch(
+          `/api/picklist-values?pageId=${encodeURIComponent(pageId)}&fieldName=${encodeURIComponent(fieldName)}&includeInactive=true`
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: PicklistValue[] = await res.json();
+        // Only show values for the exact pageId (not _global fallback)
+        const filtered = data.filter((v) => v.pageId === pageId);
+        const rows: EditableRow[] = filtered.map((v) => ({
+          _key: v.id,
+          id: v.id,
+          value: v.value,
+          label: v.label,
+          sortOrder: v.sortOrder,
+          isDefault: v.isDefault,
+          isActive: v.isActive,
+          color: v.color,
+          isNew: false,
+        }));
+        setEditRows(rows);
+        setSavedSnapshot(JSON.parse(JSON.stringify(rows)));
       } catch (err) {
-        console.error("Error fetching fields for page:", err);
+        console.error("Error fetching values:", err);
+        setMessage({ type: "error", text: "Failed to load values." });
+        setEditRows([]);
+        setSavedSnapshot([]);
       } finally {
-        setLoadingFields(false);
+        setLoadingValues(false);
       }
     },
     []
   );
 
-  // When selectedPageId changes, fetch fields
+  // When selection changes, load values
   useEffect(() => {
-    if (selectedPageId) {
-      setSelectedFieldName(null);
+    if (selectedField) {
+      fetchValues(selectedField.pageId, selectedField.fieldName);
+    } else {
       setEditRows([]);
       setSavedSnapshot([]);
       setMessage(null);
-      fetchAllFieldsForPage(selectedPageId);
     }
-  }, [selectedPageId, fetchAllFieldsForPage]);
-
-  // When selectedFieldName changes, populate edit rows
-  useEffect(() => {
-    if (!selectedFieldName || !selectedPageId) {
-      setEditRows([]);
-      setSavedSnapshot([]);
-      return;
-    }
-
-    const values = fieldValuesMap[selectedFieldName] || [];
-    const rows: EditableRow[] = values.map((v) => ({
-      _key: v.id,
-      id: v.id,
-      value: v.value,
-      label: v.label,
-      sortOrder: v.sortOrder,
-      isDefault: v.isDefault,
-      isActive: v.isActive,
-      color: v.color,
-      isNew: false,
-    }));
-
-    setEditRows(rows);
-    setSavedSnapshot(JSON.parse(JSON.stringify(rows)));
-    setMessage(null);
-  }, [selectedFieldName, fieldValuesMap, selectedPageId]);
+  }, [selectedKey, selectedField, fetchValues]);
 
   // ── Row editing handlers ───────────────────────────────────────────────
 
@@ -243,20 +197,12 @@ export function PicklistEditorPanel() {
   const updateRow = (key: string, field: keyof EditableRow, val: any) => {
     setEditRows((prev) =>
       prev.map((r) => {
-        if (r._key !== key) return r;
-        // If setting isDefault to true, unset all others
-        if (field === "isDefault" && val === true) {
-          return { ...r, isDefault: true };
+        if (r._key !== key) {
+          return field === "isDefault" && val === true ? { ...r, isDefault: false } : r;
         }
         return { ...r, [field]: val };
       })
     );
-    // If toggling isDefault on, unset others
-    if (field === "isDefault" && val === true) {
-      setEditRows((prev) =>
-        prev.map((r) => (r._key === key ? r : { ...r, isDefault: false }))
-      );
-    }
   };
 
   const removeRow = (key: string) => {
@@ -271,9 +217,9 @@ export function PicklistEditorPanel() {
   // ── Save ───────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
-    if (!selectedPageId || !selectedFieldName) return;
+    if (!selectedField) return;
 
-    // Validate: all rows must have a value
+    // Validate: no empty values
     for (const row of editRows) {
       if (!row.value.trim()) {
         setMessage({ type: "error", text: "All rows must have a non-empty value." });
@@ -297,8 +243,8 @@ export function PicklistEditorPanel() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pageId: selectedPageId,
-          fieldName: selectedFieldName,
+          pageId: selectedField.pageId,
+          fieldName: selectedField.fieldName,
           values: editRows.map((r, i) => ({
             value: r.value.trim(),
             label: r.label.trim() || r.value.trim(),
@@ -316,11 +262,6 @@ export function PicklistEditorPanel() {
       }
 
       const saved: PicklistValue[] = await res.json();
-
-      // Update the field values map
-      setFieldValuesMap((prev) => ({ ...prev, [selectedFieldName]: saved }));
-
-      // Rebuild edit rows from saved data
       const rows: EditableRow[] = saved.map((v) => ({
         _key: v.id,
         id: v.id,
@@ -335,6 +276,15 @@ export function PicklistEditorPanel() {
       setEditRows(rows);
       setSavedSnapshot(JSON.parse(JSON.stringify(rows)));
 
+      // Update the count in field list
+      setFields((prev) =>
+        prev.map((f) =>
+          f.pageId === selectedField.pageId && f.fieldName === selectedField.fieldName
+            ? { ...f, count: saved.length }
+            : f
+        )
+      );
+
       setMessage({ type: "success", text: "Changes saved successfully." });
       setTimeout(() => setMessage(null), 4000);
     } catch (err: any) {
@@ -348,33 +298,43 @@ export function PicklistEditorPanel() {
   // ── Add New Field ──────────────────────────────────────────────────────
 
   const handleAddField = () => {
-    const name = newFieldName.trim();
-    if (!name) return;
+    const pId = newFieldPageId.trim();
+    const fName = newFieldName.trim();
+    if (!pId || !fName) return;
 
-    // Add it as an extra field and select it
-    if (!allFieldNames.includes(name)) {
-      setExtraFieldNames((prev) => [...prev, name]);
+    const key = `${pId}::${fName}`;
+    const existing = fields.find((f) => `${f.pageId}::${f.fieldName}` === key);
+    if (existing) {
+      // Just select it
+      setSelectedKey(key);
+    } else {
+      const mod = MODULE_REGISTRY.find((m) => m.pageId === pId);
+      const newEntry: FieldEntry = {
+        pageId: pId,
+        fieldName: fName,
+        moduleLabel: mod?.label || pId,
+        fieldLabel: fName,
+        count: 0,
+      };
+      setFields((prev) => [...prev, newEntry].sort((a, b) => {
+        const cmp = a.fieldLabel.localeCompare(b.fieldLabel);
+        return cmp !== 0 ? cmp : a.moduleLabel.localeCompare(b.moduleLabel);
+      }));
+      setSelectedKey(key);
     }
-    setFieldValuesMap((prev) => ({ ...prev, [name]: [] }));
-    setSelectedFieldName(name);
+
     setShowAddField(false);
+    setNewFieldPageId("");
     setNewFieldName("");
   };
 
-  // ── Toggle sidebar section ─────────────────────────────────────────────
+  // ── Module section color ───────────────────────────────────────────────
 
-  const toggleSection = (section: string) => {
-    setCollapsedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(section)) next.delete(section);
-      else next.add(section);
-      return next;
-    });
+  const getModuleColor = (pageId: string): string => {
+    const mod = MODULE_REGISTRY.find((m) => m.pageId === pageId);
+    if (!mod) return "#6b7280";
+    return SECTION_COLORS[mod.section] || "#6b7280";
   };
-
-  // Is this a "status" field? (used to decide whether to show color column)
-  const isStatusField =
-    selectedFieldName?.toLowerCase() === "status";
 
   // ─── Render ────────────────────────────────────────────────────────────
 
@@ -383,157 +343,141 @@ export function PicklistEditorPanel() {
       className="h-full flex"
       style={{ fontFamily: "'Segoe UI', Tahoma, sans-serif", fontSize: "12px" }}
     >
-      {/* ─── Left Sidebar: Module List ─────────────────────────────────── */}
-      <div className="w-[180px] bg-[#f5f5f5] border-r border-[#d0d0d0] flex flex-col flex-shrink-0">
-        <div className="px-2 py-2 border-b border-[#d0d0d0] font-semibold text-[12px]">
-          Modules
+      {/* ─── Left Column: Searchable Field List ────────────────────────── */}
+      <div className="w-[280px] bg-[#f5f5f5] border-r border-[#d0d0d0] flex flex-col flex-shrink-0">
+        {/* Search */}
+        <div className="px-2 py-2 border-b border-[#d0d0d0]">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search fields..."
+            className="w-full px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
+          />
         </div>
+
+        {/* Field list */}
         <div className="flex-1 overflow-y-auto">
-          {/* Grouped modules (includes _global from registry) */}
-          {Object.entries(modulesBySection).map(([section, modules]) => {
-            const collapsed = collapsedSections.has(section);
-            return (
-              <div key={section}>
-                {/* Section header */}
-                <button
-                  onClick={() => toggleSection(section)}
-                  className="w-full flex items-center gap-1 px-2 py-1.5 text-left text-[11px] font-semibold bg-[#eaeaea] border-b border-[#d0d0d0] hover:bg-[#ddd] text-[#444]"
-                >
-                  <span className="text-[10px]">{collapsed ? "\u25B6" : "\u25BC"}</span>
-                  {section}
-                </button>
-                {!collapsed &&
-                  modules.map((mod) => (
-                    <button
-                      key={mod.pageId}
-                      onClick={() => setSelectedPageId(mod.pageId)}
-                      className={`w-full text-left px-3 py-1.5 text-[12px] border-b border-[#e8e8e8] transition-colors ${
-                        selectedPageId === mod.pageId
-                          ? "bg-[#0078d4] text-white"
-                          : "text-[#333] hover:bg-[#e0e0e0]"
-                      }`}
-                    >
-                      {mod.label}
-                    </button>
-                  ))}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ─── Middle Column: Field List ────────────────────────────────── */}
-      <div className="w-[200px] bg-[#f5f5f5] border-r border-[#d0d0d0] flex flex-col flex-shrink-0">
-        <div className="px-2 py-2 border-b border-[#d0d0d0] font-semibold text-[12px] truncate">
-          {selectedModule ? `Fields: ${selectedModule.label}` : "Select a module"}
-        </div>
-
-        {selectedPageId ? (
-          <>
-            <div className="flex-1 overflow-y-auto">
-              {loadingFields ? (
-                <div className="px-2 py-4 text-[11px] text-[#808080] text-center">
-                  Loading...
-                </div>
-              ) : allFieldNames.length === 0 ? (
-                <div className="px-2 py-4 text-[11px] text-[#808080] text-center">
-                  No fields.
-                  <br />
-                  Use &quot;Add New Field&quot; below.
-                </div>
-              ) : (
-                allFieldNames.map((fn) => {
-                  const count = (fieldValuesMap[fn] || []).length;
-                  return (
-                    <button
-                      key={fn}
-                      onClick={() => setSelectedFieldName(fn)}
-                      className={`w-full flex items-center justify-between px-2 py-1.5 text-left text-[12px] border-b border-[#e8e8e8] transition-colors ${
-                        selectedFieldName === fn
-                          ? "bg-[#0078d4] text-white"
-                          : "text-[#333] hover:bg-[#e0e0e0]"
-                      }`}
-                    >
-                      <span className="truncate">{fieldLabel(fn)}</span>
-                      <span
-                        className={`ml-1 flex-shrink-0 text-[10px] ${
-                          selectedFieldName === fn ? "text-white/70" : "text-[#999]"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
+          {loadingFields ? (
+            <div className="px-2 py-4 text-[11px] text-[#808080] text-center">Loading...</div>
+          ) : filteredFields.length === 0 ? (
+            <div className="px-2 py-4 text-[11px] text-[#808080] text-center">
+              {search ? "No fields match your search." : "No picklist fields found."}
             </div>
-
-            {/* Add New Field button */}
-            <div className="px-2 py-2 border-t border-[#d0d0d0]">
-              {showAddField ? (
-                <div className="space-y-1">
-                  <input
-                    type="text"
-                    value={newFieldName}
-                    onChange={(e) => setNewFieldName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddField();
-                      if (e.key === "Escape") {
-                        setShowAddField(false);
-                        setNewFieldName("");
-                      }
+          ) : (
+            filteredFields.map((f) => {
+              const key = `${f.pageId}::${f.fieldName}`;
+              const isSelected = selectedKey === key;
+              const color = getModuleColor(f.pageId);
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedKey(key)}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-left border-b border-[#e8e8e8] transition-colors ${
+                    isSelected
+                      ? "bg-[#0078d4] text-white"
+                      : "text-[#333] hover:bg-[#e0e0e0]"
+                  }`}
+                >
+                  <span className="font-semibold text-[12px] truncate flex-1">
+                    {f.fieldLabel}
+                  </span>
+                  <span
+                    className="text-[9px] px-1.5 py-0.5 rounded-sm flex-shrink-0 font-medium"
+                    style={{
+                      backgroundColor: isSelected ? "rgba(255,255,255,0.25)" : `${color}18`,
+                      color: isSelected ? "white" : color,
                     }}
-                    placeholder="fieldName"
-                    className="w-full px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white"
-                    autoFocus
-                  />
-                  <div className="flex gap-1">
-                    <button
-                      onClick={handleAddField}
-                      disabled={!newFieldName.trim()}
-                      className="flex-1 px-2 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[11px] disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Add
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowAddField(false);
-                        setNewFieldName("");
-                      }}
-                      className="flex-1 px-2 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[11px]"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAddField(true)}
-                  className="w-full px-3 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
-                >
-                  + Add New Field
+                  >
+                    {f.moduleLabel}
+                  </span>
+                  <span
+                    className={`text-[10px] flex-shrink-0 tabular-nums ${
+                      isSelected ? "text-white/70" : "text-[#999]"
+                    }`}
+                  >
+                    {f.count}
+                  </span>
                 </button>
-              )}
+              );
+            })
+          )}
+        </div>
+
+        {/* Add New Field */}
+        <div className="px-2 py-2 border-t border-[#d0d0d0]">
+          {showAddField ? (
+            <div className="space-y-1">
+              <select
+                value={newFieldPageId}
+                onChange={(e) => setNewFieldPageId(e.target.value)}
+                className="w-full px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white"
+              >
+                <option value="">Select module...</option>
+                {MODULE_REGISTRY.map((m) => (
+                  <option key={m.pageId} value={m.pageId}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={newFieldName}
+                onChange={(e) => setNewFieldName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddField();
+                  if (e.key === "Escape") {
+                    setShowAddField(false);
+                    setNewFieldPageId("");
+                    setNewFieldName("");
+                  }
+                }}
+                placeholder="fieldName"
+                className="w-full px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white"
+                autoFocus
+              />
+              <div className="flex gap-1">
+                <button
+                  onClick={handleAddField}
+                  disabled={!newFieldPageId || !newFieldName.trim()}
+                  className="flex-1 px-2 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[11px] disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddField(false);
+                    setNewFieldPageId("");
+                    setNewFieldName("");
+                  }}
+                  className="flex-1 px-2 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[11px]"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-[11px] text-[#808080] px-2 text-center">
-            Select a module from the left to view its picklist fields.
-          </div>
-        )}
+          ) : (
+            <button
+              onClick={() => setShowAddField(true)}
+              className="w-full px-3 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px]"
+            >
+              + Add New Field
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* ─── Right Column: Value Editor ───────────────────────────────── */}
+      {/* ─── Right Column: Value Editor ────────────────────────────────── */}
       <div className="flex-1 flex flex-col overflow-hidden bg-white">
-        {selectedPageId && selectedFieldName ? (
+        {selectedField ? (
           <>
             {/* Header */}
             <div className="px-4 py-3 border-b border-[#d0d0d0] bg-white flex items-center justify-between flex-shrink-0">
               <div>
                 <span className="font-semibold text-[13px]">
-                  {selectedPageId}
+                  {selectedField.moduleLabel}
                   <span className="text-[#999] font-normal mx-1">&gt;</span>
-                  {selectedFieldName}
+                  {selectedField.fieldLabel}
                 </span>
                 <span className="ml-2 text-[11px] text-[#999]">
                   ({editRows.length} value{editRows.length !== 1 ? "s" : ""})
@@ -552,7 +496,7 @@ export function PicklistEditorPanel() {
               </div>
             </div>
 
-            {/* Column headers for the value rows */}
+            {/* Column headers */}
             <div className="flex items-center gap-0 px-4 py-1.5 bg-[#f0f0f0] border-b border-[#d0d0d0] text-[11px] font-semibold text-[#555] flex-shrink-0">
               <div className="w-[24px] flex-shrink-0"></div>
               <div className="w-[140px] flex-shrink-0 px-1">Value</div>
@@ -567,7 +511,9 @@ export function PicklistEditorPanel() {
 
             {/* Value rows */}
             <div className="flex-1 overflow-y-auto px-4 py-1">
-              {editRows.length === 0 ? (
+              {loadingValues ? (
+                <div className="py-6 text-center text-[11px] text-[#808080]">Loading...</div>
+              ) : editRows.length === 0 ? (
                 <div className="py-6 text-center text-[11px] text-[#808080]">
                   No values yet. Click &quot;Add Value&quot; to create the first entry.
                 </div>
@@ -575,7 +521,9 @@ export function PicklistEditorPanel() {
                 editRows.map((row) => (
                   <div
                     key={row._key}
-                    className="flex items-center gap-0 py-1 border-b border-[#f0f0f0] group"
+                    className={`flex items-center gap-0 py-1 border-b border-[#f0f0f0] group ${
+                      !row.isActive ? "opacity-50" : ""
+                    }`}
                   >
                     {/* Drag handle placeholder */}
                     <div className="w-[24px] flex-shrink-0 flex items-center justify-center text-[#ccc] cursor-grab select-none text-[14px]">
@@ -634,7 +582,7 @@ export function PicklistEditorPanel() {
                     <div className="w-[50px] flex-shrink-0 px-1 flex justify-center">
                       <input
                         type="radio"
-                        name={`default-${selectedPageId}-${selectedFieldName}`}
+                        name={`default-${selectedField.pageId}-${selectedField.fieldName}`}
                         checked={row.isDefault}
                         onChange={() => updateRow(row._key, "isDefault", true)}
                         className="cursor-pointer"
@@ -681,14 +629,14 @@ export function PicklistEditorPanel() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCancel}
-                  disabled={!hasUnsavedChanges()}
+                  disabled={!hasUnsavedChanges}
                   className="px-3 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={saving || !hasUnsavedChanges()}
+                  disabled={saving || !hasUnsavedChanges}
                   className="px-3 py-1 bg-[#f0f0f0] border border-[#808080] hover:bg-[#e0e0e0] text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {saving ? "Saving..." : "Save Changes"}
@@ -698,9 +646,7 @@ export function PicklistEditorPanel() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-[12px] text-[#808080]">
-            {selectedPageId
-              ? "Select a field from the middle column to edit its picklist values."
-              : "Select a module, then a field, to manage picklist values."}
+            Select a field from the left to edit its picklist values.
           </div>
         )}
       </div>

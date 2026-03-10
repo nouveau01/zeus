@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrBypass } from "@/lib/auth";
 import { getOfficeScope, childOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
+import { trackChanges } from "@/lib/audit";
 
 // GET /api/tickets/[id]
 export async function GET(
@@ -76,10 +77,9 @@ export async function PUT(
     }
     const scope = await getOfficeScope(session.user.id, session.user.role);
 
-    // Access check
+    // Fetch existing record for access check + audit trail
     const existing = await prisma.ticket.findFirst({
       where: { id: params.id, ...childOfficeWhere(scope) },
-      select: { id: true },
     });
     if (!existing) {
       return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
@@ -232,6 +232,8 @@ export async function PUT(
         },
       },
     });
+
+    trackChanges("Completed Ticket", params.id, existing as any, ticket as any, session.user);
 
     return NextResponse.json(ticket);
   } catch (error) {

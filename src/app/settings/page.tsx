@@ -11,21 +11,22 @@ import {
   ChevronRight,
   ChevronDown,
   Settings,
-  List,
   GitBranch,
   Building2,
   Wrench,
   Boxes,
+  Puzzle,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { UserManagementPanel } from "@/components/settings/UserManagementPanel";
 import { RolesPermissionsPanel } from "@/components/settings/RolesPermissionsPanel";
-import { PicklistEditorPanel } from "@/components/settings/PicklistEditorPanel";
+
 import { StatusWorkflowEditorPanel } from "@/components/settings/StatusWorkflowEditorPanel";
 import { NotificationsPanel } from "@/components/settings/NotificationsPanel";
 import { OfficesPanel } from "@/components/settings/OfficesPanel";
 import { ObjectManagerPanel } from "@/components/settings/ObjectManagerPanel";
 import { SystemPanel } from "@/components/settings/SystemPanel";
+import { IntegrationsPanel } from "@/components/settings/IntegrationsPanel";
 
 // ============================================
 // TYPES
@@ -68,7 +69,6 @@ const settingsGroups: SettingsGroup[] = [
     icon: Wrench,
     minRole: "Admin",
     items: [
-      { id: "picklists", label: "Picklist Values", icon: List, minRole: "Admin" },
       { id: "workflows", label: "Status Workflows", icon: GitBranch, minRole: "Admin" },
       { id: "object-manager", label: "Object Manager", icon: Boxes, minRole: "Admin" },
     ],
@@ -83,6 +83,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: "notifications", label: "Notifications", icon: Bell, minRole: "Admin" },
       { id: "database", label: "Database", icon: Database, minRole: "Admin" },
       { id: "system", label: "System", icon: Globe, minRole: "Admin" },
+      { id: "integrations", label: "Integrations", icon: Puzzle, minRole: "Admin" },
     ],
   },
 ];
@@ -137,8 +138,6 @@ export default function SettingsPage() {
         return <OfficesPanel />;
       case "roles":
         return <RolesPermissionsPanel />;
-      case "picklists":
-        return <PicklistEditorPanel />;
       case "workflows":
         return <StatusWorkflowEditorPanel />;
       case "appearance":
@@ -149,6 +148,8 @@ export default function SettingsPage() {
         return <ComingSoon title="Database" description="View database status, run migrations, manage backups, and configure connections." />;
       case "system":
         return <SystemPanel />;
+      case "integrations":
+        return <IntegrationsPanel />;
       case "object-manager":
         return <ObjectManagerPanel />;
       default:

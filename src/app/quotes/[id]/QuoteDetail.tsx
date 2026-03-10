@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import { useTabs } from "@/context/TabContext";
 import { useXPDialog } from "@/components/ui/XPDialog";
 import { validateRequiredFields } from "@/lib/detail-registry/validation";
@@ -99,7 +100,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
   const { openTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
   const { layout: quoteLayout, fieldDefs: quoteFieldDefs, reqMark } = useRequiredFields("quotes-detail");
-  const [activeTab, setActiveTab] = useState<"details" | "lineItems" | "notes" | "history">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "lineItems" | "notes" | "history" | "activity">("details");
   const [quote] = useState<Quote>(mockQuoteDetail);
 
   const formatCurrency = (amount: number) => {
@@ -177,6 +178,7 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
     { id: "lineItems", label: "Line Items" },
     { id: "notes", label: "Notes" },
     { id: "history", label: "History" },
+    { id: "activity", label: "Field History" },
   ];
 
   return (
@@ -567,6 +569,10 @@ export default function QuoteDetail({ quoteId, onClose }: QuoteDetailProps) {
               ))}
             </div>
           </div>
+        )}
+
+        {activeTab === "activity" && quote && (
+          <ActivityHistory entityType="Quote" entityId={quote.id} />
         )}
       </div>
 

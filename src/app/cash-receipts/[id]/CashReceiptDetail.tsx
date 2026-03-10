@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import {
   FileText,
   RotateCcw,
@@ -49,6 +50,7 @@ interface CashReceipt {
 }
 
 export default function CashReceiptDetail({ depositId, onClose }: CashReceiptDetailProps) {
+  const [activeTab, setActiveTab] = useState<"detail" | "activity">("detail");
   const [deposit, setDeposit] = useState<CashReceipt | null>(null);
   const [loading, setLoading] = useState(true);
   const [printOnSave, setPrintOnSave] = useState(false);
@@ -204,6 +206,24 @@ export default function CashReceiptDetail({ depositId, onClose }: CashReceiptDet
         </label>
       </div>
 
+      {/* Tab Bar */}
+      <div className="bg-white flex items-end px-2 pt-1 border-b border-[#d0d0d0]">
+        {(["Detail", "Field History"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab === "Detail" ? "detail" : "activity")}
+            className={`px-4 py-1.5 text-[12px] border-t border-l border-r rounded-t -mb-px ${
+              (tab === "Detail" ? "detail" : "activity") === activeTab
+                ? "bg-white border-[#a0a0a0] border-b-white z-10 font-medium"
+                : "bg-[#e8e8e8] border-[#c0c0c0] text-[#606060] hover:bg-[#f0f0f0]"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "detail" && (<>
       {/* Header Section */}
       <div className="bg-white border-b border-[#d0d0d0] px-4 py-3 flex items-start gap-6">
         {/* Left - Date & Dep # */}
@@ -318,6 +338,13 @@ export default function CashReceiptDetail({ depositId, onClose }: CashReceiptDet
       <div className="bg-white border-t border-[#d0d0d0] px-2 py-1 flex items-center text-[11px]">
         <span className="font-medium">EDIT</span>
       </div>
+      </>)}
+
+      {activeTab === "activity" && (
+        <div className="flex-1 overflow-auto">
+          {deposit && <ActivityHistory entityType="Cash Receipt" entityId={deposit.id} />}
+        </div>
+      )}
     </div>
   );
 }

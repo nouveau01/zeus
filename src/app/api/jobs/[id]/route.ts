@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrBypass } from "@/lib/auth";
 import { getOfficeScope, childOfficeWhere } from "@/lib/officeScope";
 import prisma from "@/lib/db";
+import { trackChanges } from "@/lib/audit";
 
 // GET /api/jobs/[id]
 export async function GET(
@@ -86,23 +87,8 @@ export async function PATCH(
       data: body,
     });
 
-    // Create history entries for changed fields
-    const historyEntries = [];
-    for (const [key, newValue] of Object.entries(body)) {
-      const oldValue = (currentJob as any)[key];
-      if (oldValue !== newValue) {
-        historyEntries.push({
-          jobId: job.id,
-          field: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1").trim(),
-          originalValue: oldValue?.toString() || null,
-          newValue: newValue?.toString() || null,
-        });
-      }
-    }
-
-    if (historyEntries.length > 0) {
-      await prisma.jobHistory.createMany({ data: historyEntries });
-    }
+    // Track field changes (fire-and-forget)
+    trackChanges("Job", params.id, currentJob as any, job as any, session.user);
 
     return NextResponse.json(job);
   } catch (error) {

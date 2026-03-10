@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getSessionOrBypass } from "@/lib/auth";
+import { trackChanges } from "@/lib/audit";
 
 export async function GET(
   request: Request,
@@ -30,6 +32,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSessionOrBypass();
+    const existing = await prisma.vendor.findUnique({ where: { id: params.id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const vendor = await prisma.vendor.update({
       where: { id: params.id },
@@ -69,6 +77,8 @@ export async function PUT(
         isActive: body.status === "Inactive" ? false : body.status === "Active" ? true : undefined,
       },
     });
+    trackChanges("Vendor", params.id, existing as any, vendor as any, session?.user);
+
     return NextResponse.json(vendor);
   } catch (error) {
     console.error("Error updating vendor:", error);

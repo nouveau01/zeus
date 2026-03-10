@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ActivityHistory } from "@/components/ActivityHistory";
 import {
   FileText,
   Printer,
@@ -66,7 +67,7 @@ interface Job {
   } | null;
 }
 
-const TABS = ["1 Summary & Hours Worked", "2 Job Costing Detail", "3 Job Costing Items", "4 Custom/Remarks"];
+const TABS = ["1 Summary & Hours Worked", "2 Job Costing Detail", "3 Job Costing Items", "4 Custom/Remarks", "Field History"];
 
 export default function JobResultDetail({ jobId, onClose }: JobResultDetailProps) {
   const { openTab } = useTabs();
@@ -750,6 +751,8 @@ WB COMP`}
         return renderCostingItemsTab();
       case "4 Custom/Remarks":
         return renderCustomRemarksTab();
+      case "Field History":
+        return job ? <ActivityHistory entityType="Job Result" entityId={job.id} /> : null;
       default:
         return renderSummaryTab();
     }
