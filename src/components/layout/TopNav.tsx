@@ -467,7 +467,7 @@ export function TopNav() {
                       <div className="text-sm font-medium text-[#202124] truncate">{user?.name || "User"}</div>
                       <div className="text-xs text-[#5f6368] truncate">{user?.email || ""}</div>
                       {user?.role && (
-                        <div className="text-[10px] text-[#1a73e8] font-medium mt-0.5">{user.role}</div>
+                        <div className="text-[10px] text-[#1a73e8] font-medium mt-0.5">{user.role === "GodAdmin" ? "Admin" : user.role}</div>
                       )}
                     </div>
                   </div>

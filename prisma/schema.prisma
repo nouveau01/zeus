@@ -33,6 +33,7 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String?                        // Hashed password for authentication
+  mustResetPassword Boolean @default(false) @map("must_reset_password")
   name      String
   role      String   @default("User")      // "GodAdmin", "Admin", or "User"
   avatar     String?

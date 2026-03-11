@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useOffices } from "@/context/OfficesContext";
+import { useXPDialog } from "@/components/ui/XPDialog";
+import { KeyRound } from "lucide-react";
 
 // ============================================
 // TYPES
@@ -582,6 +584,17 @@ function UserDetailView({
   const [userOfficeIds, setUserOfficeIds] = useState<string[]>([]);
   const [loadingOffices, setLoadingOffices] = useState(true);
   const [savingOffice, setSavingOffice] = useState(false);
+  const [authMode, setAuthMode] = useState<string>("");
+  const [sendingReset, setSendingReset] = useState(false);
+  const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+
+  // Fetch auth mode for conditional UI
+  useEffect(() => {
+    fetch("/api/auth-mode")
+      .then((r) => r.json())
+      .then((d) => setAuthMode(d.mode || ""))
+      .catch(() => {});
+  }, []);
 
   const isSelf = user.id === currentId;
   const isUserGodAdmin = false; // GodAdmin role is never revealed in UI
@@ -648,6 +661,36 @@ function UserDetailView({
     }
   };
 
+  const handleSendPasswordReset = async () => {
+    const confirmed = await xpConfirm(`Send a temporary password to ${user.email}?`);
+    if (!confirmed) return;
+
+    setSendingReset(true);
+    try {
+      const res = await fetch("/api/users/send-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        if (data.emailSent) {
+          await xpAlert(`Temporary password sent to ${user.email}. They will be prompted to set a new password on login.`);
+        } else {
+          // Email failed — show temp password for manual sharing
+          await xpAlert(`Email could not be sent. Share this temporary password manually:\n\n${data.tempPassword}\n\nThe user will be prompted to change it on first login.`);
+        }
+      } else {
+        await xpAlert(data.error || "Failed to send password reset.");
+      }
+    } catch {
+      await xpAlert("Network error. Please try again.");
+    } finally {
+      setSendingReset(false);
+    }
+  };
+
   const toggleOffice = async (officeId: string) => {
     const newIds = userOfficeIds.includes(officeId)
       ? userOfficeIds.filter((id) => id !== officeId)
@@ -693,6 +736,7 @@ function UserDetailView({
 
   return (
     <div className="h-full flex flex-col bg-white overflow-auto" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
+      <XPDialogComponent />
       {/* Back bar */}
       <div className="bg-white flex items-center px-3 py-2 border-b border-[#d0d0d0] gap-2 flex-shrink-0">
         <button
@@ -780,7 +824,9 @@ function UserDetailView({
                   disabled
                   className="w-full px-2 py-1.5 border border-[#d0d0d0] text-[12px] bg-[#f5f5f5] rounded text-[#888]"
                 />
-                <div className="text-[10px] text-[#aaa] mt-0.5">Managed by Google OAuth</div>
+                <div className="text-[10px] text-[#aaa] mt-0.5">
+                  {authMode === "manual" ? "Used for email/password login" : "Managed by Google OAuth"}
+                </div>
               </div>
               <div>
                 <label className="block text-[11px] font-medium text-[#666] mb-1">Title</label>
@@ -893,6 +939,24 @@ function UserDetailView({
                   </button>
                 )}
               </div>
+
+              {/* Send Password Reset — only in manual auth mode */}
+              {authMode === "manual" && !isSelf && (
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-medium text-[#666] mb-1">Password Credentials</label>
+                  <button
+                    onClick={handleSendPasswordReset}
+                    disabled={sendingReset || !user.isActive}
+                    className="flex items-center gap-2 px-3 py-1.5 text-[12px] bg-[#f0f0f0] border border-[#a0a0a0] rounded hover:bg-[#e0e0e0] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    {sendingReset ? "Sending..." : "Send Password Reset"}
+                  </button>
+                  <div className="text-[10px] text-[#aaa] mt-0.5">
+                    Generates a temporary password and emails it to this user.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

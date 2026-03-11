@@ -1,15 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions, hasRole, isAuthRequired } from "@/lib/auth";
+import { buildAuthOptions, hasRole, isAuthRequired, getAuthMode } from "@/lib/auth";
 import fs from "fs";
 import path from "path";
+
+function persistEnvVar(key: string, value: string) {
+  try {
+    const envPath = path.resolve(process.cwd(), ".env");
+    let envContent = fs.readFileSync(envPath, "utf-8");
+    const regex = new RegExp(`${key}="[^"]*"`);
+    if (envContent.match(regex)) {
+      envContent = envContent.replace(regex, `${key}="${value}"`);
+    } else {
+      envContent += `\n${key}="${value}"`;
+    }
+    fs.writeFileSync(envPath, envContent, "utf-8");
+  } catch (fsError) {
+    console.error(`Could not persist ${key} to .env:`, fsError);
+  }
+}
 
 // GET /api/system-settings — return current settings
 export async function GET() {
   try {
-    // Auth check only if auth is enabled
     if (isAuthRequired()) {
-      const session = await getServerSession(authOptions);
+      const session = await getServerSession(buildAuthOptions());
       if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
@@ -26,8 +41,9 @@ export async function GET() {
       process.env.TWILIO_TWIML_APP_SID
     );
 
-    return NextResponse.json({
-      authRequired: process.env.AUTH_REQUIRED !== "false",
+    const response = NextResponse.json({
+      authMode: getAuthMode(),
+      authRequired: isAuthRequired(), // backward compat
       softphoneEnabled: process.env.SOFTPHONE_ENABLED === "true",
       twilioConfigured,
       twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || "",
@@ -35,6 +51,16 @@ export async function GET() {
       twilioWebhookUrl: process.env.TWILIO_WEBHOOK_URL || "",
       callRecording: process.env.CALL_RECORDING_ENABLED === "true",
     });
+
+    // Keep middleware cookie in sync with current auth mode
+    response.cookies.set("__zeus_auth_mode", getAuthMode(), {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+
+    return response;
   } catch (error) {
     console.error("Error fetching system settings:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -44,9 +70,8 @@ export async function GET() {
 // PUT /api/system-settings — update settings
 export async function PUT(request: NextRequest) {
   try {
-    // This route always requires auth (you shouldn't be able to toggle auth off without being logged in first)
     if (isAuthRequired()) {
-      const session = await getServerSession(authOptions);
+      const session = await getServerSession(buildAuthOptions());
       if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
@@ -58,30 +83,26 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    if (body.authRequired !== undefined) {
+    // New authMode field (replaces legacy authRequired)
+    if (body.authMode !== undefined) {
+      const mode = body.authMode as string;
+      process.env.AUTH_MODE = mode;
+
+      // Also set legacy AUTH_REQUIRED for backward compat
+      const legacyValue = mode === "none" ? "false" : "true";
+      process.env.AUTH_REQUIRED = legacyValue;
+
+      persistEnvVar("AUTH_MODE", mode);
+      persistEnvVar("AUTH_REQUIRED", legacyValue);
+    }
+
+    // Legacy authRequired support (in case old UI calls it)
+    if (body.authRequired !== undefined && body.authMode === undefined) {
       const newValue = body.authRequired ? "true" : "false";
-
-      // Update in-memory (takes effect immediately for this process)
       process.env.AUTH_REQUIRED = newValue;
-
-      // Persist to .env file so it survives restarts
-      try {
-        const envPath = path.resolve(process.cwd(), ".env");
-        let envContent = fs.readFileSync(envPath, "utf-8");
-
-        if (envContent.includes("AUTH_REQUIRED=")) {
-          envContent = envContent.replace(
-            /AUTH_REQUIRED="[^"]*"/,
-            `AUTH_REQUIRED="${newValue}"`
-          );
-        } else {
-          envContent += `\n# Authentication toggle (true = require login, false = no login required)\nAUTH_REQUIRED="${newValue}"\n`;
-        }
-
-        fs.writeFileSync(envPath, envContent, "utf-8");
-      } catch (fsError) {
-        console.error("Could not persist to .env file:", fsError);
-      }
+      process.env.AUTH_MODE = body.authRequired ? "sso" : "none";
+      persistEnvVar("AUTH_REQUIRED", newValue);
+      persistEnvVar("AUTH_MODE", body.authRequired ? "sso" : "none");
     }
 
     // Softphone settings
@@ -102,25 +123,9 @@ export async function PUT(request: NextRequest) {
       envUpdates["TWILIO_WEBHOOK_URL"] = body.twilioWebhookUrl;
     }
 
-    // Persist env vars to .env
-    if (Object.keys(envUpdates).length > 0) {
-      try {
-        const envPath = path.resolve(process.cwd(), ".env");
-        let envContent = fs.readFileSync(envPath, "utf-8");
-
-        for (const [key, value] of Object.entries(envUpdates)) {
-          const regex = new RegExp(`${key}="[^"]*"`);
-          if (envContent.match(regex)) {
-            envContent = envContent.replace(regex, `${key}="${value}"`);
-          } else {
-            envContent += `\n${key}="${value}"`;
-          }
-        }
-
-        fs.writeFileSync(envPath, envContent, "utf-8");
-      } catch (fsError) {
-        console.error("Could not persist settings to .env:", fsError);
-      }
+    // Persist remaining env vars
+    for (const [key, value] of Object.entries(envUpdates)) {
+      persistEnvVar(key, value);
     }
 
     const twilioConfigured = !!(
@@ -130,8 +135,9 @@ export async function PUT(request: NextRequest) {
       process.env.TWILIO_TWIML_APP_SID
     );
 
-    return NextResponse.json({
-      authRequired: process.env.AUTH_REQUIRED !== "false",
+    const response = NextResponse.json({
+      authMode: getAuthMode(),
+      authRequired: isAuthRequired(),
       softphoneEnabled: process.env.SOFTPHONE_ENABLED === "true",
       twilioConfigured,
       twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || "",
@@ -139,6 +145,19 @@ export async function PUT(request: NextRequest) {
       twilioWebhookUrl: process.env.TWILIO_WEBHOOK_URL || "",
       callRecording: process.env.CALL_RECORDING_ENABLED === "true",
     });
+
+    // Set cookie so middleware (Edge Runtime) picks up auth mode changes immediately.
+    // process.env in middleware is inlined at compile time and won't see runtime changes.
+    if (body.authMode !== undefined || body.authRequired !== undefined) {
+      response.cookies.set("__zeus_auth_mode", getAuthMode(), {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error("Error updating system settings:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

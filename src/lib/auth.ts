@@ -1,5 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
 
 // Role hierarchy: GodAdmin > Admin > User
@@ -32,21 +34,33 @@ export function canBeGodAdmin(email: string): boolean {
   return GOD_ADMIN_EMAILS.includes(email.toLowerCase());
 }
 
-/** Returns true if authentication is currently required */
-export function isAuthRequired(): boolean {
-  return process.env.AUTH_REQUIRED !== "false";
+// ============================================
+// AUTH MODE
+// ============================================
+
+export type AuthMode = "none" | "sso" | "manual";
+
+/** Returns the current auth mode from env vars */
+export function getAuthMode(): AuthMode {
+  const mode = process.env.AUTH_MODE;
+  if (mode === "sso" || mode === "manual") return mode;
+  // Backward compat: fall back to legacy AUTH_REQUIRED
+  return process.env.AUTH_REQUIRED === "false" ? "none" : "sso";
 }
 
-/**
- * Gets the session, or returns a mock admin session when auth is disabled.
- * Use this instead of getServerSession in API routes to respect the auth toggle.
- */
-// Cache the bypass user so we don't hit the DB on every request
+/** Returns true if authentication is currently required (backward compat) */
+export function isAuthRequired(): boolean {
+  return getAuthMode() !== "none";
+}
+
+// ============================================
+// SESSION BYPASS
+// ============================================
+
 let _bypassUser: { id: string; name: string; email: string; role: string; primaryOfficeId: string | null } | null = null;
 
 export async function getSessionOrBypass() {
   if (!isAuthRequired()) {
-    // Look up the real GodAdmin user from DB so audit trails show the right name
     if (!_bypassUser) {
       const godAdmin = await prisma.user.findFirst({
         where: { email: { in: GOD_ADMIN_EMAILS } },
@@ -57,89 +71,141 @@ export async function getSessionOrBypass() {
     return { user: _bypassUser };
   }
   const { getServerSession } = await import("next-auth");
-  return getServerSession(authOptions);
+  return getServerSession(buildAuthOptions());
 }
 
-export const authOptions: NextAuthOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  callbacks: {
-    async signIn({ user, account }) {
+// ============================================
+// SHARED CALLBACKS (used by both SSO and manual)
+// ============================================
+
+const jwtCallback = async ({ token }: { token: any }) => {
+  if (token.email) {
+    const dbUser = await prisma.user.findUnique({
+      where: { email: token.email },
+    });
+    if (dbUser) {
+      token.id = dbUser.id;
+      token.role = dbUser.role === "GodAdmin" && !GOD_ADMIN_EMAILS.includes(dbUser.email.toLowerCase())
+        ? "Admin"
+        : dbUser.role;
+      token.avatar = dbUser.avatar;
+      token.uiMode = dbUser.uiMode;
+      token.primaryOfficeId = dbUser.primaryOfficeId;
+      token.mustResetPassword = dbUser.mustResetPassword;
+    }
+  }
+  return token;
+};
+
+const sessionCallback = async ({ session, token }: { session: any; token: any }) => {
+  if (session.user) {
+    session.user.id = token.id;
+    session.user.role = token.role;
+    session.user.avatar = token.avatar;
+    session.user.uiMode = token.uiMode;
+    session.user.primaryOfficeId = token.primaryOfficeId;
+    session.user.mustResetPassword = token.mustResetPassword;
+  }
+  return session;
+};
+
+// ============================================
+// BUILD AUTH OPTIONS (dynamic per auth mode)
+// ============================================
+
+export function buildAuthOptions(): NextAuthOptions {
+  const mode = getAuthMode();
+
+  const providers: NextAuthOptions["providers"] = [];
+
+  if (mode === "sso") {
+    providers.push(
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      })
+    );
+  }
+
+  if (mode === "manual") {
+    providers.push(
+      CredentialsProvider({
+        name: "Email & Password",
+        credentials: {
+          email: { label: "Email", type: "email" },
+          password: { label: "Password", type: "password" },
+        },
+        async authorize(credentials) {
+          if (!credentials?.email || !credentials?.password) return null;
+
+          const dbUser = await prisma.user.findUnique({
+            where: { email: credentials.email.toLowerCase() },
+          });
+
+          if (!dbUser || !dbUser.isActive || !dbUser.password) return null;
+
+          const valid = await bcrypt.compare(credentials.password, dbUser.password);
+          if (!valid) return null;
+
+          // Update last login
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { lastLogin: new Date() },
+          });
+
+          return {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            role: dbUser.role,
+            primaryOfficeId: dbUser.primaryOfficeId,
+            mustResetPassword: dbUser.mustResetPassword,
+          };
+        },
+      })
+    );
+  }
+
+  const callbacks: NextAuthOptions["callbacks"] = {
+    jwt: jwtCallback,
+    session: sessionCallback,
+  };
+
+  // SSO mode needs signIn callback for domain restriction + pre-created user check
+  if (mode === "sso") {
+    callbacks.signIn = async ({ user, account }) => {
       if (account?.provider === "google") {
         const email = user.email;
         if (!email) return false;
 
-        // 1. Domain restriction — only @nouveau*.com emails allowed
         const domain = email.split("@")[1]?.toLowerCase() || "";
         if (!domain.startsWith("nouveau") || !domain.endsWith(".com")) {
           return false;
         }
 
-        // 2. Pre-created users only — must already exist in DB
-        const dbUser = await prisma.user.findUnique({
-          where: { email },
-        });
+        const dbUser = await prisma.user.findUnique({ where: { email } });
+        if (!dbUser) return false;
 
-        if (!dbUser) {
-          return false; // Not in the system — admin must add them first
-        }
-
-        // Update avatar if changed + record last login
         const updateData: any = { lastLogin: new Date() };
         if (dbUser.avatar !== user.image && user.image) {
           updateData.avatar = user.image;
         }
-        await prisma.user.update({
-          where: { id: dbUser.id },
-          data: updateData,
-        });
+        await prisma.user.update({ where: { id: dbUser.id }, data: updateData });
 
-        if (!dbUser.isActive) {
-          return false; // Deactivated user can't sign in
-        }
+        if (!dbUser.isActive) return false;
       }
-
       return true;
-    },
-    async jwt({ token, user, account }) {
-      // Always refresh user data from DB to keep role, avatar, etc. current
-      if (token.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-        });
-        if (dbUser) {
-          token.id = dbUser.id;
-          // Enforce GodAdmin whitelist — even if DB says GodAdmin, only approved emails get it
-          token.role = dbUser.role === "GodAdmin" && !GOD_ADMIN_EMAILS.includes(dbUser.email.toLowerCase())
-            ? "Admin"
-            : dbUser.role;
-          token.avatar = dbUser.avatar;
-          token.uiMode = dbUser.uiMode;
-          token.primaryOfficeId = dbUser.primaryOfficeId;
-        }
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).avatar = token.avatar;
-        (session.user as any).uiMode = token.uiMode;
-        (session.user as any).primaryOfficeId = token.primaryOfficeId;
-      }
-      return session;
-    },
-  },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-};
+    };
+  }
+
+  return {
+    providers,
+    callbacks,
+    pages: { signIn: "/login" },
+    session: { strategy: "jwt" },
+    secret: process.env.NEXTAUTH_SECRET,
+  };
+}
+
+// Keep legacy export for any existing imports
+export const authOptions: NextAuthOptions = buildAuthOptions();
