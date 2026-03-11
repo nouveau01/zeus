@@ -58,6 +58,9 @@ interface SoftphoneContextType {
   callHistory: CallHistoryEntry[];
   addCallHistory: (entry: CallHistoryEntry) => void;
 
+  // Config reload (for settings panel to notify context of changes)
+  refreshConfig: () => void;
+
   // Compat fields (kept for UI components that reference them)
   remoteAudioRef: React.RefObject<HTMLAudioElement | null>;
   currentSession: any;
@@ -106,6 +109,7 @@ const SoftphoneContext = createContext<SoftphoneContextType>({
   toggleRecording: () => {},
   callHistory: [],
   addCallHistory: () => {},
+  refreshConfig: () => {},
   remoteAudioRef: { current: null },
   currentSession: null,
 });
@@ -148,7 +152,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
   const configured = config.enabled && twilioConfigured;
 
   // Load config from system settings
-  useEffect(() => {
+  const refreshConfig = useCallback(() => {
     console.log("[SoftPhone] Loading system settings...");
     fetch("/api/system-settings")
       .then((r) => r.ok ? r.json() : null)
@@ -164,6 +168,10 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
       })
       .catch((e) => console.error("[SoftPhone] Failed to load settings:", e));
   }, []);
+
+  useEffect(() => {
+    refreshConfig();
+  }, [refreshConfig]);
 
   // Load call history from localStorage
   useEffect(() => {
@@ -586,6 +594,7 @@ export function SoftphoneProvider({ children }: { children: ReactNode }) {
         toggleRecording,
         callHistory,
         addCallHistory,
+        refreshConfig,
         remoteAudioRef,
         currentSession: callRef.current,
       }}

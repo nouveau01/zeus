@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Presentation, Phone, Mail, CheckCircle, RefreshCw, ExternalLink, Send, Save } from "lucide-react";
 import { useXPDialog } from "@/components/ui/XPDialog";
+import { useSoftphone } from "@/context/SoftphoneContext";
 
 const PRESENTATION_PROVIDERS = [
   { value: "zeus", label: "Zeus Built-in (Claude AI)", description: "Uses your Anthropic API key to generate slide content locally. No external service." },
@@ -11,6 +12,7 @@ const PRESENTATION_PROVIDERS = [
 
 export function IntegrationsPanel() {
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { refreshConfig } = useSoftphone();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -135,13 +137,20 @@ export function IntegrationsPanel() {
     const newVal = !softphoneEnabled;
     setSaving(true);
     try {
+      // When disabling softphone, also disable call recording
+      const payload: Record<string, any> = { softphoneEnabled: newVal };
+      if (!newVal && callRecording) {
+        payload.callRecording = false;
+      }
       const res = await fetch("/api/system-settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ softphoneEnabled: newVal }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         setSoftphoneEnabled(newVal);
+        if (!newVal) setCallRecording(false);
+        refreshConfig(); // Update TopNav phone icon immediately
         await xpAlert(newVal ? "Softphone enabled." : "Softphone disabled.");
       }
     } catch {
@@ -162,6 +171,7 @@ export function IntegrationsPanel() {
       });
       if (res.ok) {
         setCallRecording(newVal);
+        refreshConfig();
         await xpAlert(newVal ? "Call recording enabled." : "Call recording disabled.");
       }
     } catch {
@@ -514,14 +524,16 @@ export function IntegrationsPanel() {
           {/* Call Recording Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[12px] font-medium text-[#333]">Call Recording</div>
+              <div className={`text-[12px] font-medium ${softphoneEnabled ? "text-[#333]" : "text-[#999]"}`}>Call Recording</div>
               <div className="text-[11px] text-[#666] mt-0.5">
-                {callRecording
-                  ? "Call recording is enabled. Users can record calls from the softphone."
-                  : "Call recording is disabled."}
+                {!softphoneEnabled
+                  ? "Enable softphone to configure call recording."
+                  : callRecording
+                    ? "Call recording is enabled. Users can record calls from the softphone."
+                    : "Call recording is disabled."}
               </div>
             </div>
-            <Toggle value={callRecording} onChange={handleToggleRecording} disabled={saving} />
+            <Toggle value={callRecording} onChange={handleToggleRecording} disabled={saving || !softphoneEnabled} />
           </div>
         </div>
       </div>
