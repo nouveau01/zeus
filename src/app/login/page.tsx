@@ -124,7 +124,7 @@ function LoginContent() {
             Z.E.U.S.
           </h1>
           <p className="text-slate-400 text-sm tracking-widest uppercase">
-            Field Service Management
+            Nouveau Elevator
           </p>
         </div>
 
