@@ -70,8 +70,34 @@ export async function getSessionOrBypass() {
     }
     return { user: _bypassUser };
   }
+
+  // Try getServerSession first (works with Google OAuth)
   const { getServerSession } = await import("next-auth");
-  return getServerSession(buildAuthOptions());
+  const session = await getServerSession(buildAuthOptions());
+  if (session) return session;
+
+  // Fallback: read JWT directly (fixes CredentialsProvider + getServerSession issue)
+  const { cookies } = await import("next/headers");
+  const { decode } = await import("next-auth/jwt");
+  const cookieStore = await cookies();
+  const tokenCookie = cookieStore.get("next-auth.session-token")?.value
+    || cookieStore.get("__Secure-next-auth.session-token")?.value;
+  if (tokenCookie && process.env.NEXTAUTH_SECRET) {
+    const decoded = await decode({ token: tokenCookie, secret: process.env.NEXTAUTH_SECRET });
+    if (decoded?.email) {
+      return {
+        user: {
+          id: decoded.id as string,
+          name: decoded.name as string,
+          email: decoded.email as string,
+          role: decoded.role as string,
+          primaryOfficeId: decoded.primaryOfficeId as string | null,
+        },
+      };
+    }
+  }
+
+  return null;
 }
 
 // ============================================
