@@ -364,6 +364,19 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     ],
   },
   {
+    pageId: "contacts",
+    label: "Contacts",
+    section: "Sales",
+    fields: [
+      { fieldName: "name", label: "Name" },
+      { fieldName: "title", label: "Title" },
+      { fieldName: "customerName", label: "Customer" },
+      { fieldName: "phone", label: "Phone" },
+      { fieldName: "email", label: "Email" },
+      { fieldName: "mobile", label: "Mobile" },
+    ],
+  },
+  {
     pageId: "proposals",
     label: "Proposals",
     section: "Sales",

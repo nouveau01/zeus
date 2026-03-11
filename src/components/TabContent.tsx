@@ -46,6 +46,8 @@ import OpportunitiesPage from "@/app/opportunities/page";
 import OpportunityDetail from "@/app/opportunities/[id]/OpportunityDetail";
 import ProposalsPage from "@/app/proposals/page";
 import ProposalDetail from "@/app/proposals/[id]/ProposalDetail";
+import ContactListingPage from "@/app/contact-listing/page";
+import ContactDetail from "@/app/contact-listing/[id]/ContactDetail";
 import ProposalPreview from "@/app/proposal-preview/[id]/ProposalPreview";
 import InvoicePreview from "@/app/invoice-preview/[id]/InvoicePreview";
 import JobTemplatesPage from "@/app/job-templates/page";
@@ -88,6 +90,7 @@ function getPageIdFromRoute(route: string): string | null {
     "/quotes": "quotes",
     "/opportunities": "opportunities",
     "/proposals": "proposals",
+    "/contact-listing": "contacts",
     "/automation/email-templates": "email-templates",
     "/automation/email-sequences": "email-sequences",
     "/saved-reports": "saved-reports",
@@ -114,6 +117,7 @@ function getPageIdFromRoute(route: string): string | null {
   if (path.startsWith("/quotes/")) return "quotes";
   if (path.startsWith("/opportunities/")) return "opportunities";
   if (path.startsWith("/proposals/")) return "proposals";
+  if (path.startsWith("/contact-listing/")) return "contacts";
   if (path.startsWith("/proposal-preview/")) return "proposals";
 
   return null; // No permission check needed (settings, ai-reports, etc.)
@@ -516,6 +520,24 @@ export function TabContent() {
     return (
       <ProposalDetail
         proposalId={propId}
+        onClose={() => closeTab(activeTab.id)}
+      />
+    );
+  }
+
+  // Check for contact-listing route
+  if (activeTab.route === "/contact-listing") {
+    return <ContactListingPage />;
+  }
+
+  // Check for contact detail route pattern: /contact-listing/[id] (may include ?params for new)
+  const contactDetailMatch = activeTab.route.match(/^\/contact-listing\/(.+)$/);
+  if (contactDetailMatch) {
+    const cId = contactDetailMatch[1];
+    return (
+      <ContactDetail
+        key={cId}
+        contactId={cId}
         onClose={() => closeTab(activeTab.id)}
       />
     );

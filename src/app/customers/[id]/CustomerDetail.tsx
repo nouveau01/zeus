@@ -372,6 +372,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
                     <tr
                       key={contact.id}
                       onClick={() => setSelectedContact(contact.id)}
+                      onDoubleClick={() => openTab(contact.name || "Contact", `/contact-listing/${contact.id}`)}
                       className={`cursor-pointer ${
                         selectedContact === contact.id
                           ? "bg-[#0078d4] text-white"

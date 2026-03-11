@@ -42,6 +42,11 @@ interface DetailLayoutProps {
   gridColumns?: Record<string, GridColumnPlacement[]>;
   gridDefs?: Record<string, GridColumnDefinition[]>;
   onUpdateGridColumns?: (gridId: string, columns: GridColumnPlacement[]) => void;
+  // Inline edit support — double-click a field in view mode to edit just that field
+  editingField?: string | null;
+  onFieldDoubleClick?: (fieldName: string) => void;
+  onFieldBlur?: (fieldName: string) => void;
+  onFieldKeyDown?: (fieldName: string, e: React.KeyboardEvent) => void;
 }
 
 export function DetailLayout({
@@ -64,6 +69,10 @@ export function DetailLayout({
   gridColumns,
   gridDefs,
   onUpdateGridColumns,
+  editingField,
+  onFieldDoubleClick,
+  onFieldBlur,
+  onFieldKeyDown,
 }: DetailLayoutProps) {
   const { data: session } = useSession();
   const userRole = (session?.user as any)?.role;
@@ -412,6 +421,10 @@ export function DetailLayout({
                 onToggleFieldRequired={isLayoutEditMode ? handleToggleFieldRequired : undefined}
                 onSwitchFieldColumn={isLayoutEditMode ? handleSwitchFieldColumn : undefined}
                 onMoveField={isLayoutEditMode ? handleMoveField : undefined}
+                editingField={editingField}
+                onFieldDoubleClick={onFieldDoubleClick}
+                onFieldBlur={onFieldBlur}
+                onFieldKeyDown={onFieldKeyDown}
               />
             ))}
           </div>

@@ -16,8 +16,6 @@ import {
   Briefcase,
   TrendingUp,
   Landmark,
-  BarChart3,
-  Phone,
   Cog,
   FileText,
   Zap,
@@ -47,8 +45,6 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Briefcase,
   TrendingUp,
   Landmark,
-  BarChart3,
-  Phone,
   Cog,
   FileText,
   Zap,
@@ -198,8 +194,8 @@ const navStructure: NavSection[] = [
     name: "Sales",
     iconName: "TrendingUp",
     children: [
-      { name: "Prospects", href: "/prospects" },
-      { name: "Leads", href: "/leads" },
+      { name: "Leads", href: "/prospects" },
+      { name: "Contacts", href: "/contact-listing" },
       { name: "Opportunities", href: "/opportunities" },
       { name: "Estimates", href: "/estimates" },
       { name: "Award Job", href: "/award-job" },
@@ -223,36 +219,6 @@ const navStructure: NavSection[] = [
   },
   {
     id: "11",
-    name: "Reports",
-    iconName: "BarChart3",
-    children: [
-      { name: "Report Generator", href: "/report-generator" },
-      { name: "Aging Reports", href: "/aging-reports" },
-      { name: "Balance Sheet", href: "/balance-sheet" },
-      { name: "Income Statement", href: "/income-statement" },
-      { name: "Comparatives", href: "/comparatives" },
-      { name: "Comparative CC", href: "/comparative-cc" },
-      { name: "Cost Centers", href: "/cost-centers" },
-      { name: "13 Column Report", href: "/13-column-report" },
-      { name: "Trial Balance", href: "/trial-balance" },
-      { name: "General Ledger", href: "/general-ledger" },
-      { name: "Digital Dashboard", href: "/digital-dashboard" },
-    ],
-  },
-  {
-    id: "12",
-    name: "Contact",
-    iconName: "Phone",
-    children: [
-      { name: "Contact Listing", href: "/contact-listing" },
-      { name: "Things To Do", href: "/things-to-do" },
-      { name: "Completed Tasks", href: "/completed-tasks" },
-      { name: "Text Message", href: "/text-message" },
-      { name: "Custom Contacts", href: "/custom-contacts" },
-    ],
-  },
-  {
-    id: "13",
     name: "Control",
     iconName: "Cog",
     children: [
@@ -271,7 +237,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "14",
+    id: "12",
     name: "Reports",
     iconName: "FileText",
     children: [
@@ -282,7 +248,7 @@ const navStructure: NavSection[] = [
     ],
   },
   {
-    id: "15",
+    id: "13",
     name: "Automation",
     iconName: "Zap",
     children: [

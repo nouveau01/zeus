@@ -29,6 +29,11 @@ interface DetailSectionProps {
   onToggleFieldRequired?: (sectionId: string, fieldName: string) => void;
   onSwitchFieldColumn?: (sectionId: string, fieldName: string) => void;
   onMoveField?: (sectionId: string, fieldName: string, direction: "up" | "down") => void;
+  // Inline edit support
+  editingField?: string | null;
+  onFieldDoubleClick?: (fieldName: string) => void;
+  onFieldBlur?: (fieldName: string) => void;
+  onFieldKeyDown?: (fieldName: string, e: React.KeyboardEvent) => void;
 }
 
 export function DetailSection({
@@ -46,6 +51,10 @@ export function DetailSection({
   onToggleFieldRequired,
   onSwitchFieldColumn,
   onMoveField,
+  editingField,
+  onFieldDoubleClick,
+  onFieldBlur,
+  onFieldKeyDown,
 }: DetailSectionProps) {
   const [dragOverField, setDragOverField] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<number | null>(null);
@@ -354,6 +363,10 @@ export function DetailSection({
         fallbackOptions={def.fallbackOptions}
         format={def.format}
         onAddressSelect={makeAddressSelectHandler(placement.fieldName)}
+        editingField={editingField}
+        onFieldDoubleClick={onFieldDoubleClick}
+        onFieldBlur={onFieldBlur}
+        onFieldKeyDown={onFieldKeyDown}
       />
     );
   };

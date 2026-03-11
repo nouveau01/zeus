@@ -184,13 +184,13 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
         remarks: "",
         customerId: urlParams?.get("customerId") || null,
         premisesId: urlParams?.get("premisesId") || null,
-        contactId: null,
+        contactId: urlParams?.get("contactId") || null,
         customerName: "",
         accountName: "",
         contactName: "",
       };
 
-      // Pre-fill account/customer names if IDs provided via URL params
+      // Pre-fill account/customer/contact names if IDs provided via URL params
       const prefill = async () => {
         if (defaults.premisesId) {
           try {
@@ -213,12 +213,21 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
             }
           } catch {}
         }
+        if (defaults.contactId) {
+          try {
+            const res = await fetch(`/api/contacts/${defaults.contactId}`);
+            if (res.ok) {
+              const ct = await res.json();
+              defaults.contactName = ct.name || "";
+            }
+          } catch {}
+        }
         setForm({ ...defaults });
         setOriginal({ ...defaults });
         setLoading(false);
       };
 
-      if (defaults.premisesId || defaults.customerId) {
+      if (defaults.premisesId || defaults.customerId || defaults.contactId) {
         prefill();
       } else {
         setForm(defaults);
