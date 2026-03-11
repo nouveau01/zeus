@@ -3,6 +3,7 @@ import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hash } from "bcryptjs";
 import crypto from "crypto";
+import { sendEmail } from "@/lib/email";
 
 /** Check if the user's profile has portal-users module access */
 async function canAccessPortalUsers(session: any): Promise<boolean> {
@@ -98,7 +99,34 @@ export async function POST(req: NextRequest) {
     data: { portalAccess: true },
   });
 
-  return NextResponse.json({ ...user, tempPassword }, { status: 201 });
+  // Get customer name for the email
+  const customer = await prisma.customer.findUnique({
+    where: { id: customerId },
+    select: { name: true },
+  });
+
+  // Send welcome email with temp password
+  const portalUrl = process.env.PORTAL_URL || "https://portal.nouveauelevator.com";
+  const emailSent = await sendEmail({
+    to: email.toLowerCase().trim(),
+    subject: "Welcome to the Nouveau Elevator Customer Portal",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1e40af;">Welcome to the Customer Portal</h2>
+        <p>Hello ${name},</p>
+        <p>You have been invited to the <strong>${customer?.name || "Nouveau Elevator"}</strong> customer portal. Use the credentials below to log in:</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Email</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${email.toLowerCase().trim()}</td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Temporary Password</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tempPassword}</td></tr>
+        </table>
+        <p>You will be prompted to set a new password on your first login.</p>
+        <a href="${portalUrl}/login" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Log In to Portal</a>
+        <p style="margin-top: 20px; color: #6b7280; font-size: 12px;">If you did not expect this invitation, please disregard this email.</p>
+      </div>
+    `,
+  });
+
+  return NextResponse.json({ ...user, emailSent }, { status: 201 });
 }
 
 // PUT /api/portal-users — update portal user
@@ -128,7 +156,30 @@ export async function PUT(req: NextRequest) {
     data.mustResetPassword = true;
 
     const updated = await prisma.portalUser.update({ where: { id }, data });
-    return NextResponse.json({ ...updated, tempPassword });
+
+    // Send password reset email
+    const portalUrl = process.env.PORTAL_URL || "https://portal.nouveauelevator.com";
+    if (updated.email) {
+      await sendEmail({
+        to: updated.email,
+        subject: "Your Portal Password Has Been Reset",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1e40af;">Password Reset</h2>
+            <p>Hello ${updated.name || ""},</p>
+            <p>Your customer portal password has been reset. Use the credentials below to log in:</p>
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Email</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${updated.email}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">New Temporary Password</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${tempPassword}</td></tr>
+            </table>
+            <p>You will be prompted to set a new password on your next login.</p>
+            <a href="${portalUrl}/login" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Log In to Portal</a>
+          </div>
+        `,
+      });
+    }
+
+    return NextResponse.json({ success: true });
   }
 
   const updated = await prisma.portalUser.update({ where: { id }, data });

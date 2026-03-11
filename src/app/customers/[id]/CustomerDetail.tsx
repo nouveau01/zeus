@@ -168,6 +168,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   const [showAddPortalUser, setShowAddPortalUser] = useState(false);
   const [newPortalUser, setNewPortalUser] = useState({ email: "", name: "", phone: "", title: "" });
   const [portalUserMsg, setPortalUserMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [selectedPortalUsers, setSelectedPortalUsers] = useState<Set<string>>(new Set());
 
   // Detail layout system
   const {
@@ -287,10 +288,18 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         setPortalUserMsg({ type: "error", text: data.error || "Failed to create user" });
         return;
       }
-      setPortalUserMsg({ type: "success", text: `User created! Temp password: ${data.tempPassword}` });
+      setPortalUserMsg({ type: "success", text: data.emailSent ? "User created! Welcome email sent." : "User created! (Email not configured — set up SMTP in Settings)" });
       setShowAddPortalUser(false);
       setNewPortalUser({ email: "", name: "", phone: "", title: "" });
       fetchPortalUsers();
+      // Refresh customer data so Portal Access flips to Yes
+      if (customerId) {
+        const custRes = await fetch(`/api/customers/${customerId}`);
+        if (custRes.ok) {
+          const custData = await custRes.json();
+          setFormData(custData);
+        }
+      }
     } catch (error) {
       setPortalUserMsg({ type: "error", text: "Failed to create user" });
     }
@@ -316,12 +325,27 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId, resetPassword: true }),
       });
-      const data = await res.json();
       if (res.ok) {
-        setPortalUserMsg({ type: "success", text: `Password reset! New temp password: ${data.tempPassword}` });
+        setPortalUserMsg({ type: "success", text: "Password reset! Email sent with new credentials." });
       }
     } catch (error) {
       console.error("Error resetting password:", error);
+    }
+  };
+
+  const handleDeletePortalUsers = async () => {
+    if (selectedPortalUsers.size === 0) return;
+    const count = selectedPortalUsers.size;
+    if (!confirm(`Delete ${count} portal user${count > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    try {
+      for (const userId of selectedPortalUsers) {
+        await fetch(`/api/portal-users?id=${userId}`, { method: "DELETE" });
+      }
+      setSelectedPortalUsers(new Set());
+      setPortalUserMsg({ type: "success", text: `${count} user${count > 1 ? "s" : ""} deleted.` });
+      fetchPortalUsers();
+    } catch (error) {
+      setPortalUserMsg({ type: "error", text: "Failed to delete users" });
     }
   };
 
@@ -591,6 +615,11 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             >
               {showAddPortalUser ? "Cancel" : "Add Portal User"}
             </button>
+            {selectedPortalUsers.size > 0 && (
+              <button onClick={handleDeletePortalUsers} className="px-3 py-1 bg-[#dc2626] text-white border border-[#b91c1c] text-[11px] hover:bg-[#b91c1c]">
+                Delete ({selectedPortalUsers.size})
+              </button>
+            )}
             <button onClick={fetchPortalUsers} className="px-3 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
               Refresh
             </button>
@@ -626,21 +655,48 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
             <table className="w-full border-collapse text-[12px]">
               <thead>
                 <tr className="bg-[#f0f0f0]">
-                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "22%" }}>Name</th>
-                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "22%" }}>Email</th>
+                  <th className="px-1 py-1 text-center border border-[#c0c0c0] font-medium" style={{ width: "30px" }}>
+                    <input
+                      type="checkbox"
+                      checked={portalUsers.length > 0 && selectedPortalUsers.size === portalUsers.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPortalUsers(new Set(portalUsers.map((pu: any) => pu.id)));
+                        } else {
+                          setSelectedPortalUsers(new Set());
+                        }
+                      }}
+                    />
+                  </th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "20%" }}>Name</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "20%" }}>Email</th>
                   <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Phone</th>
-                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Title</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "10%" }}>Title</th>
                   <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "10%" }}>Status</th>
                   <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Last Login</th>
-                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "10%" }}>Actions</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {portalUsers.length === 0 ? (
-                  <tr><td colSpan={7} className="px-2 py-4 text-center text-[#808080]">No portal users</td></tr>
+                  <tr><td colSpan={8} className="px-2 py-4 text-center text-[#808080]">No portal users</td></tr>
                 ) : (
                   portalUsers.map((pu) => (
-                    <tr key={pu.id} className="hover:bg-[#e8f4fc]">
+                    <tr key={pu.id} className={`hover:bg-[#e8f4fc] ${selectedPortalUsers.has(pu.id) ? "bg-[#cce5ff]" : ""}`}>
+                      <td className="px-1 py-1 border border-[#d0d0d0] text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedPortalUsers.has(pu.id)}
+                          onChange={(e) => {
+                            setSelectedPortalUsers(prev => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(pu.id);
+                              else next.delete(pu.id);
+                              return next;
+                            });
+                          }}
+                        />
+                      </td>
                       <td className="px-2 py-1 border border-[#d0d0d0]">{pu.name}</td>
                       <td className="px-2 py-1 border border-[#d0d0d0]">{pu.email}</td>
                       <td className="px-2 py-1 border border-[#d0d0d0]">{pu.phone || "-"}</td>
@@ -675,7 +731,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       );
     }
     return null;
-  }, [customer?.contacts, selectedContact, isNew, customer, customerOpportunities, selectedOpp, portalUsers, showAddPortalUser, newPortalUser, portalUserMsg]);
+  }, [customer?.contacts, selectedContact, isNew, customer, customerOpportunities, selectedOpp, portalUsers, showAddPortalUser, newPortalUser, portalUserMsg, selectedPortalUsers]);
 
   // Tab header — Add Date buttons for remarks tabs
   const renderTabHeader = useCallback((tabId: string): React.ReactNode | null => {
