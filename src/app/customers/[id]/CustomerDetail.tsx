@@ -161,6 +161,10 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [customerOpportunities, setCustomerOpportunities] = useState<any[]>([]);
   const [selectedOpp, setSelectedOpp] = useState<string | null>(null);
+  const [portalUsers, setPortalUsers] = useState<any[]>([]);
+  const [showAddPortalUser, setShowAddPortalUser] = useState(false);
+  const [newPortalUser, setNewPortalUser] = useState({ email: "", name: "", phone: "", title: "" });
+  const [portalUserMsg, setPortalUserMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Detail layout system
   const {
@@ -221,6 +225,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
     if (!isNew) {
       fetchCustomer();
       fetchCustomerOpportunities();
+      fetchPortalUsers();
     }
   }, [customerId, isNew]);
 
@@ -248,6 +253,72 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
       }
     } catch (error) {
       console.error("Error fetching opportunities:", error);
+    }
+  };
+
+  const fetchPortalUsers = async () => {
+    try {
+      const response = await fetch(`/api/portal-users?customerId=${customerId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPortalUsers(data);
+      }
+    } catch (error) {
+      console.error("Error fetching portal users:", error);
+    }
+  };
+
+  const handleCreatePortalUser = async () => {
+    if (!newPortalUser.email || !newPortalUser.name) {
+      setPortalUserMsg({ type: "error", text: "Email and name are required" });
+      return;
+    }
+    try {
+      const res = await fetch("/api/portal-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, ...newPortalUser }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPortalUserMsg({ type: "error", text: data.error || "Failed to create user" });
+        return;
+      }
+      setPortalUserMsg({ type: "success", text: `User created! Temp password: ${data.tempPassword}` });
+      setShowAddPortalUser(false);
+      setNewPortalUser({ email: "", name: "", phone: "", title: "" });
+      fetchPortalUsers();
+    } catch (error) {
+      setPortalUserMsg({ type: "error", text: "Failed to create user" });
+    }
+  };
+
+  const handleTogglePortalUser = async (userId: string, isActive: boolean) => {
+    try {
+      await fetch("/api/portal-users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userId, isActive: !isActive }),
+      });
+      fetchPortalUsers();
+    } catch (error) {
+      console.error("Error toggling portal user:", error);
+    }
+  };
+
+  const handleResetPortalPassword = async (userId: string) => {
+    try {
+      const res = await fetch("/api/portal-users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userId, resetPassword: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPortalUserMsg({ type: "success", text: `Password reset! New temp password: ${data.tempPassword}` });
+      }
+    } catch (error) {
+      console.error("Error resetting password:", error);
     }
   };
 
@@ -334,13 +405,35 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         <div className="flex-1 flex flex-col gap-2">
           {/* Contacts Buttons */}
           <div className="flex items-center gap-2 py-1">
-            <button className="px-6 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+            <button
+              onClick={() => !isNew && openTab("New Contact", `/contact-listing/new?customerId=${customerId}`)}
+              disabled={isNew}
+              className="px-6 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+            >
               Add
             </button>
-            <button className="px-6 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+            <button
+              onClick={() => selectedContact && openTab("Contact", `/contact-listing/${selectedContact}`)}
+              disabled={!selectedContact}
+              className="px-6 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+            >
               Edit
             </button>
-            <button className="px-6 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+            <button
+              onClick={async () => {
+                if (!selectedContact) return;
+                const ok = await xpConfirm("Are you sure you want to delete this contact?");
+                if (!ok) return;
+                const res = await fetch(`/api/contacts/${selectedContact}`, { method: "DELETE" });
+                if (res.ok) {
+                  setSelectedContact(null);
+                  fetchCustomer();
+                  await xpAlert("Contact deleted successfully");
+                }
+              }}
+              disabled={!selectedContact}
+              className="px-6 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+            >
               Delete
             </button>
           </div>
@@ -478,8 +571,108 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
         <ActivityHistory entityType="Customer" entityId={customer.id} />
       ) : null;
     }
+    if (tabId === "portal-users") {
+      return (
+        <div className="flex-1 flex flex-col gap-2">
+          {portalUserMsg && (
+            <div className={`px-3 py-2 text-[11px] rounded ${portalUserMsg.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+              {portalUserMsg.text}
+              <button onClick={() => setPortalUserMsg(null)} className="ml-2 font-bold">&times;</button>
+            </div>
+          )}
+          <div className="flex items-center gap-2 py-1">
+            <button
+              onClick={() => setShowAddPortalUser(!showAddPortalUser)}
+              disabled={isNew}
+              className="px-3 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0] disabled:opacity-50"
+            >
+              {showAddPortalUser ? "Cancel" : "Add Portal User"}
+            </button>
+            <button onClick={fetchPortalUsers} className="px-3 py-1 bg-[#f0f0f0] border border-[#a0a0a0] text-[11px] hover:bg-[#e0e0e0]">
+              Refresh
+            </button>
+          </div>
+          {showAddPortalUser && (
+            <div className="bg-[#f8f8f8] border border-[#c0c0c0] p-3 flex flex-wrap gap-2 items-end text-[11px]">
+              <div>
+                <label className="block mb-0.5 font-medium">Email *</label>
+                <input type="email" value={newPortalUser.email} onChange={(e) => setNewPortalUser(p => ({ ...p, email: e.target.value }))}
+                  className="border border-[#a0a0a0] px-2 py-1 w-48" />
+              </div>
+              <div>
+                <label className="block mb-0.5 font-medium">Name *</label>
+                <input value={newPortalUser.name} onChange={(e) => setNewPortalUser(p => ({ ...p, name: e.target.value }))}
+                  className="border border-[#a0a0a0] px-2 py-1 w-40" />
+              </div>
+              <div>
+                <label className="block mb-0.5 font-medium">Phone</label>
+                <input value={newPortalUser.phone} onChange={(e) => setNewPortalUser(p => ({ ...p, phone: e.target.value }))}
+                  className="border border-[#a0a0a0] px-2 py-1 w-32" />
+              </div>
+              <div>
+                <label className="block mb-0.5 font-medium">Title</label>
+                <input value={newPortalUser.title} onChange={(e) => setNewPortalUser(p => ({ ...p, title: e.target.value }))}
+                  className="border border-[#a0a0a0] px-2 py-1 w-32" />
+              </div>
+              <button onClick={handleCreatePortalUser} className="px-4 py-1 bg-[#0078d4] text-white border border-[#005a9e] hover:bg-[#005a9e]">
+                Create
+              </button>
+            </div>
+          )}
+          <div className="bg-white border border-[#c0c0c0] flex-1 min-h-[120px] overflow-auto">
+            <table className="w-full border-collapse text-[12px]">
+              <thead>
+                <tr className="bg-[#f0f0f0]">
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "22%" }}>Name</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "22%" }}>Email</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Phone</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Title</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "10%" }}>Status</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "12%" }}>Last Login</th>
+                  <th className="px-2 py-1 text-left border border-[#c0c0c0] font-medium" style={{ width: "10%" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {portalUsers.length === 0 ? (
+                  <tr><td colSpan={7} className="px-2 py-4 text-center text-[#808080]">No portal users</td></tr>
+                ) : (
+                  portalUsers.map((pu) => (
+                    <tr key={pu.id} className="hover:bg-[#e8f4fc]">
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{pu.name}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{pu.email}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{pu.phone || "-"}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">{pu.title || "-"}</td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${pu.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                          {pu.isActive ? "Active" : "Disabled"}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">
+                        {pu.lastLogin ? new Date(pu.lastLogin).toLocaleDateString() : "Never"}
+                      </td>
+                      <td className="px-2 py-1 border border-[#d0d0d0]">
+                        <div className="flex gap-1">
+                          <button onClick={() => handleTogglePortalUser(pu.id, pu.isActive)}
+                            className="px-1.5 py-0.5 text-[10px] bg-[#f0f0f0] border border-[#a0a0a0] hover:bg-[#e0e0e0]">
+                            {pu.isActive ? "Disable" : "Enable"}
+                          </button>
+                          <button onClick={() => handleResetPortalPassword(pu.id)}
+                            className="px-1.5 py-0.5 text-[10px] bg-[#f0f0f0] border border-[#a0a0a0] hover:bg-[#e0e0e0]">
+                            Reset PW
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
     return null;
-  }, [customer?.contacts, selectedContact, isNew, customer, customerOpportunities, selectedOpp]);
+  }, [customer?.contacts, selectedContact, isNew, customer, customerOpportunities, selectedOpp, portalUsers, showAddPortalUser, newPortalUser, portalUserMsg]);
 
   // Tab header — Add Date buttons for remarks tabs
   const renderTabHeader = useCallback((tabId: string): React.ReactNode | null => {
@@ -565,6 +758,9 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
     }
     if (!tabs.some(t => t.id === "activity")) {
       tabs.push({ id: "activity", label: "Field History", visible: true, sections: [] });
+    }
+    if (!tabs.some(t => t.id === "portal-users")) {
+      tabs.push({ id: "portal-users", label: "Portal Users", visible: true, sections: [] });
     }
     return { ...layout, tabs };
   }, [layout]);
