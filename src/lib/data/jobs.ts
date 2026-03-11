@@ -244,6 +244,9 @@ export async function fetchJobById(jobId: string) {
         premises: true,
         customer: true,
         tickets: true,
+        opportunity: {
+          select: { id: true, opportunityNumber: true, name: true, stage: true },
+        },
       },
     });
   }

@@ -33,6 +33,10 @@ export async function GET(
         units: {
           select: { id: true, unitNumber: true, unitType: true, description: true },
         },
+        jobs: {
+          select: { id: true, externalId: true, jobName: true, status: true, type: true, date: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 

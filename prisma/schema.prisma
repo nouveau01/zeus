@@ -329,6 +329,7 @@ model Customer {
   activityLogs  ActivityLog[]
   presentations Presentation[]
   opportunities Opportunity[]
+  portalUsers   PortalUser[]
 
   @@map("customers")
   // SQL Server: @@map("Owner") - but need to handle Rol join
@@ -359,6 +360,7 @@ model Contact {
   sequenceEnrollments SequenceEnrollment[]
   activityLogs  ActivityLog[]
   opportunities Opportunity[]
+  portalUser    PortalUser?
 
   @@map("contacts")
 }
@@ -496,6 +498,7 @@ model Premises {
   quotes      Quote[]
   activityLogs ActivityLog[]
   opportunities Opportunity[]
+  serviceRequests ServiceRequest[]
 
   @@map("premises")
   // SQL Server: @@map("Loc")
@@ -656,6 +659,7 @@ model Unit {
   jobs         Job[]
   tickets      Ticket[]
   opportunities Opportunity[] @relation("OpportunityUnits")
+  serviceRequests ServiceRequest[] @relation("ServiceRequestUnit")
 
   @@map("units")
   // SQL Server: @@map("Elev")
@@ -817,6 +821,10 @@ model Job {
   contracts       Contract[]
   quotes          Quote[]
 
+  opportunityId   String?       @map("opportunity_id")
+  opportunity     Opportunity?  @relation(fields: [opportunityId], references: [id])
+
+  @@index([opportunityId])
   @@map("jobs")
   // SQL Server: @@map("Job")
 }
@@ -1185,6 +1193,7 @@ model Ticket {
 
   // Quotes generated from this ticket
   quotes          Quote[]
+  serviceRequest  ServiceRequest?
 
   @@map("tickets")
   // SQL Server: @@map("TicketO")
@@ -2677,6 +2686,7 @@ model Opportunity {
 
   proposals           Proposal[]
   units               Unit[]     @relation("OpportunityUnits")
+  jobs                Job[]
 
   @@index([customerId])
   @@index([premisesId])
@@ -2719,4 +2729,72 @@ model Proposal {
   @@index([opportunityId])
   @@index([proposalNumber])
   @@map("proposals")
+}
+
+// ============================================
+// PORTAL USERS (Customer-facing authentication)
+// ============================================
+// Separate from ZEUS internal User model.
+// Portal users log in with email/password and see only their customer's data.
+
+model PortalUser {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  name              String
+  phone             String?
+  title             String?
+  isActive          Boolean   @default(true) @map("is_active")
+  mustResetPassword Boolean   @default(true) @map("must_reset_password")
+  lastLogin         DateTime? @map("last_login")
+  resetToken        String?   @unique @map("reset_token")
+  resetTokenExpiry  DateTime? @map("reset_token_expiry")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  customerId        String    @map("customer_id")
+  customer          Customer  @relation(fields: [customerId], references: [id])
+  contactId         String?   @unique @map("contact_id")
+  contact           Contact?  @relation(fields: [contactId], references: [id])
+
+  serviceRequests   ServiceRequest[]
+
+  @@index([customerId])
+  @@index([email])
+  @@map("portal_users")
+}
+
+// ============================================
+// SERVICE REQUESTS (Portal-originated)
+// ============================================
+// Customers submit service requests through the portal.
+// Dispatchers in ZEUS review and create tickets from them.
+
+model ServiceRequest {
+  id              String    @id @default(cuid())
+  requestNumber   Int       @unique @default(autoincrement()) @map("request_number")
+  description     String    @db.Text
+  urgency         String    @default("Normal")  // Low, Normal, High, Emergency
+  preferredDate   DateTime? @map("preferred_date")
+  contactPhone    String?   @map("contact_phone")
+  status          String    @default("Submitted") // Submitted, Acknowledged, Scheduled, Completed
+  adminNotes      String?   @db.Text @map("admin_notes")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  portalUserId    String    @map("portal_user_id")
+  portalUser      PortalUser @relation(fields: [portalUserId], references: [id])
+  premisesId      String    @map("premises_id")
+  premises        Premises  @relation(fields: [premisesId], references: [id])
+  unitId          String?   @map("unit_id")
+  unit            Unit?     @relation("ServiceRequestUnit", fields: [unitId], references: [id])
+  ticketId        String?   @unique @map("ticket_id")
+  ticket          Ticket?   @relation(fields: [ticketId], references: [id])
+
+  @@index([portalUserId])
+  @@index([premisesId])
+  @@index([status])
+  @@map("service_requests")
 }

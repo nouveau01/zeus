@@ -39,7 +39,10 @@ export async function GET(
           select: { id: true, title: true, body: true, createdAt: true },
         },
         tickets: {
-          select: { id: true, ticketNumber: true, description: true, status: true },
+          select: { id: true, ticketNumber: true, description: true, status: true, createdAt: true },
+        },
+        opportunity: {
+          select: { id: true, opportunityNumber: true, name: true, stage: true },
         },
         _count: {
           select: { notes: true, tickets: true, files: true, history: true, activities: true },
@@ -125,3 +128,5 @@ export async function DELETE(
     return NextResponse.json({ error: "Failed to delete job" }, { status: 500 });
   }
 }
+
+export { PATCH as PUT };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Undo2, FileText, Pencil } from "lucide-react";
+import { Save, Undo2, FileText, Pencil, Briefcase } from "lucide-react";
 import { useTabs } from "@/context/TabContext";
 import { useXPDialog } from "@/components/ui/XPDialog";
 import { StatusPath } from "@/components/layout/StatusPath";
@@ -33,6 +33,7 @@ interface OpportunityData {
   premises: { id: string; premisesId: string | null; address: string | null; name: string | null; phone: string | null; fax: string | null; email: string | null } | null;
   contact: { id: string; name: string; email: string | null; phone: string | null; fax: string | null; title: string | null } | null;
   proposals: ProposalRow[];
+  jobs: JobRow[];
   units: { id: string; unitNumber: string; unitType: string | null; description: string | null }[];
 }
 
@@ -44,6 +45,15 @@ interface ProposalRow {
   amount: number | null;
   createdAt: string;
   sentDate: string | null;
+}
+
+interface JobRow {
+  id: string;
+  externalId: string | null;
+  jobName: string;
+  status: string;
+  type: string | null;
+  date: string | null;
 }
 
 const STAGES = ["Prospecting", "Qualification", "Proposal", "Negotiation", "Closed Won", "Closed Lost"];
@@ -492,6 +502,33 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
     }
   };
 
+  const handleCreateJob = async () => {
+    if (isNew) {
+      await xpAlert("Save the opportunity first before creating a job.");
+      return;
+    }
+    const ok = await xpConfirm(`Create a new Job from Opportunity #${data?.opportunityNumber}?`);
+    if (!ok) return;
+    try {
+      const res = await fetch(`/api/opportunities/${opportunityId}/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const job = await res.json();
+      await xpAlert(`Job #${job.externalId || job.jobName} created successfully.`);
+      openTab(`Job #${job.externalId || job.jobName}`, `/job-maintenance/${job.id}`);
+      // Reload to update jobs tab
+      const reloaded = await fetch(`/api/opportunities/${opportunityId}`);
+      if (reloaded.ok) {
+        const opp = await reloaded.json();
+        setData(opp);
+      }
+    } catch {
+      await xpAlert("Failed to create job.");
+    }
+  };
+
   const setField = (field: string, value: any) => setForm((f) => ({ ...f, [field]: value }));
 
   // Hyperlink helper — opens entity in a new tab
@@ -539,7 +576,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
 
       {/* Tabs + Action Buttons */}
       <div className="bg-white flex items-end px-3 pt-1 border-b border-[#c0c0c0]">
-        {["details", "proposals", "activity"].map((tab) => (
+        {["details", "proposals", "jobs", "activity"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -586,6 +623,14 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               className="flex items-center gap-1 px-3 py-1 border border-[#c0c0c0] rounded text-[11px] bg-[#0176d3] text-white hover:bg-[#014486]"
             >
               <FileText className="w-3.5 h-3.5" /> Create Proposal
+            </button>
+          )}
+          {!isNew && form.stage === "Closed Won" && (
+            <button
+              onClick={handleCreateJob}
+              className="flex items-center gap-1 px-3 py-1 border border-[#c0c0c0] rounded text-[11px] bg-[#4a7c59] text-white hover:bg-[#3d6b4a]"
+            >
+              <Briefcase className="w-3.5 h-3.5" /> Create Job
             </button>
           )}
         </div>
@@ -973,6 +1018,57 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
                   <div className="px-2 py-1 border-r border-[#e0e0e0] text-right" style={{ width: 110 }}>{formatCurrency(p.amount)}</div>
                   <div className="px-2 py-1 border-r border-[#e0e0e0]" style={{ width: 100 }}>{formatDisplayDate(p.createdAt)}</div>
                   <div className="px-2 py-1" style={{ width: 100 }}>{formatDisplayDate(p.sentDate)}</div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === "jobs" && (
+          <div className="bg-white border border-[#c0c0c0] rounded">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-[#c0c0c0]">
+              <span className="text-[12px] font-semibold">Jobs</span>
+              {form.stage === "Closed Won" && (
+                <button
+                  onClick={handleCreateJob}
+                  className="flex items-center gap-1 px-3 py-1 border border-[#c0c0c0] rounded text-[11px] bg-[#4a7c59] text-white hover:bg-[#3d6b4a]"
+                >
+                  <Briefcase className="w-3.5 h-3.5" /> Create Job
+                </button>
+              )}
+            </div>
+            {/* Jobs grid */}
+            <div className="flex bg-[#f0f0f0] border-b border-[#999] text-[11px] font-medium">
+              <div className="px-2 py-1 border-r border-[#c0c0c0]" style={{ width: 80 }}>Job #</div>
+              <div className="px-2 py-1 border-r border-[#c0c0c0] flex-1">Name</div>
+              <div className="px-2 py-1 border-r border-[#c0c0c0]" style={{ width: 90 }}>Status</div>
+              <div className="px-2 py-1 border-r border-[#c0c0c0]" style={{ width: 110 }}>Type</div>
+              <div className="px-2 py-1" style={{ width: 100 }}>Date</div>
+            </div>
+            {(!data?.jobs || data.jobs.length === 0) ? (
+              <div className="p-4 text-center text-[#808080] text-[11px]">
+                No jobs yet.{form.stage === "Closed Won" ? ' Click "Create Job" to generate one from this opportunity.' : " Jobs can be created when the opportunity reaches Closed Won."}
+              </div>
+            ) : (
+              data.jobs.map((j) => (
+                <div
+                  key={j.id}
+                  className="flex text-[11px] border-b border-[#e0e0e0] hover:bg-[#f0f8ff] cursor-pointer"
+                  onDoubleClick={() => openTab(`Job #${j.externalId || j.jobName}`, `/job-maintenance/${j.id}`)}
+                >
+                  <div className="px-2 py-1 border-r border-[#e0e0e0] font-medium" style={{ width: 80 }}>{j.externalId || ""}</div>
+                  <div className="px-2 py-1 border-r border-[#e0e0e0] flex-1 truncate">{j.jobName || ""}</div>
+                  <div className="px-2 py-1 border-r border-[#e0e0e0] text-center" style={{ width: 90 }}>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      j.status === "Open" ? "bg-[#d4edda] text-[#155724]" :
+                      j.status === "Hold" ? "bg-[#fff3cd] text-[#856404]" :
+                      j.status === "Completed" ? "bg-[#cce5ff] text-[#004085]" :
+                      j.status === "Closed" ? "bg-[#f0f0f0] text-[#606060]" :
+                      "bg-[#f0f0f0] text-[#606060]"
+                    }`}>{j.status}</span>
+                  </div>
+                  <div className="px-2 py-1 border-r border-[#e0e0e0] truncate" style={{ width: 110 }}>{j.type || ""}</div>
+                  <div className="px-2 py-1" style={{ width: 100 }}>{formatDisplayDate(j.date)}</div>
                 </div>
               ))
             )}

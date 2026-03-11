@@ -63,6 +63,19 @@ interface Job {
     id: string;
     name: string;
   } | null;
+  opportunity?: {
+    id: string;
+    opportunityNumber: number;
+    name: string;
+    stage: string;
+  } | null;
+  tickets?: {
+    id: string;
+    ticketNumber: string | null;
+    description: string | null;
+    status: string;
+    createdAt?: string;
+  }[];
 }
 
 interface JobDetailProps {
@@ -88,7 +101,7 @@ const toolbarIcons = [
   { icon: Square, color: "#e74c3c", title: "Stop" },
 ];
 
-const TABS = ["TFM Custom", "Specifications", "Job Budgets", "Custom/Remarks", "Wage Categories", "Deduction Cat.", "Tech Alert", "Field History"];
+const TABS = ["TFM Custom", "Specifications", "Job Budgets", "Custom/Remarks", "Wage Categories", "Deduction Cat.", "Tech Alert", "Tickets", "Field History"];
 
 export default function JobDetail({ jobId, onClose }: JobDetailProps) {
   const { openTab } = useTabs();
@@ -124,6 +137,8 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
     totalHours: null,
     premises: null,
     customer: null,
+    opportunity: null,
+    tickets: [],
   } : null);
   const [loading, setLoading] = useState(!isNew);
   const [activeTab, setActiveTab] = useState("Specifications");
@@ -488,6 +503,14 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
             <button className="text-[#0000ff] text-[11px] underline text-left hover:text-[#ff0000]">
               Estimate
             </button>
+            {job.opportunity && (
+              <button
+                onClick={() => openTab(`Opp #${job.opportunity!.opportunityNumber}`, `/opportunities/${job.opportunity!.id}`)}
+                className="text-[#0000ff] text-[11px] underline text-left hover:text-[#ff0000]"
+              >
+                Opportunity #{job.opportunity.opportunityNumber} ({job.opportunity.stage})
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -922,6 +945,46 @@ export default function JobDetail({ jobId, onClose }: JobDetailProps) {
               className={`${inputClass} w-[400px] h-[250px]`}
               placeholder=""
             />
+          </div>
+        )}
+
+        {activeTab === "Tickets" && (
+          <div className="bg-white border border-[#808080]">
+            <div className="flex bg-[#f0f0f0] border-b border-[#808080] text-[11px] font-medium">
+              <div className="px-2 py-1 border-r border-[#c0c0c0]" style={{ width: 100 }}>Ticket #</div>
+              <div className="px-2 py-1 border-r border-[#c0c0c0]" style={{ width: 90 }}>Status</div>
+              <div className="px-2 py-1 border-r border-[#c0c0c0] flex-1">Description</div>
+              <div className="px-2 py-1" style={{ width: 100 }}>Created</div>
+            </div>
+            {(!job.tickets || job.tickets.length === 0) ? (
+              <div className="p-4 text-center text-[#808080] text-[11px]">No tickets linked to this job.</div>
+            ) : (
+              job.tickets.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex text-[11px] border-b border-[#d0d0d0] hover:bg-[#e8f4fc] cursor-pointer"
+                  onDoubleClick={() => {
+                    if (t.status === "Completed") {
+                      openTab(`Ticket ${t.ticketNumber || ""}`, `/completed-tickets/${t.id}`);
+                    } else {
+                      openTab(`Ticket ${t.ticketNumber || ""}`, `/dispatch/${t.id}`);
+                    }
+                  }}
+                >
+                  <div className="px-2 py-1 border-r border-[#e0e0e0] font-medium" style={{ width: 100 }}>{t.ticketNumber || ""}</div>
+                  <div className="px-2 py-1 border-r border-[#e0e0e0] text-center" style={{ width: 90 }}>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      t.status === "Open" ? "bg-[#d4edda] text-[#155724]" :
+                      t.status === "Completed" ? "bg-[#cce5ff] text-[#004085]" :
+                      t.status === "Assigned" ? "bg-[#fff3cd] text-[#856404]" :
+                      "bg-[#f0f0f0] text-[#606060]"
+                    }`}>{t.status}</span>
+                  </div>
+                  <div className="px-2 py-1 border-r border-[#e0e0e0] flex-1 truncate">{t.description || ""}</div>
+                  <div className="px-2 py-1" style={{ width: 100 }}>{t.createdAt ? new Date(t.createdAt).toLocaleDateString() : ""}</div>
+                </div>
+              ))
+            )}
           </div>
         )}
 
