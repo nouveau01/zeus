@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile } from "@/lib/auth";
 import { MODULE_REGISTRY } from "@/lib/moduleRegistry";
 
 // GET /api/picklist-values/fields
@@ -9,8 +9,8 @@ import { MODULE_REGISTRY } from "@/lib/moduleRegistry";
 // Admin+ only.
 export async function GET() {
   const session = await getSessionOrBypass();
-  const role = (session?.user as any)?.role;
-  if (!role || !hasRole(role, "Admin")) {
+  const profile = (session?.user as any)?.profile;
+  if (!profile || !hasProfile(profile, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

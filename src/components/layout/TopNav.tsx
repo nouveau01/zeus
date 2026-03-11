@@ -30,7 +30,7 @@ import { useSoftphone } from "@/context/SoftphoneContext";
 export function TopNav() {
   const { tabs, activeTabId, setActiveTab, closeTab, addBlankTab, openTab } = useTabs();
   const { data: session } = useSession();
-  const { previewRole, setPreviewRole } = usePermissions();
+  const { previewProfile, setPreviewProfile } = usePermissions();
   const { mode, toggleMode } = useUIMode();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -39,7 +39,7 @@ export function TopNav() {
   const [showPreviewMenu, setShowPreviewMenu] = useState(false);
   const [showOfficeMenu, setShowOfficeMenu] = useState(false);
   const [avatarBroken, setAvatarBroken] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>([]);
+  const [availableProfiles, setAvailableProfiles] = useState<{ id: string; name: string }[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const previewMenuRef = useRef<HTMLDivElement>(null);
   const officeMenuRef = useRef<HTMLDivElement>(null);
@@ -51,7 +51,7 @@ export function TopNav() {
   const userInitials = user?.name
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
-  const isGodAdmin = user?.role === "GodAdmin";
+  const isGodAdmin = user?.profile === "GodAdmin";
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -70,19 +70,19 @@ export function TopNav() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch available roles when GodAdmin opens preview menu
+  // Fetch available profiles when GodAdmin opens preview menu
   useEffect(() => {
-    if (isGodAdmin && showPreviewMenu && availableRoles.length === 0) {
-      fetch("/api/roles")
+    if (isGodAdmin && showPreviewMenu && availableProfiles.length === 0) {
+      fetch("/api/profiles")
         .then((r) => r.json())
-        .then((roles) => {
-          if (Array.isArray(roles)) {
-            setAvailableRoles(roles.filter((r: any) => r.name !== "GodAdmin"));
+        .then((profiles) => {
+          if (Array.isArray(profiles)) {
+            setAvailableProfiles(profiles.filter((r: any) => r.name !== "GodAdmin"));
           }
         })
         .catch(() => {});
     }
-  }, [isGodAdmin, showPreviewMenu, availableRoles.length]);
+  }, [isGodAdmin, showPreviewMenu, availableProfiles.length]);
 
   // Check if we need scroll arrows
   useEffect(() => {
@@ -387,15 +387,15 @@ export function TopNav() {
             </span>
           </div>
 
-          {/* Preview as Role - GodAdmin only */}
+          {/* Preview as Profile - GodAdmin only */}
           {isGodAdmin && (
             <div className="relative" ref={previewMenuRef}>
               <button
                 onClick={() => setShowPreviewMenu(!showPreviewMenu)}
-                className={`p-1.5 rounded-full ${previewRole ? "bg-[#fef3cd]" : "hover:bg-[#c8ccd1]"}`}
-                title={previewRole ? `Previewing as: ${previewRole}` : "Preview as Role"}
+                className={`p-1.5 rounded-full ${previewProfile ? "bg-[#fef3cd]" : "hover:bg-[#c8ccd1]"}`}
+                title={previewProfile ? `Previewing as: ${previewProfile}` : "Preview as Profile"}
               >
-                {previewRole ? (
+                {previewProfile ? (
                   <EyeOff className="w-4 h-4 text-[#856404]" />
                 ) : (
                   <Eye className="w-4 h-4 text-[#5f6368]" />
@@ -405,31 +405,31 @@ export function TopNav() {
               {showPreviewMenu && (
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-[#dadce0] z-50 py-1">
                   <div className="px-3 py-2 border-b border-[#e0e0e0] text-[11px] font-semibold text-[#333]">
-                    Preview as Role
+                    Preview as Profile
                   </div>
-                  {previewRole && (
+                  {previewProfile && (
                     <button
-                      onClick={() => { setPreviewRole(null); setShowPreviewMenu(false); }}
+                      onClick={() => { setPreviewProfile(null); setShowPreviewMenu(false); }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#dc2626] hover:bg-[#f1f3f4]"
                     >
                       <EyeOff className="w-3.5 h-3.5" />
                       Exit Preview
                     </button>
                   )}
-                  {availableRoles.map((role) => (
+                  {availableProfiles.map((profile) => (
                     <button
-                      key={role.id}
-                      onClick={() => { setPreviewRole(role.name); setShowPreviewMenu(false); }}
+                      key={profile.id}
+                      onClick={() => { setPreviewProfile(profile.name); setShowPreviewMenu(false); }}
                       className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-[#f1f3f4] ${
-                        previewRole === role.name ? "bg-[#e8f0fe] text-[#1a73e8] font-medium" : "text-[#333]"
+                        previewProfile === profile.name ? "bg-[#e8f0fe] text-[#1a73e8] font-medium" : "text-[#333]"
                       }`}
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      {role.name}
+                      {profile.name}
                     </button>
                   ))}
-                  {availableRoles.length === 0 && (
-                    <div className="px-3 py-2 text-[11px] text-[#999]">Loading roles...</div>
+                  {availableProfiles.length === 0 && (
+                    <div className="px-3 py-2 text-[11px] text-[#999]">Loading profiles...</div>
                   )}
                 </div>
               )}
@@ -466,8 +466,8 @@ export function TopNav() {
                     <div className="min-w-0">
                       <div className="text-sm font-medium text-[#202124] truncate">{user?.name || "User"}</div>
                       <div className="text-xs text-[#5f6368] truncate">{user?.email || ""}</div>
-                      {user?.role && (
-                        <div className="text-[10px] text-[#1a73e8] font-medium mt-0.5">{user.role === "GodAdmin" ? "Admin" : user.role}</div>
+                      {user?.profile && (
+                        <div className="text-[10px] text-[#1a73e8] font-medium mt-0.5">{user.profile === "GodAdmin" ? "Admin" : user.profile}</div>
                       )}
                     </div>
                   </div>
@@ -489,16 +489,16 @@ export function TopNav() {
       <div className="h-[1px] bg-white" />
 
       {/* Preview mode banner */}
-      {previewRole && (
+      {previewProfile && (
         <div className="bg-[#fff3cd] border-b border-[#ffc107] px-4 py-1.5 flex items-center justify-between" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif" }}>
           <div className="flex items-center gap-2 text-[12px] text-[#856404]">
             <Eye className="w-4 h-4" />
             <span>
-              <strong>Preview Mode:</strong> Viewing as <strong>{previewRole}</strong> role. Restrictions are active.
+              <strong>Preview Mode:</strong> Viewing as <strong>{previewProfile}</strong> profile. Restrictions are active.
             </span>
           </div>
           <button
-            onClick={() => setPreviewRole(null)}
+            onClick={() => setPreviewProfile(null)}
             className="px-3 py-0.5 text-[11px] bg-white border border-[#ffc107] text-[#856404] rounded hover:bg-[#fff8e1] font-medium"
           >
             Exit Preview

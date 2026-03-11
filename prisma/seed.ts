@@ -14,13 +14,13 @@ async function main() {
     where: { email: "zach.schwartz@nouveauelevator.com" },
     update: {
       password: hashedPassword,
-      role: "Admin",
+      profile: "Admin",
     },
     create: {
       email: "zach.schwartz@nouveauelevator.com",
       name: "Zach Schwartz",
       password: hashedPassword,
-      role: "Admin",
+      profile: "Admin",
     },
   });
   console.log("Created admin user:", user.name, "(password: admin123)");

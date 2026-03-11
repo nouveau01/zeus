@@ -1,13 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { hash } from "bcryptjs";
 import crypto from "crypto";
 
+/** Check if the user's profile has portal-users module access */
+async function canAccessPortalUsers(session: any): Promise<boolean> {
+  if (!session?.user) return false;
+  // GodAdmin always has access
+  if (session.user.profile === "GodAdmin") return true;
+  // Look up the Profile record by name, then check its permission for portal-users
+  const prof = await prisma.profile.findUnique({
+    where: { name: session.user.profile },
+    select: { id: true },
+  });
+  if (!prof) return false;
+  const perm = await prisma.profilePermission.findUnique({
+    where: { profileId_pageId: { profileId: prof.id, pageId: "portal-users" } },
+  });
+  // No permission record = no access (portal-users is opt-in)
+  if (!perm) return false;
+  return perm.canAccess;
+}
+
 // GET /api/portal-users?customerId=...
 export async function GET(req: NextRequest) {
   const session = await getSessionOrBypass();
-  if (!session?.user || !hasRole(session, "Admin")) {
+  if (!(await canAccessPortalUsers(session))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -39,7 +58,7 @@ export async function GET(req: NextRequest) {
 // POST /api/portal-users — create portal user
 export async function POST(req: NextRequest) {
   const session = await getSessionOrBypass();
-  if (!session?.user || !hasRole(session, "Admin")) {
+  if (!(await canAccessPortalUsers(session))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -85,7 +104,7 @@ export async function POST(req: NextRequest) {
 // PUT /api/portal-users — update portal user
 export async function PUT(req: NextRequest) {
   const session = await getSessionOrBypass();
-  if (!session?.user || !hasRole(session, "Admin")) {
+  if (!(await canAccessPortalUsers(session))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -119,7 +138,7 @@ export async function PUT(req: NextRequest) {
 // DELETE /api/portal-users — delete portal user
 export async function DELETE(req: NextRequest) {
   const session = await getSessionOrBypass();
-  if (!session?.user || !hasRole(session, "Admin")) {
+  if (!(await canAccessPortalUsers(session))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

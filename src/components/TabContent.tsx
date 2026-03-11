@@ -172,7 +172,7 @@ export function TabContent() {
           </div>
           <h2 className="text-[14px] font-semibold text-[#333] mb-2">Access Denied</h2>
           <p className="text-[12px] text-[#666]">
-            Your role does not have permission to access this module. Contact your administrator to request access.
+            Your profile does not have permission to access this module. Contact your administrator to request access.
           </p>
         </div>
       </div>

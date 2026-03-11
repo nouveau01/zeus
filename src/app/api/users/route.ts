@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionOrBypass, hasRole, canBeGodAdmin } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile, canBeGodAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 async function requireAdmin() {
   const session = await getSessionOrBypass();
-  const role = (session?.user as any)?.role;
-  if (!role || !hasRole(role, "Admin")) {
+  const profile = (session?.user as any)?.profile;
+  if (!profile || !hasProfile(profile, "Admin")) {
     return null;
   }
   return session;
@@ -24,7 +24,7 @@ export async function GET() {
       id: true,
       email: true,
       name: true,
-      role: true,
+      profile: true,
       avatar: true,
       title: true,
       department: true,
@@ -48,21 +48,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const callerRole = (session.user as any)?.role;
+  const callerProfile = (session.user as any)?.profile;
   const body = await request.json();
-  const { email, name, role, primaryOfficeId } = body;
+  const { email, name, profile, primaryOfficeId } = body;
 
   if (!email || !name) {
     return NextResponse.json({ error: "Email and name are required" }, { status: 400 });
   }
 
   // Only GodAdmin can create GodAdmin users, and only whitelisted emails can be GodAdmin
-  if (role === "GodAdmin") {
-    if (callerRole !== "GodAdmin") {
+  if (profile === "GodAdmin") {
+    if (callerProfile !== "GodAdmin") {
       return NextResponse.json({ error: "Only GodAdmin can create GodAdmin users" }, { status: 403 });
     }
     if (!canBeGodAdmin(email)) {
-      return NextResponse.json({ error: "This email is not authorized for the GodAdmin role" }, { status: 403 });
+      return NextResponse.json({ error: "This email is not authorized for the GodAdmin profile" }, { status: 403 });
     }
   }
 
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     data: {
       email,
       name,
-      role: role || "User",
+      profile: profile || "User",
       isActive: true,
       ...(primaryOfficeId !== undefined && { primaryOfficeId: primaryOfficeId || null }),
     },
@@ -98,10 +98,10 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const callerRole = (session.user as any)?.role;
+  const callerProfile = (session.user as any)?.profile;
   const callerId = (session.user as any)?.id;
   const body = await request.json();
-  const { id, name, role, isActive, primaryOfficeId, title, department, phone, extension } = body;
+  const { id, name, profile, isActive, primaryOfficeId, title, department, phone, extension } = body;
 
   if (!id) {
     return NextResponse.json({ error: "User ID is required" }, { status: 400 });
@@ -113,17 +113,17 @@ export async function PATCH(request: NextRequest) {
   }
 
   // Protect GodAdmin accounts from non-GodAdmin
-  if (targetUser.role === "GodAdmin" && callerRole !== "GodAdmin") {
+  if (targetUser.profile === "GodAdmin" && callerProfile !== "GodAdmin") {
     return NextResponse.json({ error: "Only GodAdmin can modify GodAdmin accounts" }, { status: 403 });
   }
 
   // Only GodAdmin can promote to GodAdmin, and only whitelisted emails can hold it
-  if (role === "GodAdmin") {
-    if (callerRole !== "GodAdmin") {
-      return NextResponse.json({ error: "Only GodAdmin can assign GodAdmin role" }, { status: 403 });
+  if (profile === "GodAdmin") {
+    if (callerProfile !== "GodAdmin") {
+      return NextResponse.json({ error: "Only GodAdmin can assign GodAdmin profile" }, { status: 403 });
     }
     if (!canBeGodAdmin(targetUser.email)) {
-      return NextResponse.json({ error: "This email is not authorized for the GodAdmin role" }, { status: 403 });
+      return NextResponse.json({ error: "This email is not authorized for the GodAdmin profile" }, { status: 403 });
     }
   }
 
@@ -135,7 +135,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const data: any = {};
     if (name !== undefined) data.name = name;
-    if (role !== undefined) data.role = role;
+    if (profile !== undefined) data.profile = profile;
     if (isActive !== undefined) data.isActive = isActive;
     if (primaryOfficeId !== undefined) data.primaryOfficeId = primaryOfficeId || null;
     if (title !== undefined) data.title = title || null;
@@ -158,10 +158,10 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/users — delete a user (GodAdmin only)
 export async function DELETE(request: NextRequest) {
   const session = await getSessionOrBypass();
-  const callerRole = (session?.user as any)?.role;
+  const callerProfile = (session?.user as any)?.profile;
   const callerId = (session?.user as any)?.id;
 
-  if (callerRole !== "GodAdmin") {
+  if (callerProfile !== "GodAdmin") {
     return NextResponse.json({ error: "Only GodAdmin can delete users" }, { status: 403 });
   }
 

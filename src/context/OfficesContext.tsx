@@ -49,7 +49,7 @@ export function OfficesProvider({ children }: { children: ReactNode }) {
   const [selectedOfficeIds, setSelectedOfficeIds] = useState<string[]>([]);
 
   const user = session?.user as any;
-  const isGodAdmin = user?.role === "GodAdmin";
+  const isGodAdmin = user?.profile === "GodAdmin";
   const primaryOfficeId: string | null = user?.primaryOfficeId || null;
 
   const fetchOffices = useCallback(async () => {

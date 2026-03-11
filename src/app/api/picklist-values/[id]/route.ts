@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile } from "@/lib/auth";
 
 // PUT /api/picklist-values/[id] — update a picklist value (Admin+ only)
 export async function PUT(
@@ -8,8 +8,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   const session = await getSessionOrBypass();
-  const role = (session?.user as any)?.role;
-  if (!role || !hasRole(role, "Admin")) {
+  const profile = (session?.user as any)?.profile;
+  if (!profile || !hasProfile(profile, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -70,8 +70,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const session = await getSessionOrBypass();
-  const role = (session?.user as any)?.role;
-  if (!role || !hasRole(role, "Admin")) {
+  const profile = (session?.user as any)?.profile;
+  if (!profile || !hasProfile(profile, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

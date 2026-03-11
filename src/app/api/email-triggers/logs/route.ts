@@ -7,8 +7,8 @@ export async function GET(req: NextRequest) {
   const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any)?.role;
-  if (role !== "Admin" && role !== "GodAdmin") {
+  const profile = (session.user as any)?.profile;
+  if (profile !== "Admin" && profile !== "GodAdmin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

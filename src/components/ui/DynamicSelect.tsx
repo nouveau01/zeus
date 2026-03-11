@@ -62,8 +62,8 @@ export function DynamicSelect({
   }, [applyDefault, isLoading, value, getDefault, onChange]);
 
   // Admin check: unrestricted (auth off or GodAdmin) or Admin role
-  const userRole = (session?.user as any)?.role;
-  const isAdmin = isUnrestricted || userRole === "Admin" || userRole === "GodAdmin";
+  const userProfile = (session?.user as any)?.profile;
+  const isAdmin = isUnrestricted || userProfile === "Admin" || userProfile === "GodAdmin";
 
   const defaultClasses = "px-1 py-0.5 border border-[#808080] text-[11px] bg-white";
   const mergedClasses = className

@@ -32,7 +32,7 @@ interface StatusWorkflow {
   toStatus: string;
   sortOrder: number;
   isActive: boolean;
-  requiresRole: string | null;
+  requiresProfile: string | null;
   requiresNote: boolean;
 }
 
@@ -40,7 +40,7 @@ interface StatusWorkflow {
 interface TransitionSettings {
   allowed: boolean;
   requiresNote: boolean;
-  requiresRole: string;
+  requiresProfile: string;
   existingId: string | null; // id if already persisted
 }
 
@@ -50,7 +50,7 @@ const INITIAL_STATUS = "_initial";
 
 export function StatusWorkflowEditorPanel() {
   const { data: session } = useSession();
-  const currentRole = (session?.user as any)?.role;
+  const currentProfile = (session?.user as any)?.profile;
 
   // Left sidebar
   const [modulesWithStatus, setModulesWithStatus] = useState<string[]>([]);
@@ -173,7 +173,7 @@ export function StatusWorkflowEditorPanel() {
           map[transitionKey(from, to)] = {
             allowed: false,
             requiresNote: false,
-            requiresRole: "",
+            requiresProfile: "",
             existingId: null,
           };
         }
@@ -186,7 +186,7 @@ export function StatusWorkflowEditorPanel() {
           map[key] = {
             allowed: true,
             requiresNote: wf.requiresNote,
-            requiresRole: wf.requiresRole || "",
+            requiresProfile: wf.requiresProfile || "",
             existingId: wf.id,
           };
         }
@@ -233,13 +233,13 @@ export function StatusWorkflowEditorPanel() {
     setHasChanges(true);
   };
 
-  const updateTransitionRole = (from: string, to: string, value: string) => {
+  const updateTransitionProfile = (from: string, to: string, value: string) => {
     const key = transitionKey(from, to);
     setTransitions((prev) => ({
       ...prev,
       [key]: {
         ...prev[key],
-        requiresRole: value,
+        requiresProfile: value,
       },
     }));
     setHasChanges(true);
@@ -269,7 +269,7 @@ export function StatusWorkflowEditorPanel() {
                 fromStatus,
                 toStatus,
                 requiresNote: settings.requiresNote,
-                requiresRole: settings.requiresRole || null,
+                requiresProfile: settings.requiresProfile || null,
               }),
             })
           );
@@ -281,7 +281,7 @@ export function StatusWorkflowEditorPanel() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 requiresNote: settings.requiresNote,
-                requiresRole: settings.requiresRole || null,
+                requiresProfile: settings.requiresProfile || null,
               }),
             })
           );
@@ -605,7 +605,7 @@ export function StatusWorkflowEditorPanel() {
                             Requires Note
                           </div>
                           <div className="px-2 py-1.5 flex-1">
-                            Requires Role
+                            Requires Profile
                           </div>
                         </div>
 
@@ -649,9 +649,9 @@ export function StatusWorkflowEditorPanel() {
                               <div className="px-2 py-1 flex-1">
                                 <input
                                   type="text"
-                                  value={t.requiresRole}
+                                  value={t.requiresProfile}
                                   onChange={(e) =>
-                                    updateTransitionRole(t.from, t.to, e.target.value)
+                                    updateTransitionProfile(t.from, t.to, e.target.value)
                                   }
                                   placeholder="e.g. Admin"
                                   className="w-full px-1.5 py-0.5 border border-[#c0c0c0] text-[11px] bg-white focus:border-[#0078d4] focus:outline-none"

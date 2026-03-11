@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // POST /api/integration-settings/test-gamma — validate Gamma API key
@@ -7,8 +7,8 @@ export async function POST() {
   try {
     const session = await getSessionOrBypass();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const role = (session.user as any)?.role;
-    if (!hasRole(role, "Admin")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const profile = (session.user as any)?.profile;
+    if (!hasProfile(profile, "Admin")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const settings = await prisma.integrationSettings.findUnique({
       where: { id: "singleton" },

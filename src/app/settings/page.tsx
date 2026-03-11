@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { UserManagementPanel } from "@/components/settings/UserManagementPanel";
-import { RolesPermissionsPanel } from "@/components/settings/RolesPermissionsPanel";
+import { ProfilesPermissionsPanel } from "@/components/settings/ProfilesPermissionsPanel";
 
 import { StatusWorkflowEditorPanel } from "@/components/settings/StatusWorkflowEditorPanel";
 import { NotificationsPanel } from "@/components/settings/NotificationsPanel";
@@ -37,14 +37,14 @@ interface SettingsItem {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  minRole: string;
+  minProfile: string;
 }
 
 interface SettingsGroup {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  minRole: string;
+  minProfile: string;
   items: SettingsItem[];
 }
 
@@ -57,40 +57,40 @@ const settingsGroups: SettingsGroup[] = [
     id: "users-access",
     label: "Users & Access",
     icon: Users,
-    minRole: "Admin",
+    minProfile: "Admin",
     items: [
-      { id: "users", label: "User Management", icon: Users, minRole: "Admin" },
-      { id: "offices", label: "Offices", icon: Building2, minRole: "Admin" },
-      { id: "roles", label: "Roles & Permissions", icon: Shield, minRole: "Admin" },
+      { id: "users", label: "User Management", icon: Users, minProfile: "Admin" },
+      { id: "offices", label: "Offices", icon: Building2, minProfile: "Admin" },
+      { id: "roles", label: "Profiles & Permissions", icon: Shield, minProfile: "Admin" },
     ],
   },
   {
     id: "admin-tools",
     label: "Admin Tools",
     icon: Wrench,
-    minRole: "Admin",
+    minProfile: "Admin",
     items: [
-      { id: "workflows", label: "Status Workflows", icon: GitBranch, minRole: "Admin" },
-      { id: "object-manager", label: "Object Manager", icon: Boxes, minRole: "Admin" },
+      { id: "workflows", label: "Status Workflows", icon: GitBranch, minProfile: "Admin" },
+      { id: "object-manager", label: "Object Manager", icon: Boxes, minProfile: "Admin" },
     ],
   },
   {
     id: "platform",
     label: "Platform",
     icon: Globe,
-    minRole: "Admin",
+    minProfile: "Admin",
     items: [
-      { id: "company", label: "Company", icon: Building2, minRole: "Admin" },
-      { id: "appearance", label: "Appearance", icon: Palette, minRole: "Admin" },
-      { id: "notifications", label: "Notifications", icon: Bell, minRole: "Admin" },
-      { id: "database", label: "Database", icon: Database, minRole: "Admin" },
-      { id: "system", label: "System", icon: Globe, minRole: "Admin" },
-      { id: "integrations", label: "Integrations", icon: Puzzle, minRole: "Admin" },
+      { id: "company", label: "Company", icon: Building2, minProfile: "Admin" },
+      { id: "appearance", label: "Appearance", icon: Palette, minProfile: "Admin" },
+      { id: "notifications", label: "Notifications", icon: Bell, minProfile: "Admin" },
+      { id: "database", label: "Database", icon: Database, minProfile: "Admin" },
+      { id: "system", label: "System", icon: Globe, minProfile: "Admin" },
+      { id: "integrations", label: "Integrations", icon: Puzzle, minProfile: "Admin" },
     ],
   },
 ];
 
-const ROLE_LEVEL: Record<string, number> = {
+const PROFILE_LEVEL: Record<string, number> = {
   GodAdmin: 100,
   Admin: 50,
   User: 10,
@@ -102,9 +102,9 @@ const ROLE_LEVEL: Record<string, number> = {
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const currentRole = (session?.user as any)?.role || "User";
+  const currentProfile = (session?.user as any)?.profile || "User";
   // GodAdmin sees everything Admin sees + their powers work silently
-  const userLevel = ROLE_LEVEL[currentRole] || 0;
+  const userLevel = PROFILE_LEVEL[currentProfile] || 0;
 
   const [activeSection, setActiveSection] = useState("users");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
@@ -125,10 +125,10 @@ export default function SettingsPage() {
 
   // Filter groups and items by role
   const visibleGroups = settingsGroups
-    .filter((g) => userLevel >= (ROLE_LEVEL[g.minRole] || 0))
+    .filter((g) => userLevel >= (PROFILE_LEVEL[g.minProfile] || 0))
     .map((g) => ({
       ...g,
-      items: g.items.filter((item) => userLevel >= (ROLE_LEVEL[item.minRole] || 0)),
+      items: g.items.filter((item) => userLevel >= (PROFILE_LEVEL[item.minProfile] || 0)),
     }))
     .filter((g) => g.items.length > 0);
 
@@ -139,7 +139,7 @@ export default function SettingsPage() {
       case "offices":
         return <OfficesPanel />;
       case "roles":
-        return <RolesPermissionsPanel />;
+        return <ProfilesPermissionsPanel />;
       case "workflows":
         return <StatusWorkflowEditorPanel />;
       case "company":

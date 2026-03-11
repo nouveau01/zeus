@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // GET — List all offices (any authenticated user), or get user's assigned offices with ?mine=true
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (mine === "true") {
     const user = session.user as any;
     // GodAdmin sees all offices
-    if (user.role === "GodAdmin") {
+    if (user.profile === "GodAdmin") {
       const offices = await prisma.office.findMany({
         where: { isActive: true },
         orderBy: { code: "asc" },
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   // Admin+ can list all offices
   const user = session.user as any;
-  if (!hasRole(user.role, "Admin")) {
+  if (!hasProfile(user.profile, "Admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
-  if (!hasRole(user.role, "Admin")) {
+  if (!hasProfile(user.profile, "Admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -91,7 +91,7 @@ export async function DELETE(req: NextRequest) {
   const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
-  if (user.role !== "GodAdmin") {
+  if (user.profile !== "GodAdmin") {
     return NextResponse.json({ error: "Only GodAdmin can delete offices" }, { status: 403 });
   }
 

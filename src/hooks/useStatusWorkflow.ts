@@ -7,7 +7,7 @@ interface WorkflowRule {
   fromStatus: string;
   toStatus: string;
   requiresNote: boolean;
-  requiresRole?: string;
+  requiresProfile?: string;
 }
 
 interface StatusTransition {
@@ -15,7 +15,7 @@ interface StatusTransition {
   toLabel: string;
   toColor?: string;
   requiresNote: boolean;
-  requiresRole?: string;
+  requiresProfile?: string;
 }
 
 interface UseStatusWorkflowResult {
@@ -84,7 +84,7 @@ export function useStatusWorkflow(pageId: string): UseStatusWorkflowResult {
         toLabel: getLabel(rule.toStatus),
         toColor: getColor(rule.toStatus),
         requiresNote: rule.requiresNote,
-        requiresRole: rule.requiresRole,
+        requiresProfile: rule.requiresProfile,
       }));
     },
     [getLabel, getColor]

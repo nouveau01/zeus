@@ -35,7 +35,7 @@ model User {
   password  String?                        // Hashed password for authentication
   mustResetPassword Boolean @default(false) @map("must_reset_password")
   name      String
-  role      String   @default("User")      // "GodAdmin", "Admin", or "User"
+  profile   String   @default("User")      // "GodAdmin", "Admin", or "User"
   avatar     String?
   title      String?                        // Job title (e.g., "Service Manager")
   department String?                        // Department (e.g., "Operations")
@@ -114,7 +114,7 @@ model UserOffice {
 // ROLES & PERMISSIONS
 // ============================================
 
-model Role {
+model Profile {
   id          String   @id @default(cuid())
   name        String   @unique                    // e.g. "Technician", "Dispatcher", "Accountant"
   description String?
@@ -122,24 +122,24 @@ model Role {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  permissions RolePermission[]
+  permissions ProfilePermission[]
 
-  @@map("roles")
+  @@map("profiles")
 }
 
-model RolePermission {
+model ProfilePermission {
   id        String   @id @default(cuid())
-  roleId    String   @map("role_id")
+  profileId String   @map("profile_id")
   pageId    String   @map("page_id")              // Module name (e.g. "customers", "invoices")
   canAccess Boolean  @default(true) @map("can_access") // Can access this module at all
   fields    Json     @default("{}")                // { "fieldName": true/false } — field-level visibility
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
-  @@unique([roleId, pageId])
-  @@map("role_permissions")
+  @@unique([profileId, pageId])
+  @@map("profile_permissions")
 }
 
 // ============================================
@@ -2260,7 +2260,7 @@ model StatusWorkflow {
   toStatus      String   @map("to_status")
   sortOrder     Int      @default(0) @map("sort_order")
   isActive      Boolean  @default(true) @map("is_active")
-  requiresRole  String?  @map("requires_role")
+  requiresProfile  String?  @map("requires_profile")
   requiresNote  Boolean  @default(false) @map("requires_note")
 
   createdAt     DateTime @default(now()) @map("created_at")

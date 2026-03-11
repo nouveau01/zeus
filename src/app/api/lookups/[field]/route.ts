@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const user = session.user as any;
-    const scope = await getOfficeScope(user.id, user.role);
+    const scope = await getOfficeScope(user.id, user.profile);
 
     const { field } = params;
     let values: { id: string; label: string; description?: string }[] = [];

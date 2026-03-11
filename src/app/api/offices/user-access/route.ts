@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 // GET — Get all users with their office assignments (Admin+)
@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
-  if (!hasRole(user.role, "Admin")) {
+  if (!hasProfile(user.profile, "Admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       id: true,
       name: true,
       email: true,
-      role: true,
+      profile: true,
       avatar: true,
       primaryOfficeId: true,
       offices: {
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     id: u.id,
     name: u.name,
     email: u.email,
-    role: u.role,
+    profile: u.profile,
     avatar: u.avatar,
     primaryOfficeId: u.primaryOfficeId,
     officeIds: u.offices.map((o) => o.officeId),
@@ -49,7 +49,7 @@ export async function PUT(req: NextRequest) {
   const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const currentUser = session.user as any;
-  if (!hasRole(currentUser.role, "Admin")) {
+  if (!hasProfile(currentUser.profile, "Admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -61,9 +61,9 @@ export async function PUT(req: NextRequest) {
   }
 
   // Don't let non-GodAdmin modify GodAdmin users' offices
-  const targetUser = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  const targetUser = await prisma.user.findUnique({ where: { id: userId }, select: { profile: true } });
   if (!targetUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
-  if (targetUser.role === "GodAdmin" && currentUser.role !== "GodAdmin") {
+  if (targetUser.profile === "GodAdmin" && currentUser.profile !== "GodAdmin") {
     return NextResponse.json({ error: "Cannot modify GodAdmin office assignments" }, { status: 403 });
   }
 

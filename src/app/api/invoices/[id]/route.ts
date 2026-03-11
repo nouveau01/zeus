@@ -14,7 +14,7 @@ export async function GET(
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const scope = await getOfficeScope(session.user.id, session.user.role);
+    const scope = await getOfficeScope(session.user.id, session.user.profile);
 
     const invoice = await prisma.invoice.findFirst({
       where: { id: params.id, ...childOfficeWhere(scope) },
@@ -81,7 +81,7 @@ export async function PUT(
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const scope = await getOfficeScope(session.user.id, session.user.role);
+    const scope = await getOfficeScope(session.user.id, session.user.profile);
 
     // Fetch existing record for access check + audit trail
     const existing = await prisma.invoice.findFirst({
@@ -240,7 +240,7 @@ export async function DELETE(
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const scope = await getOfficeScope(session.user.id, session.user.role);
+    const scope = await getOfficeScope(session.user.id, session.user.profile);
 
     // Access check
     const existing = await prisma.invoice.findFirst({

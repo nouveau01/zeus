@@ -4,27 +4,27 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
 
-// Role hierarchy: GodAdmin > Admin > User
+// Profile hierarchy: GodAdmin > Admin > User
 // GodAdmin: Full platform control — user management, destructive actions, backend access
 // Admin: Module configuration, user management (cannot create/modify GodAdmin)
 // User: Standard access, no admin features
-export type UserRole = "GodAdmin" | "Admin" | "User";
+export type UserProfile = "GodAdmin" | "Admin" | "User";
 
-const ROLE_LEVEL: Record<string, number> = {
+const PROFILE_LEVEL: Record<string, number> = {
   GodAdmin: 100,
   Admin: 50,
   User: 10,
 };
 
-export function hasRole(userRole: string, requiredRole: UserRole): boolean {
-  return (ROLE_LEVEL[userRole] || 0) >= (ROLE_LEVEL[requiredRole] || 0);
+export function hasProfile(userProfile: string, requiredProfile: UserProfile): boolean {
+  return (PROFILE_LEVEL[userProfile] || 0) >= (PROFILE_LEVEL[requiredProfile] || 0);
 }
 
-export function isGodAdmin(role: string): boolean {
-  return role === "GodAdmin";
+export function isGodAdmin(profile: string): boolean {
+  return profile === "GodAdmin";
 }
 
-// Only these emails can ever hold the GodAdmin role.
+// Only these emails can ever hold the GodAdmin profile.
 // Even with direct DB access, the JWT callback and API routes enforce this.
 export const GOD_ADMIN_EMAILS = [
   "zschwartz@nouveauelevator.com",
@@ -57,16 +57,16 @@ export function isAuthRequired(): boolean {
 // SESSION BYPASS
 // ============================================
 
-let _bypassUser: { id: string; name: string; email: string; role: string; primaryOfficeId: string | null } | null = null;
+let _bypassUser: { id: string; name: string; email: string; profile: string; primaryOfficeId: string | null } | null = null;
 
 export async function getSessionOrBypass() {
   if (!isAuthRequired()) {
     if (!_bypassUser) {
       const godAdmin = await prisma.user.findFirst({
         where: { email: { in: GOD_ADMIN_EMAILS } },
-        select: { id: true, name: true, email: true, role: true, primaryOfficeId: true },
+        select: { id: true, name: true, email: true, profile: true, primaryOfficeId: true },
       });
-      _bypassUser = godAdmin || { id: "system", name: "System", email: "system@local", role: "GodAdmin", primaryOfficeId: null };
+      _bypassUser = godAdmin || { id: "system", name: "System", email: "system@local", profile: "GodAdmin", primaryOfficeId: null };
     }
     return { user: _bypassUser };
   }
@@ -91,7 +91,7 @@ export async function getSessionOrBypass() {
             id: decoded.id as string,
             name: decoded.name as string,
             email: decoded.email as string,
-            role: decoded.role as string,
+            profile: decoded.profile as string,
             primaryOfficeId: decoded.primaryOfficeId as string | null,
           },
         };
@@ -115,9 +115,9 @@ const jwtCallback = async ({ token }: { token: any }) => {
     });
     if (dbUser) {
       token.id = dbUser.id;
-      token.role = dbUser.role === "GodAdmin" && !GOD_ADMIN_EMAILS.includes(dbUser.email.toLowerCase())
+      token.profile = dbUser.profile === "GodAdmin" && !GOD_ADMIN_EMAILS.includes(dbUser.email.toLowerCase())
         ? "Admin"
-        : dbUser.role;
+        : dbUser.profile;
       token.avatar = dbUser.avatar;
       token.uiMode = dbUser.uiMode;
       token.primaryOfficeId = dbUser.primaryOfficeId;
@@ -130,7 +130,7 @@ const jwtCallback = async ({ token }: { token: any }) => {
 const sessionCallback = async ({ session, token }: { session: any; token: any }) => {
   if (session.user) {
     session.user.id = token.id;
-    session.user.role = token.role;
+    session.user.profile = token.profile;
     session.user.avatar = token.avatar;
     session.user.uiMode = token.uiMode;
     session.user.primaryOfficeId = token.primaryOfficeId;
@@ -187,7 +187,7 @@ export function buildAuthOptions(): NextAuthOptions {
             id: dbUser.id,
             email: dbUser.email,
             name: dbUser.name,
-            role: dbUser.role,
+            profile: dbUser.profile,
             primaryOfficeId: dbUser.primaryOfficeId,
             mustResetPassword: dbUser.mustResetPassword,
           };

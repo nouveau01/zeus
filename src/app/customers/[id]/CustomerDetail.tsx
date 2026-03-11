@@ -27,6 +27,7 @@ import { DetailLayout } from "@/components/detail/DetailLayout";
 import { validateRequiredFields } from "@/lib/detail-registry/validation";
 import { useXPDialog } from "@/components/ui/XPDialog";
 import { ClickToCall } from "@/components/ui/ClickToCall";
+import { usePermissions } from "@/context/PermissionsContext";
 
 interface Contact {
   id: string;
@@ -116,6 +117,8 @@ interface CustomerDetailProps {
 export default function CustomerDetail({ customerId, onClose }: CustomerDetailProps) {
   const { openTab, closeTab } = useTabs();
   const { alert: xpAlert, confirm: xpConfirm, DialogComponent: XPDialogComponent } = useXPDialog();
+  const { canAccessPage } = usePermissions();
+  const canManagePortalUsers = canAccessPage("portal-users");
   const isNew = customerId === "new";
 
   const [customer, setCustomer] = useState<Customer | null>(isNew ? {
@@ -759,11 +762,11 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
     if (!tabs.some(t => t.id === "activity")) {
       tabs.push({ id: "activity", label: "Field History", visible: true, sections: [] });
     }
-    if (!tabs.some(t => t.id === "portal-users")) {
+    if (canManagePortalUsers && !tabs.some(t => t.id === "portal-users")) {
       tabs.push({ id: "portal-users", label: "Portal Users", visible: true, sections: [] });
     }
     return { ...layout, tabs };
-  }, [layout]);
+  }, [layout, canManagePortalUsers]);
 
   // Account listing grid — shared across all tabs
   const renderAccountListing = () => (

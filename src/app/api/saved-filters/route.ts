@@ -10,7 +10,7 @@ async function getCurrentUserId(): Promise<string | null> {
 
   // Fall back to first admin user if no session
   const defaultUser = await prisma.user.findFirst({
-    where: { role: "Admin", isActive: true },
+    where: { profile: "Admin", isActive: true },
     select: { id: true },
   });
   return defaultUser?.id || null;

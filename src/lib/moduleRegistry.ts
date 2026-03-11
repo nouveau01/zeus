@@ -428,6 +428,20 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
       { fieldName: "isPublic", label: "Visibility" },
     ],
   },
+  // Portal
+  {
+    pageId: "portal-users",
+    label: "Portal Users",
+    section: "AR",
+    fields: [
+      { fieldName: "name", label: "Name" },
+      { fieldName: "email", label: "Email" },
+      { fieldName: "phone", label: "Phone" },
+      { fieldName: "title", label: "Title" },
+      { fieldName: "status", label: "Status" },
+      { fieldName: "lastLogin", label: "Last Login" },
+    ],
+  },
   // Global (shared picklists)
   {
     pageId: "_global",

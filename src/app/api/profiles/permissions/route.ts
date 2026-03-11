@@ -1,39 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile } from "@/lib/auth";
 import prisma from "@/lib/db";
 
-// PUT /api/roles/permissions — save permissions for a role + module
+// PUT /api/profiles/permissions — save permissions for a profile + module
 export async function PUT(request: NextRequest) {
   const session = await getSessionOrBypass();
-  const role = (session?.user as any)?.role;
-  if (!role || !hasRole(role, "Admin")) {
+  const profile = (session?.user as any)?.profile;
+  if (!profile || !hasProfile(profile, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   try {
     const body = await request.json();
-    const { roleId, pageId, canAccess, fields } = body;
+    const { profileId, pageId, canAccess, fields } = body;
 
-    if (!roleId || !pageId) {
-      return NextResponse.json({ error: "roleId and pageId are required" }, { status: 400 });
+    if (!profileId || !pageId) {
+      return NextResponse.json({ error: "profileId and pageId are required" }, { status: 400 });
     }
 
     // Prevent editing GodAdmin permissions unless you are GodAdmin
-    const targetRole = await prisma.role.findUnique({ where: { id: roleId } });
-    if (targetRole?.name === "GodAdmin" && role !== "GodAdmin") {
+    const targetProfile = await prisma.profile.findUnique({ where: { id: profileId } });
+    if (targetProfile?.name === "GodAdmin" && profile !== "GodAdmin") {
       return NextResponse.json({ error: "Only GodAdmin can modify GodAdmin permissions" }, { status: 403 });
     }
 
-    const permission = await prisma.rolePermission.upsert({
+    const permission = await prisma.profilePermission.upsert({
       where: {
-        roleId_pageId: { roleId, pageId },
+        profileId_pageId: { profileId, pageId },
       },
       update: {
         canAccess: canAccess ?? true,
         fields: fields ?? {},
       },
       create: {
-        roleId,
+        profileId,
         pageId,
         canAccess: canAccess ?? true,
         fields: fields ?? {},

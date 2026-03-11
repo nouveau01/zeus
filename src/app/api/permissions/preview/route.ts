@@ -2,35 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrBypass } from "@/lib/auth";
 import prisma from "@/lib/db";
 
-// GET /api/permissions/preview?role=RoleName — GodAdmin only, fetch permissions for any role
+// GET /api/permissions/preview?profile=ProfileName — GodAdmin only, fetch permissions for any profile
 export async function GET(request: NextRequest) {
   const session = await getSessionOrBypass();
-  const callerRole = (session?.user as any)?.role;
+  const callerProfile = (session?.user as any)?.profile;
 
-  if (callerRole !== "GodAdmin") {
-    return NextResponse.json({ error: "Only GodAdmin can preview roles" }, { status: 403 });
+  if (callerProfile !== "GodAdmin") {
+    return NextResponse.json({ error: "Only GodAdmin can preview profiles" }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);
-  const roleName = searchParams.get("role");
+  const profileName = searchParams.get("profile");
 
-  if (!roleName) {
-    return NextResponse.json({ error: "role parameter is required" }, { status: 400 });
+  if (!profileName) {
+    return NextResponse.json({ error: "profile parameter is required" }, { status: 400 });
   }
 
   try {
-    const role = await prisma.role.findUnique({
-      where: { name: roleName },
+    const found = await prisma.profile.findUnique({
+      where: { name: profileName },
       include: { permissions: true },
     });
 
-    if (!role) {
-      return NextResponse.json({ role: roleName, permissions: [] });
+    if (!found) {
+      return NextResponse.json({ profile: profileName, permissions: [] });
     }
 
     return NextResponse.json({
-      role: roleName,
-      permissions: role.permissions,
+      profile: profileName,
+      permissions: found.permissions,
     });
   } catch (error) {
     console.error("Error fetching preview permissions:", error);

@@ -10,10 +10,10 @@ interface Column {
 }
 
 /**
- * Filters a column array based on role permissions.
+ * Filters a column array based on profile permissions.
  * Use this for module pages that don't use usePageConfig.
  *
- * Returns only the columns the user's role is allowed to see,
+ * Returns only the columns the user's profile is allowed to see,
  * along with matching widths array.
  */
 export function useFilteredColumns<T extends Column>(

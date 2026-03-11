@@ -75,8 +75,8 @@ export function DetailLayout({
   onFieldKeyDown,
 }: DetailLayoutProps) {
   const { data: session } = useSession();
-  const userRole = (session?.user as any)?.role;
-  const canEditLayout = userRole === "Admin" || userRole === "GodAdmin";
+  const userProfile = (session?.user as any)?.profile;
+  const canEditLayout = userProfile === "Admin" || userProfile === "GodAdmin";
 
   const [internalTab, setInternalTab] = useState<string>("");
   const [saving, setSaving] = useState(false);

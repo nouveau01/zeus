@@ -53,7 +53,7 @@ export async function PUT(
   try {
     // Check if user is admin
     const session = await getSessionOrBypass();
-    if (!session?.user || (session.user as any).role !== "Admin") {
+    if (!session?.user || (session.user as any).profile !== "Admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!hasRole((session.user as any).role, "Admin")) {
+    if (!hasProfile((session.user as any).profile, "Admin")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

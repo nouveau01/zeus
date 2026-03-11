@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
     const user = session.user as any;
     const filteredIds = parseOfficeFilter(request);
-    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+    const scope = await getOfficeScope(user.id, user.profile, filteredIds);
 
     const { searchParams } = new URL(request.url);
     const premisesId = searchParams.get("premisesId");

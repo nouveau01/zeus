@@ -36,15 +36,15 @@ interface UserWithOffices {
   id: string;
   name: string;
   email: string;
-  role: string;
+  profile: string;
   avatar: string | null;
   officeIds: string[];
 }
 
 export function OfficesPanel() {
   const { data: session } = useSession();
-  const currentRole = (session?.user as any)?.role;
-  const isGodAdmin = currentRole === "GodAdmin";
+  const currentProfile = (session?.user as any)?.profile;
+  const isGodAdmin = currentProfile === "GodAdmin";
 
   const [activeTab, setActiveTab] = useState<"manage" | "access">("manage");
 
@@ -708,7 +708,7 @@ function UserAccessTab({ isGodAdmin }: { isGodAdmin: boolean }) {
 
   const toggleAllForOffice = async (officeId: string) => {
     // Check if all non-GodAdmin users have this office
-    const nonGodAdmins = users.filter((u) => u.role !== "GodAdmin");
+    const nonGodAdmins = users.filter((u) => u.profile !== "GodAdmin");
     const allHaveIt = nonGodAdmins.every((u) => u.officeIds.includes(officeId));
 
     // Toggle for each non-GodAdmin user
@@ -733,8 +733,8 @@ function UserAccessTab({ isGodAdmin }: { isGodAdmin: boolean }) {
     }
   };
 
-  const getRoleIcon = (role: string) => {
-    const display = role === "GodAdmin" ? "Admin" : role;
+  const getProfileIcon = (profile: string) => {
+    const display = profile === "GodAdmin" ? "Admin" : profile;
     switch (display) {
       case "Admin": return <Shield className="w-3 h-3 text-[#316ac5]" />;
       default: return <UserIcon className="w-3 h-3 text-[#666]" />;
@@ -770,7 +770,7 @@ function UserAccessTab({ isGodAdmin }: { isGodAdmin: boolean }) {
                 User
               </th>
               {activeOffices.map((office) => {
-                const nonGodAdmins = users.filter((u) => u.role !== "GodAdmin");
+                const nonGodAdmins = users.filter((u) => u.profile !== "GodAdmin");
                 const allChecked = nonGodAdmins.length > 0 && nonGodAdmins.every((u) => u.officeIds.includes(office.id));
                 return (
                   <th key={office.id} className="border-b border-r border-[#c0c0c0] px-1 py-1.5 text-center font-medium" style={{ minWidth: 60 }}>
@@ -794,7 +794,7 @@ function UserAccessTab({ isGodAdmin }: { isGodAdmin: boolean }) {
           </thead>
           <tbody>
             {users.map((user) => {
-              const isGA = user.role === "GodAdmin";
+              const isGA = user.profile === "GodAdmin";
               const allAssigned = activeOffices.every((o) => user.officeIds.includes(o.id));
               return (
                 <tr
@@ -812,7 +812,7 @@ function UserAccessTab({ isGodAdmin }: { isGodAdmin: boolean }) {
                       )}
                       <div className="min-w-0">
                         <div className="flex items-center gap-1">
-                          {getRoleIcon(user.role)}
+                          {getProfileIcon(user.profile)}
                           <span className="font-medium truncate">{user.name}</span>
                         </div>
                         <div className="text-[10px] text-[#888] truncate">{user.email}</div>

@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useSession } from "next-auth/react";
 
-interface RolePermission {
+interface ProfilePermission {
   id: string;
   roleId: string;
   pageId: string;
@@ -12,42 +12,42 @@ interface RolePermission {
 }
 
 interface PermissionsContextType {
-  permissions: RolePermission[];
+  permissions: ProfilePermission[];
   isUnrestricted: boolean; // GodAdmin
   isLoading: boolean;
-  previewRole: string | null; // Role name being previewed (GodAdmin only)
-  getPagePermission: (pageId: string) => RolePermission | undefined;
+  previewProfile: string | null; // Profile name being previewed (GodAdmin only)
+  getPagePermission: (pageId: string) => ProfilePermission | undefined;
   canAccessPage: (pageId: string) => boolean;
   isFieldAllowed: (pageId: string, fieldName: string) => boolean;
   getAllowedFields: (pageId: string) => string[] | null; // null = all allowed
   refresh: () => Promise<void>;
-  setPreviewRole: (roleName: string | null) => void;
+  setPreviewProfile: (profileName: string | null) => void;
 }
 
 const PermissionsContext = createContext<PermissionsContextType>({
   permissions: [],
   isUnrestricted: false,
   isLoading: true,
-  previewRole: null,
+  previewProfile: null,
   getPagePermission: () => undefined,
   canAccessPage: () => true,
   isFieldAllowed: () => true,
   getAllowedFields: () => null,
   refresh: async () => {},
-  setPreviewRole: () => {},
+  setPreviewProfile: () => {},
 });
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const [permissions, setPermissions] = useState<RolePermission[]>([]);
+  const [permissions, setPermissions] = useState<ProfilePermission[]>([]);
   const [isUnrestricted, setIsUnrestricted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Preview mode: GodAdmin can simulate viewing as another role
-  const [previewRole, setPreviewRoleState] = useState<string | null>(null);
-  const [previewPermissions, setPreviewPermissions] = useState<RolePermission[]>([]);
+  // Preview mode: GodAdmin can simulate viewing as another profile
+  const [previewProfile, setPreviewProfileState] = useState<string | null>(null);
+  const [previewPermissions, setPreviewPermissions] = useState<ProfilePermission[]>([]);
 
-  const actualRole = (session?.user as any)?.role;
+  const actualProfile = (session?.user as any)?.profile;
 
   const fetchPermissions = useCallback(async () => {
     if (status !== "authenticated") return;
@@ -76,21 +76,21 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     }
   }, [status, fetchPermissions]);
 
-  // Fetch preview role permissions when preview mode changes
-  const setPreviewRole = useCallback(
-    async (roleName: string | null) => {
+  // Fetch preview profile permissions when preview mode changes
+  const setPreviewProfile = useCallback(
+    async (profileName: string | null) => {
       // Only GodAdmin can preview
-      if (actualRole !== "GodAdmin") return;
+      if (actualProfile !== "GodAdmin") return;
 
-      setPreviewRoleState(roleName);
+      setPreviewProfileState(profileName);
 
-      if (!roleName) {
+      if (!profileName) {
         setPreviewPermissions([]);
         return;
       }
 
       try {
-        const res = await fetch(`/api/permissions/preview?role=${encodeURIComponent(roleName)}`);
+        const res = await fetch(`/api/permissions/preview?role=${encodeURIComponent(profileName)}`);
         if (res.ok) {
           const data = await res.json();
           setPreviewPermissions(data.permissions || []);
@@ -99,16 +99,16 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching preview permissions:", error);
       }
     },
-    [actualRole]
+    [actualProfile]
   );
 
   // Use preview permissions when in preview mode, otherwise real permissions
-  const activePermissions = previewRole ? previewPermissions : permissions;
-  const activeUnrestricted = previewRole ? false : isUnrestricted; // Preview always applies restrictions
+  const activePermissions = previewProfile ? previewPermissions : permissions;
+  const activeUnrestricted = previewProfile ? false : isUnrestricted; // Preview always applies restrictions
 
   // Get the permission record for a specific page
   const getPagePermission = useCallback(
-    (pageId: string): RolePermission | undefined => {
+    (pageId: string): ProfilePermission | undefined => {
       return activePermissions.find((p) => p.pageId === pageId);
     },
     [activePermissions]
@@ -159,13 +159,13 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         permissions: activePermissions,
         isUnrestricted: activeUnrestricted,
         isLoading,
-        previewRole,
+        previewProfile,
         getPagePermission,
         canAccessPage,
         isFieldAllowed,
         getAllowedFields,
         refresh: fetchPermissions,
-        setPreviewRole,
+        setPreviewProfile,
       }}
     >
       {children}

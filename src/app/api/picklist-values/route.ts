@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getSessionOrBypass, hasRole } from "@/lib/auth";
+import { getSessionOrBypass, hasProfile } from "@/lib/auth";
 
 // GET /api/picklist-values?pageId=xxx&fieldName=yyy
 // Returns active picklist values sorted by sortOrder.
@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
     const includeInactive = searchParams.get("includeInactive") === "true";
     let showInactive = false;
     if (includeInactive) {
-      const role = (session?.user as any)?.role;
-      if (role && hasRole(role, "Admin")) {
+      const profile = (session?.user as any)?.profile;
+      if (profile && hasProfile(profile, "Admin")) {
         showInactive = true;
       }
     }
@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
 // POST /api/picklist-values — create a new picklist value (Admin+ only)
 export async function POST(request: NextRequest) {
   const session = await getSessionOrBypass();
-  const role = (session?.user as any)?.role;
-  if (!role || !hasRole(role, "Admin")) {
+  const profile = (session?.user as any)?.profile;
+  if (!profile || !hasProfile(profile, "Admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

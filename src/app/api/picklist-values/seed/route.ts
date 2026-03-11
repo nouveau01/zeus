@@ -488,8 +488,8 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
 // ============================================
 export async function POST() {
   const session = await getSessionOrBypass();
-  const role = (session?.user as any)?.role;
-  if (!role || !isGodAdmin(role)) {
+  const profile = (session?.user as any)?.profile;
+  if (!profile || !isGodAdmin(profile)) {
     return NextResponse.json({ error: "Unauthorized — GodAdmin only" }, { status: 403 });
   }
 

@@ -36,7 +36,7 @@ interface UserRecord {
   id: string;
   email: string;
   name: string;
-  role: string;
+  profile: string;
   avatar: string | null;
   title: string | null;
   department: string | null;
@@ -65,9 +65,9 @@ type SortDirection = "asc" | "desc";
 
 export function UserManagementPanel() {
   const { data: session } = useSession();
-  const currentRole = (session?.user as any)?.role;
+  const currentProfile = (session?.user as any)?.profile;
   const currentId = (session?.user as any)?.id;
-  const isGodAdmin = currentRole === "GodAdmin";
+  const isGodAdmin = currentProfile === "GodAdmin";
 
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +85,7 @@ export function UserManagementPanel() {
   // Add form state
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
-  const [formRole, setFormRole] = useState("User");
+  const [formProfile, setFormProfile] = useState("User");
 
   const { offices } = useOffices();
 
@@ -96,7 +96,7 @@ export function UserManagementPanel() {
     return map;
   }, [offices]);
 
-  // Column widths: avatar, name, email, title, department, office, role, status, last login
+  // Column widths: avatar, name, email, title, department, office, profile, status, last login
   const [columnWidths, setColumnWidths] = useState<number[]>([40, 170, 240, 140, 120, 110, 90, 70, 130]);
 
   const columns: { field: SortField | null; label: string; sortable: boolean }[] = [
@@ -106,7 +106,7 @@ export function UserManagementPanel() {
     { field: "title", label: "Title", sortable: true },
     { field: "department", label: "Department", sortable: true },
     { field: "office", label: "Office", sortable: true },
-    { field: "role", label: "Role", sortable: true },
+    { field: "role", label: "Profile", sortable: true },
     { field: "isActive", label: "Status", sortable: true },
     { field: "lastLogin", label: "Last Login", sortable: true },
   ];
@@ -141,7 +141,7 @@ export function UserManagementPanel() {
       u.email.toLowerCase().includes(q) ||
       (u.title && u.title.toLowerCase().includes(q)) ||
       (u.department && u.department.toLowerCase().includes(q)) ||
-      u.role.toLowerCase().includes(q)
+      u.profile.toLowerCase().includes(q)
     );
   }, [users, searchQuery]);
 
@@ -160,7 +160,7 @@ export function UserManagementPanel() {
         case "title": aVal = (a.title || "").toLowerCase(); bVal = (b.title || "").toLowerCase(); break;
         case "department": aVal = (a.department || "").toLowerCase(); bVal = (b.department || "").toLowerCase(); break;
         case "office": aVal = getOfficeCode(a).toLowerCase(); bVal = getOfficeCode(b).toLowerCase(); break;
-        case "role": aVal = a.role; bVal = b.role; break;
+        case "role": aVal = a.profile; bVal = b.profile; break;
         case "isActive": aVal = a.isActive ? "active" : "inactive"; bVal = b.isActive ? "active" : "inactive"; break;
         case "lastLogin": aVal = a.lastLogin || ""; bVal = b.lastLogin || ""; break;
         default: return 0;
@@ -189,17 +189,17 @@ export function UserManagementPanel() {
   };
 
   // GodAdmin displays as "Admin" everywhere in the UI
-  const getDisplayRole = (role: string) => role === "GodAdmin" ? "Admin" : role;
+  const getDisplayProfile = (profile: string) => profile === "GodAdmin" ? "Admin" : profile;
 
-  const getRoleIcon = (role: string) => {
-    switch (getDisplayRole(role)) {
+  const getProfileIcon = (profile: string) => {
+    switch (getDisplayProfile(profile)) {
       case "Admin": return <Shield className="w-3.5 h-3.5 text-[#316ac5]" />;
       default: return <User className="w-3.5 h-3.5 text-[#666]" />;
     }
   };
 
-  const getRoleBadgeClass = (role: string) => {
-    switch (getDisplayRole(role)) {
+  const getProfileBadgeClass = (profile: string) => {
+    switch (getDisplayProfile(profile)) {
       case "Admin": return "bg-[#cce5ff] text-[#004085] border-[#b8daff]";
       default: return "bg-[#f0f0f0] text-[#333] border-[#ccc]";
     }
@@ -224,11 +224,11 @@ export function UserManagementPanel() {
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formEmail, name: formName, role: formRole }),
+        body: JSON.stringify({ email: formEmail, name: formName, profile: formProfile }),
       });
       if (res.ok) {
         setShowAddDialog(false);
-        setFormName(""); setFormEmail(""); setFormRole("User");
+        setFormName(""); setFormEmail(""); setFormProfile("User");
         fetchUsers();
       } else {
         const data = await res.json();
@@ -269,7 +269,7 @@ export function UserManagementPanel() {
   };
 
   const openAddDialog = () => {
-    setFormName(""); setFormEmail(""); setFormRole("User");
+    setFormName(""); setFormEmail(""); setFormProfile("User");
     setDialogError("");
     setShowAddDialog(true);
   };
@@ -288,8 +288,8 @@ export function UserManagementPanel() {
         currentId={currentId}
         isGodAdmin={isGodAdmin}
         offices={offices}
-        getRoleIcon={getRoleIcon}
-        getRoleBadgeClass={getRoleBadgeClass}
+        getProfileIcon={getProfileIcon}
+        getProfileBadgeClass={getProfileBadgeClass}
         formatDate={formatDate}
         formatDateTime={formatDateTime}
         onBack={() => { setViewingUserId(null); fetchUsers(); }}
@@ -321,7 +321,7 @@ export function UserManagementPanel() {
         <button
           className="h-[26px] flex items-center gap-1 px-2 hover:bg-[#e0e0e0] rounded border border-transparent hover:border-[#c0c0c0] text-[11px] disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={() => selectedRow && selectedUser && selectedRow !== currentId && handleToggleActive(selectedUser)}
-          disabled={!selectedRow || selectedRow === currentId || (selectedUser?.role === "GodAdmin" && !isGodAdmin)}
+          disabled={!selectedRow || selectedRow === currentId || (selectedUser?.profile === "GodAdmin" && !isGodAdmin)}
         >
           {selectedUser?.isActive ? <><Ban className="w-4 h-4 text-[#e67e22]" />Deactivate</> : <><Check className="w-4 h-4 text-[#28a745]" />Activate</>}
         </button>
@@ -440,10 +440,10 @@ export function UserManagementPanel() {
                   <div className={`px-2 py-1 border-r border-[#d0d0d0] truncate flex-shrink-0 ${!officeCode && !isSelected ? "text-[#bbb]" : ""}`} style={{ width: columnWidths[5] }}>
                     {officeCode || "—"}
                   </div>
-                  {/* Role */}
+                  {/* Profile */}
                   <div className="px-2 py-1 border-r border-[#d0d0d0] flex-shrink-0 flex items-center justify-center" style={{ width: columnWidths[6] }}>
-                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${isSelected ? "bg-white/20 text-white border-white/30" : getRoleBadgeClass(user.role)}`}>
-                      {getRoleIcon(user.role)} {getDisplayRole(user.role)}
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${isSelected ? "bg-white/20 text-white border-white/30" : getProfileBadgeClass(user.profile)}`}>
+                      {getProfileIcon(user.profile)} {getDisplayProfile(user.profile)}
                     </span>
                   </div>
                   {/* Status */}
@@ -474,8 +474,8 @@ export function UserManagementPanel() {
           }
         </span>
         <span className="text-[11px] text-[#666] flex items-center gap-1">
-          Your role: <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${getRoleBadgeClass(currentRole || "User")}`}>
-            {getRoleIcon(currentRole || "User")} {currentRole || "User"}
+          Your profile: <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium ${getProfileBadgeClass(currentProfile || "User")}`}>
+            {getProfileIcon(currentProfile || "User")} {currentProfile || "User"}
           </span>
         </span>
       </div>
@@ -499,8 +499,8 @@ export function UserManagementPanel() {
                 <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} className="w-full px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white" placeholder="jsmith@nouveauelevator.com" />
               </div>
               <div>
-                <label className="block text-[11px] font-medium mb-1">Role</label>
-                <select value={formRole} onChange={(e) => setFormRole(e.target.value)} className="w-full px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white">
+                <label className="block text-[11px] font-medium mb-1">Profile</label>
+                <select value={formProfile} onChange={(e) => setFormProfile(e.target.value)} className="w-full px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white">
                   <option value="Admin">Admin</option>
                   <option value="User">User</option>
                 </select>
@@ -553,8 +553,8 @@ function UserDetailView({
   currentId,
   isGodAdmin,
   offices,
-  getRoleIcon,
-  getRoleBadgeClass,
+  getProfileIcon,
+  getProfileBadgeClass,
   formatDate,
   formatDateTime,
   onBack,
@@ -564,15 +564,15 @@ function UserDetailView({
   currentId: string;
   isGodAdmin: boolean;
   offices: { id: string; code: string; name: string }[];
-  getRoleIcon: (role: string) => React.ReactNode;
-  getRoleBadgeClass: (role: string) => string;
+  getProfileIcon: (profile: string) => React.ReactNode;
+  getProfileBadgeClass: (profile: string) => string;
   formatDate: (d: string) => string;
   formatDateTime: (d: string | null) => string;
   onBack: () => void;
   onRefresh: () => void;
 }) {
   const [editName, setEditName] = useState(user.name);
-  const [editRole, setEditRole] = useState(user.role);
+  const [editProfile, setEditProfile] = useState(user.profile);
   const [editTitle, setEditTitle] = useState(user.title || "");
   const [editDepartment, setEditDepartment] = useState(user.department || "");
   const [editPhone, setEditPhone] = useState(user.phone || "");
@@ -597,7 +597,7 @@ function UserDetailView({
   }, []);
 
   const isSelf = user.id === currentId;
-  const isUserGodAdmin = false; // GodAdmin role is never revealed in UI
+  const isUserGodAdmin = false; // GodAdmin profile is never revealed in UI
 
   // Fetch all offices and user's office assignments
   useEffect(() => {
@@ -638,7 +638,7 @@ function UserDetailView({
         body: JSON.stringify({
           id: user.id,
           name: editName,
-          role: editRole,
+          profile: editProfile,
           title: editTitle,
           department: editDepartment,
           phone: editPhone,
@@ -771,8 +771,8 @@ function UserDetailView({
                 <span className="text-[13px] text-[#666]">{user.email}</span>
               </div>
               <div className="flex items-center gap-3 mt-2">
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-medium ${getRoleBadgeClass(user.role)}`}>
-                  {getRoleIcon(user.role)} {user.role === "GodAdmin" ? "Admin" : user.role}
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-medium ${getProfileBadgeClass(user.profile)}`}>
+                  {getProfileIcon(user.profile)} {user.profile === "GodAdmin" ? "Admin" : user.profile}
                 </span>
                 {user.isActive ? (
                   <span className="text-[11px] font-medium text-[#28a745]">Active</span>
@@ -870,15 +870,15 @@ function UserDetailView({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-[#666] mb-1">Role</label>
+                <label className="block text-[11px] font-medium text-[#666] mb-1">Profile</label>
                 {isUserGodAdmin ? (
                   <div className="px-2 py-1.5 border border-[#d0d0d0] text-[12px] bg-[#fff8e1] rounded text-[#856404] font-medium">
                     GodAdmin (permanent)
                   </div>
                 ) : (
                   <select
-                    value={editRole}
-                    onChange={(e) => setEditRole(e.target.value)}
+                    value={editProfile}
+                    onChange={(e) => setEditProfile(e.target.value)}
                     className="w-full px-2 py-1.5 border border-[#a0a0a0] text-[12px] bg-white rounded"
                   >
                     <option value="Admin">Admin</option>

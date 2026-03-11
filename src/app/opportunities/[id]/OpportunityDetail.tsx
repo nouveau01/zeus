@@ -77,8 +77,8 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
 
   // Current user info for ownership
   const currentUserName = (session?.user as any)?.name || (session?.user as any)?.email || "";
-  const currentUserRole = (session?.user as any)?.role || "";
-  const isAdminUser = isUnrestricted || currentUserRole === "Admin" || currentUserRole === "GodAdmin";
+  const currentUserProfile = (session?.user as any)?.profile || "";
+  const isAdminUser = isUnrestricted || currentUserProfile === "Admin" || currentUserProfile === "GodAdmin";
 
   const [data, setData] = useState<OpportunityData | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});

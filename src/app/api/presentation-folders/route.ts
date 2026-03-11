@@ -8,7 +8,7 @@ async function getCurrentUserId(): Promise<string | null> {
   if (sessionUserId) return sessionUserId;
 
   const defaultUser = await prisma.user.findFirst({
-    where: { role: "Admin", isActive: true },
+    where: { profile: "Admin", isActive: true },
     select: { id: true },
   });
   return defaultUser?.id || null;

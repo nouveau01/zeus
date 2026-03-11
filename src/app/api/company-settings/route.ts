@@ -35,8 +35,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any)?.role;
-    if (!role || !["Admin", "GodAdmin"].includes(role)) {
+    const profile = (session.user as any)?.profile;
+    if (!profile || !["Admin", "GodAdmin"].includes(profile)) {
       return NextResponse.json({ error: "Unauthorized — Admin only" }, { status: 403 });
     }
 

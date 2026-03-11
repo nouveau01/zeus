@@ -129,14 +129,14 @@ export function usePageConfig(
     [fields, defaultFields]
   );
 
-  // Check if a field is visible (respects both page config AND role permissions)
+  // Check if a field is visible (respects both page config AND profile permissions)
   const isVisible = useCallback(
     (fieldName: string): boolean => {
       const field = fields.find((f) => f.fieldName === fieldName);
       const visibleByConfig = field?.visible ?? true;
-      // Also check role permissions — if role says hidden, it's hidden
-      const allowedByRole = isFieldAllowed(pageId, fieldName);
-      return visibleByConfig && allowedByRole;
+      // Also check profile permissions — if profile says hidden, it's hidden
+      const allowedByProfile = isFieldAllowed(pageId, fieldName);
+      return visibleByConfig && allowedByProfile;
     },
     [fields, isFieldAllowed, pageId]
   );
@@ -150,7 +150,7 @@ export function usePageConfig(
     [fields]
   );
 
-  // Get all visible fields sorted by order (respects role permissions)
+  // Get all visible fields sorted by order (respects profile permissions)
   const getVisibleFields = useCallback((): FieldConfig[] => {
     return fields
       .filter((f) => f.visible && isFieldAllowed(pageId, f.fieldName))

@@ -32,13 +32,13 @@ async function main() {
     where: { email: adminEmail },
     update: {
       password: hashedPassword,
-      role: "Admin"
+      profile: "Admin"
     },
     create: {
       email: adminEmail,
       name: adminName,
       password: hashedPassword,
-      role: "Admin"
+      profile: "Admin"
     },
   });
   console.log(`   ✓ Admin user ready: ${adminUser.email}\n`);

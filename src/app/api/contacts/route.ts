@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = session.user as any;
     const filteredIds = parseOfficeFilter(request);
-    const scope = await getOfficeScope(user.id, user.role, filteredIds);
+    const scope = await getOfficeScope(user.id, user.profile, filteredIds);
 
     const searchParams = request.nextUrl.searchParams;
     const customerId = searchParams.get("customerId");

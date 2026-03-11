@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const session = await getSessionOrBypass();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user as any;
-  if (user.role !== "GodAdmin") {
+  if (user.profile !== "GodAdmin") {
     return NextResponse.json({ error: "GodAdmin only" }, { status: 403 });
   }
 
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Also assign GodAdmin user to all offices
-  const godAdmins = await prisma.user.findMany({ where: { role: "GodAdmin" } });
+  const godAdmins = await prisma.user.findMany({ where: { profile: "GodAdmin" } });
   const allOffices = await prisma.office.findMany();
 
   for (const admin of godAdmins) {

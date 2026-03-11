@@ -9,6 +9,7 @@ export interface OfficeScope {
  * Get the office scope for a user session.
  * GodAdmin sees everything (allOffices: true) unless filteredIds are provided.
  * Others only see data from their assigned offices, optionally narrowed by filteredIds.
+ * @param userProfile - The user's profile (e.g., "GodAdmin", "Admin", "User")
  *
  * @param filteredIds - Optional subset of office IDs from the TopNav dropdown filter.
  *   When provided, the scope is intersected with the user's allowed offices.
@@ -16,10 +17,10 @@ export interface OfficeScope {
  */
 export async function getOfficeScope(
   userId: string,
-  userRole: string,
+  userProfile: string,
   filteredIds?: string[]
 ): Promise<OfficeScope> {
-  if (userRole === "GodAdmin") {
+  if (userProfile === "GodAdmin") {
     // GodAdmin with no filter → see everything
     if (!filteredIds || filteredIds.length === 0) {
       return { allOffices: true, officeIds: [] };

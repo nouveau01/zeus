@@ -5,14 +5,14 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: string;
+      profile: string;
       primaryOfficeId?: string | null;
       mustResetPassword?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User extends DefaultUser {
-    role: string;
+    profile: string;
     primaryOfficeId?: string | null;
     mustResetPassword?: boolean;
   }
@@ -21,7 +21,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     id: string;
-    role: string;
+    profile: string;
     primaryOfficeId?: string | null;
     mustResetPassword?: boolean;
   }

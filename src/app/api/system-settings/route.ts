@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { buildAuthOptions, hasRole, isAuthRequired, getAuthMode } from "@/lib/auth";
+import { buildAuthOptions, hasProfile, isAuthRequired, getAuthMode } from "@/lib/auth";
 import fs from "fs";
 import path from "path";
 
@@ -29,7 +29,7 @@ export async function GET() {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       const user = session.user as any;
-      if (!hasRole(user.role, "Admin")) {
+      if (!hasProfile(user.profile, "Admin")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       const user = session.user as any;
-      if (!hasRole(user.role, "Admin")) {
+      if (!hasProfile(user.profile, "Admin")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }

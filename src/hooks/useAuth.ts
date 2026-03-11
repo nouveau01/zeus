@@ -9,6 +9,6 @@ export function useAuth() {
     user: session?.user,
     isLoading: status === "loading",
     isAuthenticated: status === "authenticated",
-    isAdmin: session?.user?.role === "Admin",
+    isAdmin: session?.user?.profile === "Admin",
   };
 }

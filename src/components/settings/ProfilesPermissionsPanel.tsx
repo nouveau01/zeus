@@ -18,7 +18,7 @@ import {
 import { useSession } from "next-auth/react";
 import { MODULE_REGISTRY, getModulesBySection } from "@/lib/moduleRegistry";
 
-interface RolePermission {
+interface ProfilePermission {
   id: string;
   roleId: string;
   pageId: string;
@@ -26,22 +26,22 @@ interface RolePermission {
   fields: Record<string, boolean>;
 }
 
-interface RoleRecord {
+interface ProfileRecord {
   id: string;
   name: string;
   description: string | null;
   isSystem: boolean;
-  permissions: RolePermission[];
+  permissions: ProfilePermission[];
 }
 
-export function RolesPermissionsPanel() {
+export function ProfilesPermissionsPanel() {
   const { data: session } = useSession();
-  const currentRole = (session?.user as any)?.role;
-  const isGodAdmin = currentRole === "GodAdmin";
+  const currentProfile = (session?.user as any)?.profile;
+  const isGodAdmin = currentProfile === "GodAdmin";
 
-  const [roles, setRoles] = useState<RoleRecord[]>([]);
+  const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -61,40 +61,40 @@ export function RolesPermissionsPanel() {
 
   const modulesBySection = getModulesBySection();
 
-  const fetchRoles = async () => {
+  const fetchProfiles = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/roles");
+      const res = await fetch("/api/profiles");
       if (res.ok) {
         const data = await res.json();
-        setRoles(data);
-        if (!selectedRoleId && data.length > 0) {
+        setProfiles(data);
+        if (!selectedProfileId && data.length > 0) {
           // Skip GodAdmin (hidden from UI)
-          const firstVisible = data.find((r: RoleRecord) => r.name !== "GodAdmin");
-          if (firstVisible) setSelectedRoleId(firstVisible.id);
+          const firstVisible = data.find((r: ProfileRecord) => r.name !== "GodAdmin");
+          if (firstVisible) setSelectedProfileId(firstVisible.id);
         }
       }
     } catch (error) {
-      console.error("Error fetching roles:", error);
+      console.error("Error fetching profiles:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRoles();
+    fetchProfiles();
   }, []);
 
-  // When selected role changes, load its permissions into local state
+  // When selected profile changes, load its permissions into local state
   useEffect(() => {
-    if (!selectedRoleId) return;
-    const role = roles.find((r) => r.id === selectedRoleId);
-    if (!role) return;
+    if (!selectedProfileId) return;
+    const profile = profiles.find((r) => r.id === selectedProfileId);
+    if (!profile) return;
 
     const perms: Record<string, { canAccess: boolean; fields: Record<string, boolean> }> = {};
 
     for (const mod of MODULE_REGISTRY) {
-      const existing = role.permissions.find((p) => p.pageId === mod.pageId);
+      const existing = profile.permissions.find((p) => p.pageId === mod.pageId);
       if (existing) {
         perms[mod.pageId] = {
           canAccess: existing.canAccess,
@@ -110,9 +110,9 @@ export function RolesPermissionsPanel() {
 
     setLocalPermissions(perms);
     setHasChanges(false);
-  }, [selectedRoleId, roles]);
+  }, [selectedProfileId, profiles]);
 
-  const selectedRole = roles.find((r) => r.id === selectedRoleId);
+  const selectedProfile = profiles.find((r) => r.id === selectedProfileId);
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) =>
@@ -164,17 +164,17 @@ export function RolesPermissionsPanel() {
   };
 
   const handleSave = async () => {
-    if (!selectedRoleId) return;
+    if (!selectedProfileId) return;
     setSaving(true);
     setSaveMessage("");
 
     try {
       const promises = Object.entries(localPermissions).map(([pageId, perm]) =>
-        fetch("/api/roles/permissions", {
+        fetch("/api/profiles/permissions", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            roleId: selectedRoleId,
+            roleId: selectedProfileId,
             pageId,
             canAccess: perm.canAccess,
             fields: perm.fields,
@@ -185,7 +185,7 @@ export function RolesPermissionsPanel() {
       await Promise.all(promises);
       setHasChanges(false);
       setSaveMessage("Permissions saved successfully");
-      fetchRoles();
+      fetchProfiles();
       setTimeout(() => setSaveMessage(""), 3000);
     } catch (error) {
       console.error("Error saving permissions:", error);
@@ -195,48 +195,48 @@ export function RolesPermissionsPanel() {
     }
   };
 
-  const handleAddRole = async () => {
+  const handleAddProfile = async () => {
     setDialogError("");
     try {
-      const res = await fetch("/api/roles", {
+      const res = await fetch("/api/profiles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: formName, description: formDescription }),
       });
       if (res.ok) {
-        const newRole = await res.json();
+        const newProfile = await res.json();
         setShowAddDialog(false);
         setFormName("");
         setFormDescription("");
-        await fetchRoles();
-        setSelectedRoleId(newRole.id);
+        await fetchProfiles();
+        setSelectedProfileId(newProfile.id);
       } else {
         const data = await res.json();
-        setDialogError(data.error || "Failed to create role");
+        setDialogError(data.error || "Failed to create profile");
       }
     } catch {
       setDialogError("Network error");
     }
   };
 
-  const handleDeleteRole = async () => {
-    if (!selectedRoleId) return;
+  const handleDeleteProfile = async () => {
+    if (!selectedProfileId) return;
     try {
-      const res = await fetch(`/api/roles?id=${selectedRoleId}`, { method: "DELETE" });
+      const res = await fetch(`/api/profiles?id=${selectedProfileId}`, { method: "DELETE" });
       if (res.ok) {
         setShowDeleteConfirm(false);
-        setSelectedRoleId(null);
-        fetchRoles();
+        setSelectedProfileId(null);
+        fetchProfiles();
       } else {
         const data = await res.json();
-        setDialogError(data.error || "Failed to delete role");
+        setDialogError(data.error || "Failed to delete profile");
       }
     } catch {
       setDialogError("Network error");
     }
   };
 
-  const getRoleIcon = (name: string) => {
+  const getProfileIcon = (name: string) => {
     const displayName = name === "GodAdmin" ? "Admin" : name;
     switch (displayName) {
       case "Admin": return <Shield className="w-3.5 h-3.5 text-[#316ac5]" />;
@@ -260,38 +260,38 @@ export function RolesPermissionsPanel() {
 
   return (
     <div className="h-full flex" style={{ fontFamily: "Segoe UI, Tahoma, sans-serif", fontSize: "12px" }}>
-      {/* Roles List */}
+      {/* Profiles List */}
       <div className="w-[200px] bg-[#f5f5f5] border-r border-[#d0d0d0] flex flex-col flex-shrink-0">
         <div className="px-2 py-2 border-b border-[#d0d0d0] flex items-center justify-between">
-          <span className="font-semibold text-[12px]">Roles</span>
+          <span className="font-semibold text-[12px]">Profiles</span>
           <button
             onClick={() => { setFormName(""); setFormDescription(""); setDialogError(""); setShowAddDialog(true); }}
             className="w-5 h-5 flex items-center justify-center hover:bg-[#e0e0e0] rounded"
-            title="Add Role"
+            title="Add Profile"
           >
             <Plus className="w-3.5 h-3.5 text-[#4a7c59]" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {roles
-            .filter((role) => role.name !== "GodAdmin")
-            .map((role) => {
-              const displayName = role.name === "User" ? "Standard User" : role.name;
+          {profiles
+            .filter((p) => p.name !== "GodAdmin")
+            .map((p) => {
+              const displayName = p.name === "User" ? "Standard User" : p.name;
               return (
                 <button
-                  key={role.id}
-                  onClick={() => setSelectedRoleId(role.id)}
+                  key={p.id}
+                  onClick={() => setSelectedProfileId(p.id)}
                   className={`w-full flex items-center gap-2 px-2 py-2 text-left text-[12px] border-b border-[#e8e8e8] transition-colors ${
-                    selectedRoleId === role.id
+                    selectedProfileId === p.id
                       ? "bg-[#0078d4] text-white"
                       : "text-[#333] hover:bg-[#e0e0e0]"
                   }`}
                 >
-                  {getRoleIcon(role.name)}
+                  {getProfileIcon(p.name)}
                   <div className="flex-1 min-w-0">
                     <div className="truncate font-medium">{displayName}</div>
-                    {role.isSystem && (
-                      <div className={`text-[9px] ${selectedRoleId === role.id ? "text-white/70" : "text-[#999]"}`}>
+                    {p.isSystem && (
+                      <div className={`text-[9px] ${selectedProfileId === p.id ? "text-white/70" : "text-[#999]"}`}>
                         System
                       </div>
                     )}
@@ -300,14 +300,14 @@ export function RolesPermissionsPanel() {
               );
             })}
         </div>
-        {selectedRole && !selectedRole.isSystem && (
+        {selectedProfile && !selectedProfile.isSystem && (
           <div className="px-2 py-2 border-t border-[#d0d0d0]">
             <button
               onClick={async () => {
                 setDialogError("");
-                // Pre-check user count for this role
+                // Pre-check user count for this profile
                 try {
-                  const res = await fetch(`/api/roles/user-count?role=${encodeURIComponent(selectedRole.name)}`);
+                  const res = await fetch(`/api/profiles/user-count?role=${encodeURIComponent(selectedProfile.name)}`);
                   if (res.ok) {
                     const data = await res.json();
                     setDeleteUserCount(data.count || 0);
@@ -322,7 +322,7 @@ export function RolesPermissionsPanel() {
               className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] text-[#c45c5c] hover:bg-[#fde8e8] rounded border border-[#e0e0e0]"
             >
               <Trash2 className="w-3 h-3" />
-              Delete Role
+              Delete Profile
             </button>
           </div>
         )}
@@ -330,20 +330,20 @@ export function RolesPermissionsPanel() {
 
       {/* Permissions Editor */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {selectedRole ? (
+        {selectedProfile ? (
           <>
             {/* Header */}
             <div className="px-4 py-3 border-b border-[#d0d0d0] bg-white flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  {getRoleIcon(selectedRole.name)}
-                  <span className="font-semibold text-[14px]">{selectedRole.name === "GodAdmin" ? "Admin" : selectedRole.name === "User" ? "Standard User" : selectedRole.name}</span>
-                  {selectedRole.isSystem && (
+                  {getProfileIcon(selectedProfile.name)}
+                  <span className="font-semibold text-[14px]">{selectedProfile.name === "GodAdmin" ? "Admin" : selectedProfile.name === "User" ? "Standard User" : selectedProfile.name}</span>
+                  {selectedProfile.isSystem && (
                     <span className="text-[9px] px-1.5 py-0.5 bg-[#f0f0f0] text-[#666] rounded border border-[#ddd]">System</span>
                   )}
                 </div>
-                {selectedRole.description && (
-                  <p className="text-[11px] text-[#666] mt-0.5">{selectedRole.description}</p>
+                {selectedProfile.description && (
+                  <p className="text-[11px] text-[#666] mt-0.5">{selectedProfile.description}</p>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -354,7 +354,7 @@ export function RolesPermissionsPanel() {
                 )}
                 <button
                   onClick={handleSave}
-                  disabled={!hasChanges || saving || (selectedRole.name === "GodAdmin" && !isGodAdmin)}
+                  disabled={!hasChanges || saving || (selectedProfile.name === "GodAdmin" && !isGodAdmin)}
                   className="flex items-center gap-1 px-3 py-1.5 text-[11px] bg-[#316ac5] text-white border border-[#003c74] hover:bg-[#2a5db0] rounded disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Save className="w-3.5 h-3.5" />
@@ -454,7 +454,7 @@ export function RolesPermissionsPanel() {
 
                               {isModuleExpanded && !canAccess && (
                                 <div className="px-3 py-2 border-t border-[#e8e8e8] bg-[#f9f9f9] text-[11px] text-[#999] italic">
-                                  Module access disabled — users with this role cannot see this module.
+                                  Module access disabled — users with this profile cannot see this module.
                                 </div>
                               )}
                             </div>
@@ -469,17 +469,17 @@ export function RolesPermissionsPanel() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-[12px] text-[#808080]">
-            Select a role to configure permissions
+            Select a profile to configure permissions
           </div>
         )}
       </div>
 
-      {/* Add Role Dialog */}
+      {/* Add Profile Dialog */}
       {showAddDialog && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[70]">
           <div className="bg-[#ece9d8] border border-[#808080] shadow-lg" style={{ width: "380px", fontSize: "11px" }}>
             <div className="bg-gradient-to-r from-[#0a246a] to-[#a6caf0] px-2 py-1 flex items-center justify-between">
-              <span className="text-white font-bold text-[12px]">Create New Role</span>
+              <span className="text-white font-bold text-[12px]">Create New Profile</span>
               <button onClick={() => setShowAddDialog(false)} className="text-white hover:bg-[#c45c5c] px-1 rounded">
                 <X className="w-4 h-4" />
               </button>
@@ -489,7 +489,7 @@ export function RolesPermissionsPanel() {
                 <div className="p-2 bg-red-100 border border-red-300 text-red-700 text-[11px] rounded">{dialogError}</div>
               )}
               <div>
-                <label className="block text-[11px] font-medium mb-1">Role Name</label>
+                <label className="block text-[11px] font-medium mb-1">Profile Name</label>
                 <input
                   type="text"
                   value={formName}
@@ -505,12 +505,12 @@ export function RolesPermissionsPanel() {
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   className="w-full px-2 py-1 border border-[#a0a0a0] text-[11px] bg-white"
-                  placeholder="What this role is for"
+                  placeholder="What this profile is for"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
-                  onClick={handleAddRole}
+                  onClick={handleAddProfile}
                   disabled={!formName.trim()}
                   className="px-4 py-1 text-[11px] bg-[#316ac5] text-white border border-[#003c74] hover:bg-[#2a5db0] min-w-[70px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -529,11 +529,11 @@ export function RolesPermissionsPanel() {
       )}
 
       {/* Delete Confirmation */}
-      {showDeleteConfirm && selectedRole && (
+      {showDeleteConfirm && selectedProfile && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[70]">
           <div className="bg-[#ece9d8] border border-[#808080] shadow-lg" style={{ width: "380px", fontSize: "11px" }}>
             <div className="bg-gradient-to-r from-[#0a246a] to-[#a6caf0] px-2 py-1 flex items-center justify-between">
-              <span className="text-white font-bold text-[12px]">Delete Role</span>
+              <span className="text-white font-bold text-[12px]">Delete Profile</span>
               <button onClick={() => setShowDeleteConfirm(false)} className="text-white hover:bg-[#c45c5c] px-1 rounded">
                 <X className="w-4 h-4" />
               </button>
@@ -547,10 +547,10 @@ export function RolesPermissionsPanel() {
                   <div className="flex items-start gap-3 mb-4">
                     <ShieldAlert className="w-5 h-5 text-[#e6a817] flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[12px] font-medium mb-1">Cannot delete this role</p>
+                      <p className="text-[12px] font-medium mb-1">Cannot delete this profile</p>
                       <p className="text-[12px]">
                         <strong>{deleteUserCount}</strong> active user{deleteUserCount !== 1 ? "s are" : " is"} currently assigned to{" "}
-                        <strong>&quot;{selectedRole.name}&quot;</strong>. Reassign them to a different role before deleting.
+                        <strong>&quot;{selectedProfile.name}&quot;</strong>. Reassign them to a different profile before deleting.
                       </p>
                     </div>
                   </div>
@@ -568,12 +568,12 @@ export function RolesPermissionsPanel() {
                   <div className="flex items-start gap-3 mb-4">
                     <Trash2 className="w-5 h-5 text-[#c45c5c] flex-shrink-0 mt-0.5" />
                     <p className="text-[12px]">
-                      Delete role <strong>&quot;{selectedRole.name}&quot;</strong> and all its permissions? This cannot be undone.
+                      Delete profile <strong>&quot;{selectedProfile.name}&quot;</strong> and all its permissions? This cannot be undone.
                     </p>
                   </div>
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={handleDeleteRole}
+                      onClick={handleDeleteProfile}
                       className="px-4 py-1 text-[11px] bg-[#c45c5c] text-white border border-[#a03030] hover:bg-[#b04040] min-w-[70px]"
                     >
                       Delete
