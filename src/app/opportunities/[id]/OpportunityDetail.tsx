@@ -82,6 +82,75 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
   // View/Edit mode — new records start in edit mode, existing start in view mode
   const [isEditing, setIsEditing] = useState(isNew);
 
+  // Inline edit — double-click any field in view mode to edit just that field
+  const [inlineEditField, setInlineEditField] = useState<string | null>(null);
+  const isFieldEditing = (field: string) => isEditing || inlineEditField === field;
+
+  const cancelInlineEdit = () => {
+    if (!inlineEditField) return;
+    const f = inlineEditField;
+    setForm((prev) => {
+      const reverted = { ...prev };
+      if (f === "customer") { reverted.customerId = original.customerId; reverted.customerName = original.customerName; }
+      else if (f === "account") { reverted.premisesId = original.premisesId; reverted.accountName = original.accountName; }
+      else if (f === "contact") { reverted.contactId = original.contactId; reverted.contactName = original.contactName; }
+      else if (f in original) { (reverted as any)[f] = (original as any)[f]; }
+      return reverted;
+    });
+    setInlineEditField(null);
+  };
+
+  // Save a single field via API (for inline edits)
+  const saveInlineField = async (payload: Record<string, any>) => {
+    if (isNew) { setInlineEditField(null); return; }
+    setInlineEditField(null);
+    try {
+      const res = await fetch(`/api/opportunities/${opportunityId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        // Only sync the saved field(s) to original, not all form changes
+        setOriginal((prev) => ({ ...prev, ...payload }));
+        setForm((prev) => ({ ...prev, ...payload }));
+      } else {
+        setForm((prev) => {
+          const reverted = { ...prev };
+          for (const key of Object.keys(payload)) (reverted as any)[key] = (original as any)[key];
+          return reverted;
+        });
+      }
+    } catch {
+      setForm((prev) => {
+        const reverted = { ...prev };
+        for (const key of Object.keys(payload)) (reverted as any)[key] = (original as any)[key];
+        return reverted;
+      });
+    }
+  };
+
+  // Helpers for inline edit blur/keydown on text/number inputs
+  const inlineBlur = (field: string, payload: Record<string, any>) => {
+    if (inlineEditField === field) saveInlineField(payload);
+  };
+  const inlineKeyDown = (field: string, payload: Record<string, any>, e: React.KeyboardEvent) => {
+    if (inlineEditField !== field) return;
+    if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); saveInlineField(payload); }
+    if (e.key === "Escape") cancelInlineEdit();
+  };
+
+  // Wrap a view-mode value with double-click-to-edit and pencil indicator
+  const viewWrap = (field: string, children: React.ReactNode) => (
+    <div
+      className={`${viewValueStyle} flex-1 group/f flex items-center min-h-[20px] ${!isNew ? "cursor-pointer" : ""}`}
+      onDoubleClick={() => { if (!isNew) setInlineEditField(field); }}
+    >
+      <span className="flex-1">{children}</span>
+      {!isNew && <Pencil className="w-3 h-3 text-[#c0c0c0] opacity-0 group-hover/f:opacity-60 ml-1 flex-shrink-0" />}
+    </div>
+  );
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -312,7 +381,8 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
         openTab(`Opp: ${saved.opportunityNumber}`, `/opportunities/${saved.id}`);
       } else {
         await xpAlert(`Opportunity #${saved.opportunityNumber || data?.opportunityNumber} saved successfully.`);
-        // Reload
+        setIsEditing(false);
+        // Reload to sync with server
         const reloaded = await fetch(`/api/opportunities/${opportunityId}`);
         if (reloaded.ok) {
           const opp = await reloaded.json();
@@ -338,7 +408,6 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
           };
           setForm(f);
           setOriginal(f);
-          setIsEditing(false);
         }
       }
     } catch {
@@ -351,6 +420,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
   const handleDiscard = () => {
     setForm({ ...original });
     setSelectedUnits(data?.units || []);
+    setInlineEditField(null);
     if (!isNew) setIsEditing(false);
   };
 
@@ -495,7 +565,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
             </>
           ) : (
             <button
-              onClick={() => setIsEditing(true)}
+              onClick={() => { setInlineEditField(null); setIsEditing(true); }}
               className="flex items-center gap-1 px-3 py-1 border border-[#c0c0c0] rounded text-[11px] bg-[#f0f0f0] hover:bg-[#e0e0e0]"
             >
               <Pencil className="w-3.5 h-3.5" /> Edit
@@ -524,46 +594,60 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               {/* Row 1: Opp Name / Type */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 110 }}>Opp Name</label>
-                {isEditing ? (
-                  <input className={inputStyle} value={form.name} onChange={(e) => setField("name", e.target.value)} />
+                {isFieldEditing("name") ? (
+                  <input className={inputStyle} value={form.name} onChange={(e) => setField("name", e.target.value)}
+                    autoFocus={inlineEditField === "name"}
+                    onBlur={() => inlineBlur("name", { name: form.name })}
+                    onKeyDown={(e) => inlineKeyDown("name", { name: form.name }, e)} />
                 ) : (
-                  <span className={viewValueStyle}>{form.name || "—"}</span>
+                  viewWrap("name", form.name || "—")
                 )}
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 100 }}>Type</label>
-                {isEditing ? (
+                {isFieldEditing("type") ? (
                   <DynamicSelect
                     pageId="opportunities"
                     fieldName="type"
                     value={form.type}
-                    onChange={(val) => setField("type", val)}
+                    onChange={(val) => {
+                      setField("type", val);
+                      if (inlineEditField === "type") saveInlineField({ type: val || null });
+                    }}
+                    applyDefault={isNew}
                     fallbackOptions={["New Client", "Service Request", "Modernization", "New Installation", "Repair", "Other"]}
                     className={inputStyle}
                   />
                 ) : (
-                  <span className={viewValueStyle}>{form.type || "—"}</span>
+                  viewWrap("type", form.type || "—")
                 )}
               </div>
               {/* Row 2: Customer / Stage */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 110 }}>Customer</label>
-                {isEditing ? (
+                {isFieldEditing("customer") ? (
                   <AutocompleteInput
                     value={form.customerName}
                     onChange={(val) => setField("customerName", val)}
-                    onSelect={handleCustomerSelect}
+                    onSelect={(result) => {
+                      handleCustomerSelect(result);
+                      if (inlineEditField === "customer") saveInlineField({ customerId: result.id });
+                    }}
                     searchType="customers"
                     placeholder="Search customers..."
                     className="flex-1 px-2 py-1 border border-[#c0c0c0] text-[12px] rounded bg-white"
                   />
                 ) : (
-                  entityLink(form.customerName, "/customers", form.customerId)
+                  <div className={`flex-1 group/f flex items-center min-h-[20px] ${!isNew ? "cursor-pointer" : ""}`}
+                    onDoubleClick={() => { if (!isNew) setInlineEditField("customer"); }}>
+                    <span className="flex-1">{entityLink(form.customerName, "/customers", form.customerId)}</span>
+                    {!isNew && <Pencil className="w-3 h-3 text-[#c0c0c0] opacity-0 group-hover/f:opacity-60 ml-1 flex-shrink-0" />}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 100 }}>Stage</label>
-                {isEditing ? (
+                {isFieldEditing("stage") ? (
                   <DynamicSelect
                     pageId="opportunities"
                     fieldName="stage"
@@ -572,71 +656,96 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
                       setField("stage", val);
                       const prob = getStageProbability(val);
                       if (prob !== null) setField("probability", prob);
+                      if (inlineEditField === "stage") {
+                        const payload: Record<string, any> = { stage: val };
+                        if (prob !== null) payload.probability = prob;
+                        saveInlineField(payload);
+                      }
                     }}
                     fallbackOptions={STAGES}
                     className={inputStyle}
                   />
                 ) : (
-                  <span className={viewValueStyle}>{form.stage || "—"}</span>
+                  viewWrap("stage", form.stage || "—")
                 )}
               </div>
               {/* Row 3: Account / Probability */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 110 }}>Account</label>
-                {isEditing ? (
+                {isFieldEditing("account") ? (
                   <AutocompleteInput
                     value={form.accountName}
                     onChange={(val) => setField("accountName", val)}
-                    onSelect={handleAccountSelect}
+                    onSelect={(result) => {
+                      handleAccountSelect(result);
+                      if (inlineEditField === "account") saveInlineField({ premisesId: result.id });
+                    }}
                     searchType="accounts"
                     filterParams={form.customerId ? { customerId: form.customerId } : undefined}
                     placeholder="Search accounts..."
                     className="flex-1 px-2 py-1 border border-[#c0c0c0] text-[12px] rounded bg-white"
                   />
                 ) : (
-                  entityLink(form.accountName, "/accounts", form.premisesId)
+                  <div className={`flex-1 group/f flex items-center min-h-[20px] ${!isNew ? "cursor-pointer" : ""}`}
+                    onDoubleClick={() => { if (!isNew) setInlineEditField("account"); }}>
+                    <span className="flex-1">{entityLink(form.accountName, "/accounts", form.premisesId)}</span>
+                    {!isNew && <Pencil className="w-3 h-3 text-[#c0c0c0] opacity-0 group-hover/f:opacity-60 ml-1 flex-shrink-0" />}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 100 }}>Probability</label>
-                {isEditing ? (
+                {isFieldEditing("probability") ? (
                   <div className="flex items-center gap-1 w-full">
-                    <input className={inputStyle} type="number" min="0" max="100" value={form.probability} onChange={(e) => setField("probability", e.target.value)} />
+                    <input className={inputStyle} type="number" min="0" max="100" value={form.probability}
+                      onChange={(e) => setField("probability", e.target.value)}
+                      autoFocus={inlineEditField === "probability"}
+                      onBlur={() => inlineBlur("probability", { probability: Number(form.probability) })}
+                      onKeyDown={(e) => inlineKeyDown("probability", { probability: Number(form.probability) }, e)} />
                     <span className="text-[11px]">%</span>
                   </div>
                 ) : (
-                  <span className={viewValueStyle}>{form.probability ?? 0}%</span>
+                  viewWrap("probability", `${form.probability ?? 0}%`)
                 )}
               </div>
               {/* Row 4: Contact / Owner */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 110 }}>Contact</label>
-                {isEditing ? (
+                {isFieldEditing("contact") ? (
                   <AutocompleteInput
                     value={form.contactName}
                     onChange={(val) => setField("contactName", val)}
-                    onSelect={handleContactSelect}
+                    onSelect={(result) => {
+                      handleContactSelect(result);
+                      if (inlineEditField === "contact") saveInlineField({ contactId: result.id });
+                    }}
                     searchType="contacts"
                     filterParams={form.customerId ? { customerId: form.customerId } : undefined}
                     placeholder="Search contacts..."
                     className="flex-1 px-2 py-1 border border-[#c0c0c0] text-[12px] rounded bg-white"
                   />
                 ) : (
-                  entityLink(form.contactName, "/contacts", form.contactId)
+                  <div className={`flex-1 group/f flex items-center min-h-[20px] ${!isNew ? "cursor-pointer" : ""}`}
+                    onDoubleClick={() => { if (!isNew) setInlineEditField("contact"); }}>
+                    <span className="flex-1">{entityLink(form.contactName, "/contacts", form.contactId)}</span>
+                    {!isNew && <Pencil className="w-3 h-3 text-[#c0c0c0] opacity-0 group-hover/f:opacity-60 ml-1 flex-shrink-0" />}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 100 }}>Owner</label>
-                {isEditing ? (
+                {isFieldEditing("owner") ? (
                   <input
                     className={`${inputStyle} ${!isNew && !isAdminUser && form.owner !== currentUserName ? "bg-[#f0f0f0] text-[#666]" : ""}`}
                     value={form.owner}
                     onChange={(e) => setField("owner", e.target.value)}
                     readOnly={!isNew && !isAdminUser && form.owner !== currentUserName}
-                    title={!isNew && !isAdminUser && form.owner !== currentUserName ? "Only the owner or an admin can transfer ownership" : ""}
+                    autoFocus={inlineEditField === "owner"}
+                    onBlur={() => inlineBlur("owner", { owner: form.owner || null })}
+                    onKeyDown={(e) => inlineKeyDown("owner", { owner: form.owner || null }, e)}
                   />
                 ) : (
-                  <span className={viewValueStyle}>{form.owner || "—"}</span>
+                  viewWrap("owner", form.owner || "—")
                 )}
               </div>
               {/* Row 5: Unit(s) / Lost Reason (conditional) */}
@@ -709,10 +818,13 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               {form.stage === "Closed Lost" ? (
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
                   <label className={labelStyle} style={{ width: 100 }}>Lost Reason</label>
-                  {isEditing ? (
-                    <input className={inputStyle} value={form.lostReason} onChange={(e) => setField("lostReason", e.target.value)} />
+                  {isFieldEditing("lostReason") ? (
+                    <input className={inputStyle} value={form.lostReason} onChange={(e) => setField("lostReason", e.target.value)}
+                      autoFocus={inlineEditField === "lostReason"}
+                      onBlur={() => inlineBlur("lostReason", { lostReason: form.lostReason || null })}
+                      onKeyDown={(e) => inlineKeyDown("lostReason", { lostReason: form.lostReason || null }, e)} />
                   ) : (
-                    <span className={viewValueStyle}>{form.lostReason || "—"}</span>
+                    viewWrap("lostReason", form.lostReason || "—")
                   )}
                 </div>
               ) : (
@@ -721,28 +833,36 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               {/* Row 6: Est. Value / (empty) */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 110 }}>Est. Value</label>
-                {isEditing ? (
+                {isFieldEditing("estimatedValue") ? (
                   <input
                     className={inputStyle}
-                    value={form.estimatedValue ? `$${Number(form.estimatedValue).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/[^0-9.]/g, "");
-                      setField("estimatedValue", raw);
-                    }}
-                    placeholder="$0.00"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.estimatedValue}
+                    onChange={(e) => setField("estimatedValue", e.target.value)}
+                    placeholder="0.00"
+                    autoFocus={inlineEditField === "estimatedValue"}
+                    onBlur={() => inlineBlur("estimatedValue", { estimatedValue: form.estimatedValue ? parseFloat(form.estimatedValue) : null })}
+                    onKeyDown={(e) => inlineKeyDown("estimatedValue", { estimatedValue: form.estimatedValue ? parseFloat(form.estimatedValue) : null }, e)}
                   />
                 ) : (
-                  <span className={viewValueStyle}>{form.estimatedValue ? formatCurrency(Number(form.estimatedValue)) : "—"}</span>
+                  viewWrap("estimatedValue", form.estimatedValue ? formatCurrency(Number(form.estimatedValue)) : "—")
                 )}
               </div>
               <div className="border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]" />
               {/* Row 7: Close Date / (empty) */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
                 <label className={labelStyle} style={{ width: 110 }}>Close Date</label>
-                {isEditing ? (
-                  <input className={inputStyle} type="date" value={form.expectedCloseDate} onChange={(e) => setField("expectedCloseDate", e.target.value)} />
+                {isFieldEditing("expectedCloseDate") ? (
+                  <input className={inputStyle} type="date" value={form.expectedCloseDate}
+                    onChange={(e) => {
+                      setField("expectedCloseDate", e.target.value);
+                      if (inlineEditField === "expectedCloseDate") saveInlineField({ expectedCloseDate: e.target.value || null });
+                    }}
+                    autoFocus={inlineEditField === "expectedCloseDate"} />
                 ) : (
-                  <span className={viewValueStyle}>{form.expectedCloseDate ? formatDisplayDate(form.expectedCloseDate) : "—"}</span>
+                  viewWrap("expectedCloseDate", form.expectedCloseDate ? formatDisplayDate(form.expectedCloseDate) : "—")
                 )}
               </div>
               <div className="border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]" />
@@ -754,26 +874,47 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
             <div>
               <div className="px-4 py-2.5 border-b border-[#e8e8e8]">
                 <label className={`${labelStyle} block mb-1`}>Description</label>
-                {isEditing ? (
-                  <textarea className={`${inputStyle} h-[60px]`} value={form.description} onChange={(e) => setField("description", e.target.value)} />
+                {isFieldEditing("description") ? (
+                  <textarea className={`${inputStyle} h-[60px]`} value={form.description} onChange={(e) => setField("description", e.target.value)}
+                    autoFocus={inlineEditField === "description"}
+                    onBlur={() => inlineBlur("description", { description: form.description || null })}
+                    onKeyDown={(e) => { if (e.key === "Escape") cancelInlineEdit(); }} />
                 ) : (
-                  <div className="text-[12px] text-[#333] whitespace-pre-wrap min-h-[20px]">{form.description || "—"}</div>
+                  <div className={`text-[12px] text-[#333] whitespace-pre-wrap min-h-[20px] group/f ${!isNew ? "cursor-pointer" : ""}`}
+                    onDoubleClick={() => { if (!isNew) setInlineEditField("description"); }}>
+                    {form.description || "—"}
+                    {!isNew && <Pencil className="w-3 h-3 text-[#c0c0c0] opacity-0 group-hover/f:opacity-60 inline-block ml-1" />}
+                  </div>
                 )}
               </div>
               <div className="px-4 py-2.5 border-b border-[#e8e8e8]">
                 <label className={`${labelStyle} block mb-1`}>Next Step</label>
-                {isEditing ? (
-                  <textarea className={`${inputStyle} h-[40px]`} value={form.nextStep} onChange={(e) => setField("nextStep", e.target.value)} />
+                {isFieldEditing("nextStep") ? (
+                  <textarea className={`${inputStyle} h-[40px]`} value={form.nextStep} onChange={(e) => setField("nextStep", e.target.value)}
+                    autoFocus={inlineEditField === "nextStep"}
+                    onBlur={() => inlineBlur("nextStep", { nextStep: form.nextStep || null })}
+                    onKeyDown={(e) => { if (e.key === "Escape") cancelInlineEdit(); }} />
                 ) : (
-                  <div className="text-[12px] text-[#333] whitespace-pre-wrap min-h-[20px]">{form.nextStep || "—"}</div>
+                  <div className={`text-[12px] text-[#333] whitespace-pre-wrap min-h-[20px] group/f ${!isNew ? "cursor-pointer" : ""}`}
+                    onDoubleClick={() => { if (!isNew) setInlineEditField("nextStep"); }}>
+                    {form.nextStep || "—"}
+                    {!isNew && <Pencil className="w-3 h-3 text-[#c0c0c0] opacity-0 group-hover/f:opacity-60 inline-block ml-1" />}
+                  </div>
                 )}
               </div>
               <div className="px-4 py-2.5">
                 <label className={`${labelStyle} block mb-1`}>Remarks</label>
-                {isEditing ? (
-                  <textarea className={`${inputStyle} h-[40px]`} value={form.remarks} onChange={(e) => setField("remarks", e.target.value)} />
+                {isFieldEditing("remarks") ? (
+                  <textarea className={`${inputStyle} h-[40px]`} value={form.remarks} onChange={(e) => setField("remarks", e.target.value)}
+                    autoFocus={inlineEditField === "remarks"}
+                    onBlur={() => inlineBlur("remarks", { remarks: form.remarks || null })}
+                    onKeyDown={(e) => { if (e.key === "Escape") cancelInlineEdit(); }} />
                 ) : (
-                  <div className="text-[12px] text-[#333] whitespace-pre-wrap min-h-[20px]">{form.remarks || "—"}</div>
+                  <div className={`text-[12px] text-[#333] whitespace-pre-wrap min-h-[20px] group/f ${!isNew ? "cursor-pointer" : ""}`}
+                    onDoubleClick={() => { if (!isNew) setInlineEditField("remarks"); }}>
+                    {form.remarks || "—"}
+                    {!isNew && <Pencil className="w-3 h-3 text-[#c0c0c0] opacity-0 group-hover/f:opacity-60 inline-block ml-1" />}
+                  </div>
                 )}
               </div>
             </div>

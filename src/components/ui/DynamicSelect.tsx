@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { usePicklistValues } from "@/hooks/usePicklistValues";
 import { usePermissions } from "@/context/PermissionsContext";
@@ -21,6 +21,11 @@ interface DynamicSelectProps {
   className?: string;
   disabled?: boolean;
   /**
+   * When true and value is empty, automatically apply the picklist default
+   * value (if one is configured). Use this for new record forms only.
+   */
+  applyDefault?: boolean;
+  /**
    * Optional fallback options displayed when the DB has no picklist values
    * for this pageId/fieldName. Once an admin adds values through the
    * Picklist Editor, DB values take over and these are ignored.
@@ -37,12 +42,24 @@ export function DynamicSelect({
   includeEmpty = true,
   className,
   disabled = false,
+  applyDefault = false,
   fallbackOptions,
 }: DynamicSelectProps) {
-  const { options, isLoading, getLabel, refresh } = usePicklistValues(pageId, fieldName);
+  const { options, isLoading, getLabel, getDefault, refresh } = usePicklistValues(pageId, fieldName);
   const { data: session } = useSession();
   const { isUnrestricted } = usePermissions();
   const [editorOpen, setEditorOpen] = useState(false);
+  const appliedDefault = useRef(false);
+
+  // Auto-apply default value when value is empty and options finish loading
+  useEffect(() => {
+    if (!applyDefault || isLoading || appliedDefault.current || value) return;
+    const def = getDefault();
+    if (def) {
+      appliedDefault.current = true;
+      onChange(def.value);
+    }
+  }, [applyDefault, isLoading, value, getDefault, onChange]);
 
   // Admin check: unrestricted (auth off or GodAdmin) or Admin role
   const userRole = (session?.user as any)?.role;

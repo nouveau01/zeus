@@ -497,6 +497,7 @@ export function TabContent() {
     const oppId = opportunityDetailMatch[1];
     return (
       <OpportunityDetail
+        key={oppId}
         opportunityId={oppId}
         onClose={() => closeTab(activeTab.id)}
       />
