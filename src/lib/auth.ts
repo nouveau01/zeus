@@ -228,7 +228,10 @@ export function buildAuthOptions(): NextAuthOptions {
     providers,
     callbacks,
     pages: { signIn: "/login" },
-    session: { strategy: "jwt" },
+    session: {
+      strategy: "jwt",
+      maxAge: 30 * 24 * 60 * 60, // 30 days (in seconds)
+    },
     secret: process.env.NEXTAUTH_SECRET,
   };
 }
