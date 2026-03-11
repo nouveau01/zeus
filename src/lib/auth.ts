@@ -83,17 +83,21 @@ export async function getSessionOrBypass() {
   const tokenCookie = cookieStore.get("next-auth.session-token")?.value
     || cookieStore.get("__Secure-next-auth.session-token")?.value;
   if (tokenCookie && process.env.NEXTAUTH_SECRET) {
-    const decoded = await decode({ token: tokenCookie, secret: process.env.NEXTAUTH_SECRET });
-    if (decoded?.email) {
-      return {
-        user: {
-          id: decoded.id as string,
-          name: decoded.name as string,
-          email: decoded.email as string,
-          role: decoded.role as string,
-          primaryOfficeId: decoded.primaryOfficeId as string | null,
-        },
-      };
+    try {
+      const decoded = await decode({ token: tokenCookie, secret: process.env.NEXTAUTH_SECRET });
+      if (decoded?.email) {
+        return {
+          user: {
+            id: decoded.id as string,
+            name: decoded.name as string,
+            email: decoded.email as string,
+            role: decoded.role as string,
+            primaryOfficeId: decoded.primaryOfficeId as string | null,
+          },
+        };
+      }
+    } catch {
+      // JWT corrupt or encrypted with a different secret — treat as unauthenticated
     }
   }
 
