@@ -10,6 +10,8 @@ import { AutocompleteInput, AutocompleteResult } from "@/components/Autocomplete
 import { usePicklistValues } from "@/hooks/usePicklistValues";
 import { useSession } from "next-auth/react";
 import { usePermissions } from "@/context/PermissionsContext";
+import { useRequiredFields } from "@/hooks/useRequiredFields";
+import { validateRequiredFields } from "@/lib/detail-registry/validation";
 
 interface OpportunityData {
   id: string;
@@ -71,6 +73,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
   const { data: session } = useSession();
   const { isUnrestricted } = usePermissions();
   const { options: stageOptions } = usePicklistValues("opportunities", "stage");
+  const { layout: oppLayout, fieldDefs: oppFieldDefs, reqMark } = useRequiredFields("opportunities-detail");
 
   // Current user info for ownership
   const currentUserName = (session?.user as any)?.name || (session?.user as any)?.email || "";
@@ -363,6 +366,12 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
   const isDirty = JSON.stringify(form) !== JSON.stringify(original) || originalUnitIds !== currentUnitIds;
 
   const handleSave = async () => {
+    // Validate admin-configured required fields
+    const missing = oppLayout ? validateRequiredFields(oppLayout, oppFieldDefs, form) : [];
+    if (missing.length > 0) {
+      await xpAlert(`Please fill in required fields: ${missing.join(", ")}`);
+      return;
+    }
     if (!form.name.trim()) {
       await xpAlert("Opportunity Name is required.");
       return;
@@ -647,7 +656,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
             <div className="grid grid-cols-2">
               {/* Row 1: Opp Name / Type */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 110 }}>Opp Name</label>
+                <label className={labelStyle} style={{ width: 110 }}>Opp Name{reqMark("name")}</label>
                 {isFieldEditing("name") ? (
                   <input className={inputStyle} value={form.name} onChange={(e) => setField("name", e.target.value)}
                     autoFocus={inlineEditField === "name"}
@@ -658,7 +667,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
                 )}
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 100 }}>Type</label>
+                <label className={labelStyle} style={{ width: 100 }}>Type{reqMark("type")}</label>
                 {isFieldEditing("type") ? (
                   <DynamicSelect
                     pageId="opportunities"
@@ -678,7 +687,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               </div>
               {/* Row 2: Customer / Stage */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 110 }}>Customer</label>
+                <label className={labelStyle} style={{ width: 110 }}>Customer{reqMark("customerId")}</label>
                 {isFieldEditing("customer") ? (
                   <AutocompleteInput
                     value={form.customerName}
@@ -700,7 +709,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
                 )}
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 100 }}>Stage</label>
+                <label className={labelStyle} style={{ width: 100 }}>Stage{reqMark("stage")}</label>
                 {isFieldEditing("stage") ? (
                   <DynamicSelect
                     pageId="opportunities"
@@ -725,7 +734,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               </div>
               {/* Row 3: Account / Probability */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 110 }}>Account</label>
+                <label className={labelStyle} style={{ width: 110 }}>Account{reqMark("premisesId")}</label>
                 {isFieldEditing("account") ? (
                   <AutocompleteInput
                     value={form.accountName}
@@ -748,7 +757,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
                 )}
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 100 }}>Probability</label>
+                <label className={labelStyle} style={{ width: 100 }}>Probability{reqMark("probability")}</label>
                 {isFieldEditing("probability") ? (
                   <div className="flex items-center gap-1 w-full">
                     <input className={inputStyle} type="number" min="0" max="100" value={form.probability}
@@ -764,7 +773,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               </div>
               {/* Row 4: Contact / Owner */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 110 }}>Contact</label>
+                <label className={labelStyle} style={{ width: 110 }}>Contact{reqMark("contactId")}</label>
                 {isFieldEditing("contact") ? (
                   <AutocompleteInput
                     value={form.contactName}
@@ -787,7 +796,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
                 )}
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 100 }}>Owner</label>
+                <label className={labelStyle} style={{ width: 100 }}>Owner{reqMark("owner")}</label>
                 {isFieldEditing("owner") ? (
                   <input
                     className={`${inputStyle} ${!isNew && !isAdminUser && form.owner !== currentUserName ? "bg-[#f0f0f0] text-[#666]" : ""}`}
@@ -871,7 +880,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               </div>
               {form.stage === "Closed Lost" ? (
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]">
-                  <label className={labelStyle} style={{ width: 100 }}>Lost Reason</label>
+                  <label className={labelStyle} style={{ width: 100 }}>Lost Reason{reqMark("lostReason")}</label>
                   {isFieldEditing("lostReason") ? (
                     <input className={inputStyle} value={form.lostReason} onChange={(e) => setField("lostReason", e.target.value)}
                       autoFocus={inlineEditField === "lostReason"}
@@ -886,7 +895,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               )}
               {/* Row 6: Est. Value / (empty) */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 110 }}>Est. Value</label>
+                <label className={labelStyle} style={{ width: 110 }}>Est. Value{reqMark("estimatedValue")}</label>
                 {isFieldEditing("estimatedValue") ? (
                   <input
                     className={inputStyle}
@@ -907,7 +916,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
               <div className="border-b border-[#e8e8e8] border-l border-l-[#e8e8e8]" />
               {/* Row 7: Close Date / (empty) */}
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#e8e8e8]">
-                <label className={labelStyle} style={{ width: 110 }}>Close Date</label>
+                <label className={labelStyle} style={{ width: 110 }}>Close Date{reqMark("expectedCloseDate")}</label>
                 {isFieldEditing("expectedCloseDate") ? (
                   <input className={inputStyle} type="date" value={form.expectedCloseDate}
                     onChange={(e) => {
@@ -927,7 +936,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
             </div>
             <div>
               <div className="px-4 py-2.5 border-b border-[#e8e8e8]">
-                <label className={`${labelStyle} block mb-1`}>Description</label>
+                <label className={`${labelStyle} block mb-1`}>Description{reqMark("description")}</label>
                 {isFieldEditing("description") ? (
                   <textarea className={`${inputStyle} h-[60px]`} value={form.description} onChange={(e) => setField("description", e.target.value)}
                     autoFocus={inlineEditField === "description"}
@@ -942,7 +951,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
                 )}
               </div>
               <div className="px-4 py-2.5 border-b border-[#e8e8e8]">
-                <label className={`${labelStyle} block mb-1`}>Next Step</label>
+                <label className={`${labelStyle} block mb-1`}>Next Step{reqMark("nextStep")}</label>
                 {isFieldEditing("nextStep") ? (
                   <textarea className={`${inputStyle} h-[40px]`} value={form.nextStep} onChange={(e) => setField("nextStep", e.target.value)}
                     autoFocus={inlineEditField === "nextStep"}
@@ -957,7 +966,7 @@ export default function OpportunityDetail({ opportunityId, onClose }: Opportunit
                 )}
               </div>
               <div className="px-4 py-2.5">
-                <label className={`${labelStyle} block mb-1`}>Remarks</label>
+                <label className={`${labelStyle} block mb-1`}>Remarks{reqMark("remarks")}</label>
                 {isFieldEditing("remarks") ? (
                   <textarea className={`${inputStyle} h-[40px]`} value={form.remarks} onChange={(e) => setField("remarks", e.target.value)}
                     autoFocus={inlineEditField === "remarks"}

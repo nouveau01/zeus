@@ -49,7 +49,7 @@ export const OPPORTUNITY_DETAIL: DetailPageDefinition = {
             visible: true,
             fields: [
               { fieldName: "opportunityNumber", label: "Opportunity #", column: 0, visible: true, readOnly: true, labelWidth: 110 },
-              { fieldName: "name", label: "Opportunity Name", column: 0, visible: true, labelWidth: 120 },
+              { fieldName: "name", label: "Opportunity Name", column: 0, visible: true, labelWidth: 120, required: true },
               { fieldName: "type", label: "Type", column: 1, visible: true },
               { fieldName: "stage", label: "Stage", column: 1, visible: true },
               { fieldName: "probability", label: "Probability (%)", column: 1, visible: true, labelWidth: 110 },
