@@ -390,7 +390,7 @@ model Premises {
   billing     Int?     @default(0)                  // Loc.Billing (smallint)
   route       Int?     @default(0)                  // Loc.Route
   zone        Int?     @default(0)                  // Loc.Zone
-  terr        Int?     @default(0)                  // Loc.Terr (territory)
+  terr        String?                                // Loc.Terr (territory)
   priceL      Int?     @default(0) @map("price_l")  // Loc.PriceL (price level)
   maint       Int?     @default(0)                  // Loc.Maint
   inUse       Int?     @default(0) @map("in_use")   // Loc.InUse
@@ -2745,6 +2745,7 @@ model PortalUser {
   phone             String?
   title             String?
   isActive          Boolean   @default(true) @map("is_active")
+  isAdmin           Boolean   @default(false) @map("is_admin")
   mustResetPassword Boolean   @default(true) @map("must_reset_password")
   lastLogin         DateTime? @map("last_login")
   resetToken        String?   @unique @map("reset_token")

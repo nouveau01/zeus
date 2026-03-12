@@ -282,7 +282,7 @@ export default function CustomersPage() {
   const getCustomerFieldValue = (customer: Customer, fieldKey: string): string => {
     switch (fieldKey) {
       case "numAccounts": return String(customer._count?.premises || 0);
-      case "numUnits": return String(customer._count?.jobs || 0);
+      case "numUnits": return String(customer._count?.units || 0);
       case "address": return customer.address || "";
       case "balance": return String(customer.balance || 0);
       case "billingType": return getBillingTypeText(customer.billing);
@@ -369,8 +369,8 @@ export default function CustomersPage() {
         bVal = b._count?.premises || 0;
         break;
       case "units":
-        aVal = a._count?.jobs || 0;
-        bVal = b._count?.jobs || 0;
+        aVal = a._count?.units || 0;
+        bVal = b._count?.units || 0;
         break;
       case "balance":
         aVal = Number(a.balance);
@@ -388,7 +388,7 @@ export default function CustomersPage() {
   // Calculate totals from filtered customers
   const totals = {
     accts: filteredCustomers.reduce((sum, c) => sum + (c._count?.premises || 0), 0),
-    units: filteredCustomers.reduce((sum, c) => sum + (c._count?.jobs || 0), 0),
+    units: filteredCustomers.reduce((sum, c) => sum + (c._count?.units || 0), 0),
     balance: filteredCustomers.reduce((sum, c) => sum + Number(c.balance), 0),
   };
 

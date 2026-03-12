@@ -60,8 +60,24 @@ export function OfficesProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setOffices(data);
-        // Default selection: primary office if set, otherwise all offices
-        if (primaryOfficeId && data.some((o: Office) => o.id === primaryOfficeId)) {
+        // Restore saved selection from localStorage, or fall back to primary/all
+        const saved = localStorage.getItem("zeus-selected-offices");
+        if (saved) {
+          try {
+            const savedIds: string[] = JSON.parse(saved);
+            // Only use saved IDs that are still valid for this user
+            const validIds = savedIds.filter((id: string) => data.some((o: Office) => o.id === id));
+            if (validIds.length > 0) {
+              setSelectedOfficeIds(validIds);
+            } else if (primaryOfficeId && data.some((o: Office) => o.id === primaryOfficeId)) {
+              setSelectedOfficeIds([primaryOfficeId]);
+            } else {
+              setSelectedOfficeIds(data.map((o: Office) => o.id));
+            }
+          } catch {
+            setSelectedOfficeIds(data.map((o: Office) => o.id));
+          }
+        } else if (primaryOfficeId && data.some((o: Office) => o.id === primaryOfficeId)) {
           setSelectedOfficeIds([primaryOfficeId]);
         } else {
           setSelectedOfficeIds(data.map((o: Office) => o.id));
@@ -83,6 +99,12 @@ export function OfficesProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, [status, fetchOffices]);
+
+  // Persist office selection to localStorage
+  const handleSetSelectedOfficeIds = useCallback((ids: string[]) => {
+    setSelectedOfficeIds(ids);
+    try { localStorage.setItem("zeus-selected-offices", JSON.stringify(ids)); } catch {}
+  }, []);
 
   const officeCodes = offices.map((o) => o.code);
   const officeIds = offices.map((o) => o.id);
@@ -115,7 +137,7 @@ export function OfficesProvider({ children }: { children: ReactNode }) {
         isLoading,
         refetch: fetchOffices,
         selectedOfficeIds,
-        setSelectedOfficeIds,
+        setSelectedOfficeIds: handleSetSelectedOfficeIds,
         allSelected,
         primaryOfficeId,
         officeFilterParam,

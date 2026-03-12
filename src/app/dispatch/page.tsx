@@ -308,7 +308,9 @@ export default function DispatchPage() {
     if (!force && premisesId === summaryAccountId) return; // already loaded for this account
 
     // Abort any in-flight request
-    if (summaryAbortRef.current) summaryAbortRef.current.abort();
+    if (summaryAbortRef.current) {
+      try { summaryAbortRef.current.abort("cancelled"); } catch {}
+    }
     const abortController = new AbortController();
     summaryAbortRef.current = abortController;
 
@@ -369,7 +371,8 @@ export default function DispatchPage() {
 
       setSummaryLoading(false);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (err instanceof DOMException || (err instanceof Error && err.name === "AbortError")) return;
+      if (typeof err === "string" && err === "cancelled") return;
       setAccountSummary("Unable to generate summary.");
       setSummaryLoading(false);
     }

@@ -40,31 +40,60 @@ export const ACCOUNT_DETAIL: DetailPageDefinition = {
     },
     { fieldName: "balance", defaultLabel: "Balance", type: "readonly", defaultLabelWidth: 80, format: "currency" },
 
-    // Control tab
+    // Control tab — left column
     {
-      fieldName: "type", defaultLabel: "Type", type: "select", defaultLabelWidth: 80,
-      staticOptions: [
-        { value: "S", label: "S" },
-        { value: "H", label: "H" },
-        { value: "MOD", label: "MOD" },
-        { value: "Resident Mech.", label: "Resident Mech." },
-        { value: "Non-Contract", label: "Non-Contract" },
-      ],
+      fieldName: "type", defaultLabel: "Type", type: "dynamic-select", defaultLabelWidth: 96,
+      picklistPageId: "accounts", picklistFieldName: "type",
+      fallbackOptions: ["S", "H", "SH", "MOD", "Resident Mech.", "Non-Contract"],
     },
     {
-      fieldName: "isActive", defaultLabel: "Status", type: "select", defaultLabelWidth: 80,
+      fieldName: "isActive", defaultLabel: "Status", type: "select", defaultLabelWidth: 96,
       valueGetter: (data) => (data.isActive ? "Active" : "Inactive"),
       staticOptions: [
         { value: "Active", label: "Active" },
         { value: "Inactive", label: "Inactive" },
       ],
     },
+    {
+      fieldName: "terr", defaultLabel: "Territory", type: "select", defaultLabelWidth: 96,
+      staticOptions: [
+        { value: "RS", label: "RS" },
+        { value: "DS", label: "DS" },
+        { value: "DWS", label: "DWS" },
+        { value: "SS", label: "SS" },
+        { value: "VS", label: "VS" },
+        { value: "HS", label: "HS" },
+      ],
+    },
+    { fieldName: "route", defaultLabel: "Route", type: "text", defaultLabelWidth: 96 },
+    {
+      fieldName: "billing", defaultLabel: "Contract Billing", type: "dynamic-select", defaultLabelWidth: 96,
+      picklistPageId: "accounts", picklistFieldName: "billing",
+      fallbackOptions: ["Monthly", "Quarterly", "Semi-Annual", "Annual"],
+    },
+    {
+      fieldName: "terms", defaultLabel: "Terms", type: "dynamic-select", defaultLabelWidth: 96,
+      picklistPageId: "accounts", picklistFieldName: "terms",
+      fallbackOptions: ["Net 30", "Net 60", "Net 90", "Due on Receipt"],
+    },
+    { fieldName: "currentYearSales", defaultLabel: "Current Year Sales", type: "currency", defaultLabelWidth: 96, format: "currency" },
+
+    // Control tab — right column
+    { fieldName: "sTax", defaultLabel: "Sales Tax 1", type: "text", defaultLabelWidth: 96 },
+    { fieldName: "sTax2", defaultLabel: "Sales Tax 2", type: "text", defaultLabelWidth: 96 },
+    { fieldName: "uTax", defaultLabel: "Use Tax", type: "text", defaultLabelWidth: 96 },
+    { fieldName: "zone", defaultLabel: "Zone", type: "text", defaultLabelWidth: 96 },
+    {
+      fieldName: "priceL", defaultLabel: "Price Level", type: "dynamic-select", defaultLabelWidth: 96,
+      picklistPageId: "accounts", picklistFieldName: "priceL",
+      fallbackOptions: ["Standard", "Premium", "Economy"],
+    },
+    { fieldName: "priorYearSales", defaultLabel: "Prior Year Sales", type: "currency", defaultLabelWidth: 96, format: "currency" },
 
     // Custom tab fields
     { fieldName: "custom1", defaultLabel: "Custom1", type: "text", defaultLabelWidth: 80 },
     { fieldName: "custom2", defaultLabel: "Custom2", type: "text", defaultLabelWidth: 80 },
     { fieldName: "maint", defaultLabel: "Maint", type: "text", defaultLabelWidth: 80 },
-    { fieldName: "billing", defaultLabel: "Billing", type: "text", defaultLabelWidth: 80 },
 
     // Remarks tab
     { fieldName: "remarks", defaultLabel: "Account Remarks", type: "textarea", defaultColSpan: 2 },
@@ -128,8 +157,19 @@ export const ACCOUNT_DETAIL: DetailPageDefinition = {
             columns: 2,
             visible: true,
             fields: [
-              { fieldName: "type", label: "Type", column: 0, visible: true },
-              { fieldName: "isActive", label: "Status", column: 0, visible: true },
+              { fieldName: "type", label: "Type", column: 0, visible: true, labelWidth: 96 },
+              { fieldName: "isActive", label: "Status", column: 0, visible: true, labelWidth: 96 },
+              { fieldName: "terr", label: "Territory", column: 0, visible: true, labelWidth: 96 },
+              { fieldName: "route", label: "Route", column: 0, visible: true, labelWidth: 96 },
+              { fieldName: "billing", label: "Contract Billing", column: 0, visible: true, labelWidth: 96 },
+              { fieldName: "terms", label: "Terms", column: 0, visible: true, labelWidth: 96 },
+              { fieldName: "currentYearSales", label: "Current Year Sales", column: 0, visible: true, labelWidth: 96 },
+              { fieldName: "sTax", label: "Sales Tax 1", column: 1, visible: true, labelWidth: 96 },
+              { fieldName: "sTax2", label: "Sales Tax 2", column: 1, visible: true, labelWidth: 96 },
+              { fieldName: "uTax", label: "Use Tax", column: 1, visible: true, labelWidth: 96 },
+              { fieldName: "zone", label: "Zone", column: 1, visible: true, labelWidth: 96 },
+              { fieldName: "priceL", label: "Price Level", column: 1, visible: true, labelWidth: 96 },
+              { fieldName: "priorYearSales", label: "Prior Year Sales", column: 1, visible: true, labelWidth: 96 },
             ],
           },
         ],

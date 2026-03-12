@@ -136,6 +136,9 @@ async function fetchCustomersFromPostgres(options: FetchCustomersOptions) {
       _count: {
         select: { premises: true },
       },
+      premises: {
+        select: { _count: { select: { units: true } } },
+      },
     },
   });
 
@@ -150,7 +153,7 @@ async function fetchCustomersFromPostgres(options: FetchCustomersOptions) {
     address: c.address,
     city: c.city,
     state: c.state,
-    zipCode: c.zip,
+    zipCode: c.zipCode,
     contact: c.contact,
     phone: c.phone,
     fax: c.fax,
@@ -161,6 +164,7 @@ async function fetchCustomersFromPostgres(options: FetchCustomersOptions) {
     remarks: c.remarks,
     _count: {
       premises: c._count.premises,
+      units: c.premises.reduce((sum, p) => sum + p._count.units, 0),
       jobs: 0,
     },
   }));

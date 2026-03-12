@@ -1324,42 +1324,62 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           </div>
           <div className="flex items-center gap-2">
             <label className="w-28 text-right text-[12px]">Territory</label>
-            <input
-              type="text"
+            <select
+              value={formData.terr || ""}
+              onChange={(e) => handleInputChange("terr", e.target.value)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
-            />
+            >
+              <option value="">Select...</option>
+              <option value="RS">RS</option>
+              <option value="DS">DS</option>
+              <option value="DWS">DWS</option>
+              <option value="SS">SS</option>
+              <option value="VS">VS</option>
+              <option value="HS">HS</option>
+            </select>
           </div>
           <div className="flex items-center gap-2">
             <label className="w-28 text-right text-[12px]">Route</label>
             <input
               type="text"
+              value={formData.route ?? ""}
+              onChange={(e) => handleInputChange("route", e.target.value ? parseInt(e.target.value) : null)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
           </div>
           <div className="flex items-center gap-2">
             <label className="w-28 text-right text-[12px]">Contract Billing</label>
-            <select className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white">
+            <select
+              value={formData.billing ?? ""}
+              onChange={(e) => handleInputChange("billing", e.target.value ? parseInt(e.target.value) : null)}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
+            >
               <option value="">Select...</option>
-              <option value="Monthly">Monthly</option>
-              <option value="Quarterly">Quarterly</option>
-              <option value="Annual">Annual</option>
+              <option value="1">Monthly</option>
+              <option value="2">Quarterly</option>
+              <option value="3">Semi-Annual</option>
+              <option value="4">Annual</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
             <label className="w-28 text-right text-[12px]">Terms</label>
-            <select className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white">
+            <select
+              value={formData.terms ?? ""}
+              onChange={(e) => handleInputChange("terms", e.target.value ? parseInt(e.target.value) : null)}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
+            >
               <option value="">Select...</option>
-              <option value="Net 30">Net 30</option>
-              <option value="Net 45">Net 45</option>
-              <option value="Net 60">Net 60</option>
-              <option value="Due on Receipt">Due on Receipt</option>
+              <option value="30">Net 30</option>
+              <option value="45">Net 45</option>
+              <option value="60">Net 60</option>
+              <option value="0">Due on Receipt</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
             <label className="w-28 text-right text-[12px]">Current Year Sales</label>
             <input
               type="text"
-              value="$0.00"
+              value={`$${Number(formData.currentYearSales || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
               readOnly
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-[#f0f0f0] text-right"
             />
@@ -1372,6 +1392,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             <label className="w-24 text-right text-[12px]">Sales Tax 1</label>
             <input
               type="text"
+              value={formData.sTax || ""}
+              onChange={(e) => handleInputChange("sTax", e.target.value)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
           </div>
@@ -1379,6 +1401,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             <label className="w-24 text-right text-[12px]">Sales Tax 2</label>
             <input
               type="text"
+              value={formData.sTax2 || ""}
+              onChange={(e) => handleInputChange("sTax2", e.target.value)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
           </div>
@@ -1386,6 +1410,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             <label className="w-24 text-right text-[12px]">Use Tax</label>
             <input
               type="text"
+              value={formData.uTax || ""}
+              onChange={(e) => handleInputChange("uTax", e.target.value)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
           </div>
@@ -1393,6 +1419,8 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
             <label className="w-24 text-right text-[12px]">Zone</label>
             <input
               type="text"
+              value={formData.zone ?? ""}
+              onChange={(e) => handleInputChange("zone", e.target.value ? parseInt(e.target.value) : null)}
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
             />
           </div>
@@ -1407,18 +1435,22 @@ export default function AccountDetail({ accountId, onClose }: AccountDetailProps
           </div>
           <div className="flex items-center gap-2">
             <label className="w-24 text-right text-[12px]">Price Level</label>
-            <select className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white">
+            <select
+              value={formData.priceL ?? ""}
+              onChange={(e) => handleInputChange("priceL", e.target.value ? parseInt(e.target.value) : null)}
+              className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-white"
+            >
               <option value="">Select...</option>
-              <option value="Standard">Standard</option>
-              <option value="Premium">Premium</option>
-              <option value="Discount">Discount</option>
+              <option value="1">Standard</option>
+              <option value="2">Premium</option>
+              <option value="3">Discount</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
             <label className="w-24 text-right text-[12px]">Prior Year Sales</label>
             <input
               type="text"
-              value="$0.00"
+              value={`$${Number(formData.priorYearSales || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
               readOnly
               className="flex-1 px-2 py-1 border border-[#a0a0a0] text-[12px] bg-[#f0f0f0] text-right"
             />
