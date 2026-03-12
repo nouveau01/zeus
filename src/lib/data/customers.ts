@@ -173,7 +173,12 @@ export async function fetchCustomerById(customerId: string) {
   if (!isSqlServerAvailable()) {
     return prisma.customer.findUnique({
       where: { id: customerId },
-      include: { premises: true },
+      include: {
+        premises: {
+          include: { _count: { select: { units: true } } },
+        },
+        contacts: { orderBy: { name: "asc" } },
+      },
     });
   }
 

@@ -53,6 +53,7 @@ export type FieldType =
   | "date"
   | "select"
   | "dynamic-select"
+  | "autocomplete"
   | "textarea"
   | "checkbox"
   | "readonly"
@@ -76,6 +77,12 @@ export interface FieldDefinition {
   picklistPageId?: string;
   picklistFieldName?: string;
   fallbackOptions?: string[];
+
+  // For type: "autocomplete"
+  autocompleteConfig?: {
+    searchType: "accounts" | "customers" | "units" | "jobs" | "contacts";
+    filterField?: string; // field name from formData to pass as filter param (e.g. "customerId")
+  };
 
   // Value transforms
   valueGetter?: (data: any) => any;

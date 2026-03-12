@@ -10,6 +10,7 @@ import {
 import { DetailSectionConfig, DetailFieldPlacement, FieldDefinition } from "@/lib/detail-registry/types";
 import { DetailField } from "./DetailField";
 import { AddressSelection } from "@/components/ui/AddressAutocomplete";
+import { AutocompleteResult } from "@/components/AutocompleteInput";
 
 interface DetailSectionProps {
   section: DetailSectionConfig;
@@ -34,6 +35,8 @@ interface DetailSectionProps {
   onFieldDoubleClick?: (fieldName: string) => void;
   onFieldBlur?: (fieldName: string) => void;
   onFieldKeyDown?: (fieldName: string, e: React.KeyboardEvent) => void;
+  // Autocomplete support
+  onAutocompleteSelect?: (fieldName: string, result: AutocompleteResult) => void;
 }
 
 export function DetailSection({
@@ -55,6 +58,7 @@ export function DetailSection({
   onFieldDoubleClick,
   onFieldBlur,
   onFieldKeyDown,
+  onAutocompleteSelect,
 }: DetailSectionProps) {
   const [dragOverField, setDragOverField] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<number | null>(null);
@@ -363,6 +367,9 @@ export function DetailSection({
         fallbackOptions={def.fallbackOptions}
         format={def.format}
         onAddressSelect={makeAddressSelectHandler(placement.fieldName)}
+        autocompleteConfig={def.autocompleteConfig}
+        onAutocompleteSelect={onAutocompleteSelect}
+        formData={formData}
         editingField={editingField}
         onFieldDoubleClick={onFieldDoubleClick}
         onFieldBlur={onFieldBlur}

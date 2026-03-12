@@ -365,6 +365,18 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
     }
   }, []);
 
+  // Autocomplete select handler — auto-fill related fields when Primary Contact is selected
+  const handleAutocompleteSelect = useCallback((fieldName: string, result: any) => {
+    if (fieldName === "contact" && result.data) {
+      const c = result.data;
+      handleInputChange("contact", c.name || result.label);
+      if (c.phone) handleInputChange("phone", c.phone);
+      if (c.fax) handleInputChange("fax", c.fax);
+      if (c.mobile) handleInputChange("cellular", c.mobile);
+      if (c.email) handleInputChange("email", c.email);
+    }
+  }, []);
+
   const handleSave = async () => {
     if (layout) {
       const missing = validateRequiredFields(layout, fieldDefs, formData as Record<string, any>);
@@ -995,6 +1007,7 @@ export default function CustomerDetail({ customerId, onClose }: CustomerDetailPr
           gridColumns={gridColumns}
           gridDefs={registry?.grids}
           onUpdateGridColumns={updateGridColumns}
+          onAutocompleteSelect={handleAutocompleteSelect}
         >
           {renderAccountListing()}
         </DetailLayout>

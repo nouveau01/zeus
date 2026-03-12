@@ -4,6 +4,7 @@ import { Pencil } from "lucide-react";
 import { FieldType } from "@/lib/detail-registry/types";
 import { DynamicSelect } from "@/components/ui/DynamicSelect";
 import { AddressAutocomplete, AddressSelection } from "@/components/ui/AddressAutocomplete";
+import { AutocompleteInput, AutocompleteResult } from "@/components/AutocompleteInput";
 
 interface DetailFieldProps {
   fieldName: string;
@@ -24,6 +25,10 @@ interface DetailFieldProps {
   fallbackOptions?: string[];
   format?: string;
   onAddressSelect?: (addr: AddressSelection) => void;
+  // Autocomplete support
+  autocompleteConfig?: { searchType: "accounts" | "customers" | "units" | "jobs" | "contacts"; filterField?: string };
+  onAutocompleteSelect?: (fieldName: string, result: AutocompleteResult) => void;
+  formData?: Record<string, any>;
   // Inline edit support — double-click a field in view mode to edit just that field
   editingField?: string | null;
   onFieldDoubleClick?: (fieldName: string) => void;
@@ -50,6 +55,9 @@ export function DetailField({
   fallbackOptions,
   format,
   onAddressSelect,
+  autocompleteConfig,
+  onAutocompleteSelect,
+  formData,
   editingField,
   onFieldDoubleClick,
   onFieldBlur,
@@ -194,6 +202,50 @@ export function DetailField({
             autoFocus={isInlineEditing}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
+            className={inputClass}
+          />
+        );
+
+      case "autocomplete":
+        if (isReadOnly) {
+          return (
+            <div className={hasInlineEdit
+              ? "flex-1 border border-[#7f9db9] bg-white px-2 py-1 text-[12px] text-[#000] cursor-pointer"
+              : "flex-1 border border-[#d0d0d0] bg-[#f5f5f5] px-2 py-1 text-[12px] text-[#666]"
+            }>
+              {value || ""}
+            </div>
+          );
+        }
+        if (autocompleteConfig) {
+          const filterParams: Record<string, string> = {};
+          if (autocompleteConfig.filterField) {
+            // Check formData for the filter field directly, or fall back to entity id
+            const filterValue = formData?.[autocompleteConfig.filterField] || formData?.id;
+            if (filterValue) {
+              filterParams[autocompleteConfig.filterField] = filterValue;
+            }
+          }
+          return (
+            <AutocompleteInput
+              value={value || ""}
+              onChange={onChange}
+              onSelect={(result) => onAutocompleteSelect?.(fieldName, result)}
+              searchType={autocompleteConfig.searchType}
+              filterParams={filterParams}
+              placeholder={placeholder}
+              disabled={isReadOnly}
+              className={inputClass}
+            />
+          );
+        }
+        return (
+          <input
+            type="text"
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            readOnly={isReadOnly}
+            placeholder={placeholder}
             className={inputClass}
           />
         );

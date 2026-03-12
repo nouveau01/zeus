@@ -14,6 +14,7 @@ import {
   GridColumnPlacement,
 } from "@/lib/detail-registry/types";
 import { DetailSection } from "./DetailSection";
+import { AutocompleteResult } from "@/components/AutocompleteInput";
 
 interface DetailLayoutProps {
   layout: DetailLayoutConfig;
@@ -47,6 +48,8 @@ interface DetailLayoutProps {
   onFieldDoubleClick?: (fieldName: string) => void;
   onFieldBlur?: (fieldName: string) => void;
   onFieldKeyDown?: (fieldName: string, e: React.KeyboardEvent) => void;
+  // Autocomplete support
+  onAutocompleteSelect?: (fieldName: string, result: AutocompleteResult) => void;
 }
 
 export function DetailLayout({
@@ -73,6 +76,7 @@ export function DetailLayout({
   onFieldDoubleClick,
   onFieldBlur,
   onFieldKeyDown,
+  onAutocompleteSelect,
 }: DetailLayoutProps) {
   const { data: session } = useSession();
   const userProfile = (session?.user as any)?.profile;
@@ -425,6 +429,7 @@ export function DetailLayout({
                 onFieldDoubleClick={onFieldDoubleClick}
                 onFieldBlur={onFieldBlur}
                 onFieldKeyDown={onFieldKeyDown}
+                onAutocompleteSelect={onAutocompleteSelect}
               />
             ))}
           </div>

@@ -147,6 +147,11 @@ export async function GET(request: NextRequest) {
           ],
         } : {};
 
+        // Filter by customerId if provided (for Primary Contact autocomplete)
+        if (customerId) {
+          contactWhere.customerId = customerId;
+        }
+
         // Office scoping — only show contacts whose customer has premises in user's offices
         if (!scope.allOffices) {
           contactWhere.customer = { premises: { some: { OR: [{ officeId: { in: scope.officeIds } }, { officeId: null }] } } };
