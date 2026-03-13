@@ -348,7 +348,6 @@ async function executeGeneratePresentation(input: {
         tone: "Professional yet approachable",
         audience: "Building managers and property owners",
       },
-      cardOptions: { dimensions: "16x9" },
     };
 
     const gammaRes = await fetch("https://public-api.gamma.app/v1.0/generations", {
@@ -367,25 +366,27 @@ async function executeGeneratePresentation(input: {
     }
 
     const gammaData = await gammaRes.json();
+    console.log("Gamma initial response:", JSON.stringify(gammaData));
     const generationId = gammaData.generationId;
     if (!generationId) throw new Error("GENERATION_FAILED: Gamma did not return a generation ID. DO NOT RETRY.");
 
-    // Poll for completion (max ~120 seconds)
+    // Poll for completion (max ~180 seconds — Gamma can take 60-90s for 10-slide PPTX)
     let downloadUrl: string | undefined;
     let completed = false;
 
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 90; i++) {
       await new Promise((r) => setTimeout(r, 2000));
       const pollRes = await fetch(`https://public-api.gamma.app/v1.0/generations/${generationId}`, {
         headers: { "X-API-KEY": gammaApiKey },
       });
       if (pollRes.ok) {
         const pollData = await pollRes.json();
-        console.log(`Gamma poll ${i}: status=${pollData.status}`, pollData.status === "completed" ? JSON.stringify(Object.keys(pollData)) : "");
+        if (i < 3 || i % 10 === 0) console.log(`Gamma poll ${i}: status=${pollData.status}`, JSON.stringify(pollData));
         if (pollData.status === "completed") {
           completed = true;
-          // Try all known field names for the download URL
-          downloadUrl = pollData.downloadLink || pollData.pptxUrl || pollData.exportUrl || pollData.url;
+          // exportUrl = PPTX download, gammaUrl = web view
+          downloadUrl = pollData.exportUrl || pollData.gammaUrl || pollData.downloadLink || pollData.pptxUrl || pollData.url;
+          console.log("Gamma completed:", JSON.stringify(pollData));
           if (!downloadUrl) {
             // Scan all string values for a pptx export URL
             for (const [key, val] of Object.entries(pollData)) {
@@ -408,7 +409,7 @@ async function executeGeneratePresentation(input: {
     }
 
     if (!completed) {
-      throw new Error("GENERATION_FAILED: Gamma timed out after 120 seconds. DO NOT RETRY this tool call — tell the user to try again.");
+      throw new Error("GENERATION_FAILED: Gamma timed out after 180 seconds. DO NOT RETRY this tool call — tell the user to try again.");
     }
 
     return { generationId, downloadUrl };

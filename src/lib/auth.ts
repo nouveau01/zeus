@@ -71,12 +71,7 @@ export async function getSessionOrBypass() {
     return { user: _bypassUser };
   }
 
-  // Try getServerSession first (works with Google OAuth)
-  const { getServerSession } = await import("next-auth");
-  const session = await getServerSession(buildAuthOptions());
-  if (session) return session;
-
-  // Fallback: read JWT directly (fixes CredentialsProvider + getServerSession issue)
+  // Try JWT decode first — more reliable than getServerSession with CredentialsProvider
   const { cookies } = await import("next/headers");
   const { decode } = await import("next-auth/jwt");
   const cookieStore = await cookies();
@@ -97,8 +92,17 @@ export async function getSessionOrBypass() {
         };
       }
     } catch {
-      // JWT corrupt or encrypted with a different secret — treat as unauthenticated
+      // JWT decode failed — fall through to getServerSession
     }
+  }
+
+  // Fallback: getServerSession (works with Google OAuth sessions)
+  try {
+    const { getServerSession } = await import("next-auth");
+    const session = await getServerSession(buildAuthOptions());
+    if (session) return session;
+  } catch {
+    // getServerSession can throw on corrupt JWT — ignore
   }
 
   return null;

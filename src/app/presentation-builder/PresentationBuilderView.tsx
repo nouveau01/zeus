@@ -254,10 +254,13 @@ export default function PresentationBuilderView({ presentationId }: Presentation
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Request failed" }));
+        const errorMsg = res.status === 401
+          ? "Session expired. Please refresh the page and try again."
+          : err.error || "Something went wrong. Please try again.";
         setChatMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsg.id
-              ? { ...m, content: err.error || "Something went wrong. Please try again.", isStreaming: false }
+              ? { ...m, content: errorMsg, isStreaming: false }
               : m
           )
         );
